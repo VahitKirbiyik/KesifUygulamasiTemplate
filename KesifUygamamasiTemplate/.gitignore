@@ -1,0 +1,31 @@
+# Visual Studio dosyaları
+.vs/
+*.user
+*.suo
+
+# Build klasörleri
+bin/
+obj/
+
+# Rider IDE dosyaları
+.idea/
+
+# NuGet paketleri
+*.nupkg
+*.snupkg
+
+# Kullanıcı ve geçici dosyalar
+*.log
+*.tmp
+*.cache
+
+# Mac, Linux sistem dosyaları
+.DS_Store
+Thumbs.db
+
+# Paket yöneticisi klasörleri
+packages/
+
+# Diğer
+*.resharper
+*.sln.docstates
