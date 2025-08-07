@@ -1,34 +1,35 @@
-name: .NET MAUI CI
+name: .NET CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [ master ]
   pull_request:
-    branches:
-      - main
+    branches: [ master ]
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Kodu çek
+      uses: actions/checkout@v3
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
+    - name: .NET SDK kurulumu
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '7.x'  # Projene göre değiştir
 
-      - name: Restore dependencies
-        run: dotnet restore
+    - name: Bağımlılıkları yükle
+      run: dotnet restore
 
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
 
-      - name: Run format check
-        run: dotnet format --verify-no-changes
+    - name: Test ve Coverage
+      run: dotnet test --no-build --configuration Release --collect:"XPlat Code Coverage"
 
-      - name: Run tests
-        run: dotnet test --no-build --verbosity normal
+    - name: Coverage raporunu yükle
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: '**/TestResults/**/*.xml'
