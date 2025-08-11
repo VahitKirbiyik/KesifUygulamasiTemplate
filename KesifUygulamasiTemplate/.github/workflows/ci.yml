@@ -1,0 +1,117 @@
+name: .NET MAUI CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      PACKAGE_NAME: 'com.vahit.kesifuygulamasi'
+    steps:
+      # 1) Checkout
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Version bump için gerekli
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 2) Setup .NET 8 with v3
+      - name: Setup .NET 8
+        uses: actions/setup-dotenv@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      # 3) Install Android workload
+      - name: Install Android workload
+        run: dotnet workload install android
+
+      # 4) Restore dependencies
+      - name: Restore dependencies
+        run: dotnet restore
+
+      # 5) Build and Create Android .aab using msbuild Bundle target
+      - name: Make Android AAB build script executable
+        run: chmod +x scripts/build-android-aab.sh
+
+      - name: Build Android AAB with msbuild Bundle
+        id: build_aab
+        run: ./scripts/build-android-aab.sh | tee build.log
+
+      # 6) Run tests
+      - name: Run Tests
+        run: dotnet test KesifUygulamasiTemplate.Tests/KesifUygulamasiTemplate.Tests.csproj --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" | tee test.log
+
+      # 7) Upload artifacts: .aab from artifacts/, test results, build logs
+      - name: Upload AAB Artifacts
+        if: steps.build_aab.outputs.primary_aab != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aab
+          path: ./artifacts/*.aab
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            **/test-results.trx
+            **/TestResults/*.xml
+            test.log
+
+      - name: Upload Build Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: build.log
+
+      # 8) Version bump (patch) - sadece başarılı build sonrası ve main branch
+      - name: Make version bump script executable
+        if: github.ref == 'refs/heads/main' && success()
+        run: chmod +x scripts/version-bump.sh
+
+      - name: Version Bump (patch)
+        if: github.ref == 'refs/heads/main' && success()
+        id: version_bump
+        run: ./scripts/version-bump.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 9) Deploy to Google Play - sadece main branch ve başarılı build sonrası
+      - name: Deploy to Google Play
+        if: github.ref == 'refs/heads/main' && success()
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+          packageName: ${{ env.PACKAGE_NAME || 'com.vahit.kesifuygulamasi' }}
+          releaseFiles: ./artifacts/*.aab
+          track: internal
+          status: completed
+          changesNotSentForReview: true
+
+      # Error notification
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "::error::Build, test veya deploy başarısız! Artifact'leri kontrol edin:"
+          echo "::error::- android-aab: AAB dosyası (./artifacts/ içinde)"
+          echo "::error::- test-results: Test sonuçları ve logları"
+          echo "::error::- build-logs: Build detayları"
+
+      # Success notification
+      - name: Notify on Success
+        if: github.ref == 'refs/heads/main' && success()
+        run: |
+          echo "✅ Pipeline başarıyla tamamlandı!"
+          echo "📦 AAB dosyası sayısı: ${{ steps.build_aab.outputs.aab_count }}"
+          echo "📁 Artifacts klasörü: ${{ steps.build_aab.outputs.artifacts_dir }}"
+          echo "🎯 Ana AAB dosyası: ${{ steps.build_aab.outputs.primary_aab }}"
+          if [ -n "${{ steps.version_bump.outputs.new_version }}" ]; then
+            echo "🚀 Yeni version: ${{ steps.version_bump.outputs.new_version }}"
+            echo "🏷️  Yeni tag: ${{ steps.version_bump.outputs.tag_name }}"
+          fi
