@@ -1,0 +1,37 @@
+name: Device Tests on Self-Hosted Runner
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  physical-device-tests:
+    runs-on: [self-hosted, android-device]  # Özel runner
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Check Connected Devices
+        run: |
+          adb devices
+          # Fiziksel cihazýn baðlý olduðunu doðrula
+
+      - name: Install Android workload
+        run: dotnet workload install android
+
+      - name: Build and Deploy to Device
+        run: |
+          dotnet build -f net8.0-android -c Release
+          # APK'yý fiziksel cihaza yükle
+          adb install -r ./bin/Release/net8.0-android/*.apk
+
+      - name: Run Device Tests
+        run: |
+          # Fiziksel cihazda testleri çalýþtýr
+          dotnet test --filter "Category=PhysicalDevice"

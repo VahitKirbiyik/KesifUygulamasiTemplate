@@ -25,27 +25,65 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      # 3) Install Android workload
+      # 3) Setup Android SDK and Emulator
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: Nexus 6
+
+      # 4) Enable KVM for faster emulation
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # 5) Install Android workload
       - name: Install Android workload
         run: dotnet workload install android
 
-      # 4) Restore dependencies
+      # 6) Restore dependencies
       - name: Restore dependencies
         run: dotnet restore
 
-      # 5) Build and Create Android .aab using msbuild Bundle target
-      - name: Make Android AAB build script executable
-        run: chmod +x scripts/build-android-aab.sh
+      # 7) Unit Tests (no device needed)
+      - name: Run Unit Tests
+        run: dotnet test KesifUygulamasiTemplate.Tests/KesifUygulamasiTemplate.Tests.csproj --verbosity normal --logger "trx;LogFileName=unit-test-results.trx"
 
-      - name: Build Android AAB with msbuild Bundle
-        id: build_aab
-        run: ./scripts/build-android-aab.sh | tee build.log
+      # 8) Build Android AAB
+      - name: Build Android AAB
+        run: |
+          dotnet publish -f net8.0-android -c Release \
+            -p:AndroidPackageFormat=aab \
+            -o ./artifacts
 
-      # 6) Run tests
-      - name: Run Tests
-        run: dotnet test KesifUygulamasiTemplate.Tests/KesifUygulamasiTemplate.Tests.csproj --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" | tee test.log
+      # 9) Start Android Emulator for Device Tests
+      - name: Start Android Emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: Nexus 6
+          script: |
+            # Wait for emulator to be ready
+            adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed | tr -d '\r') ]]; do sleep 1; done; input keyevent 82'
+            
+            # Install APK for testing
+            if [ -f ./artifacts/*.apk ]; then
+              adb install ./artifacts/*.apk
+            fi
+            
+            # Run UI/Integration Tests
+            dotnet test KesifUygulamasiTemplate.Tests/KesifUygulamasiTemplate.Tests.csproj \
+              --filter "Category=Integration" \
+              --verbosity normal \
+              --logger "trx;LogFileName=integration-test-results.trx"
 
-      # 7) Upload artifacts: .aab from artifacts/, test results, build logs
+      # 10) Upload artifacts
       - name: Upload AAB Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -58,7 +96,8 @@ jobs:
         with:
           name: test-results
           path: |
-            **/test-results.trx
+            **/unit-test-results.trx
+            **/integration-test-results.trx
             **/TestResults/*.xml
             test.log
 
