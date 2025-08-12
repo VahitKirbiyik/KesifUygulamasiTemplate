@@ -1,0 +1,200 @@
+name: .NET MAUI CI/CD
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      PACKAGE_NAME: 'com.vahit.kesifuygulamasi'
+    steps:
+      # 1) Checkout
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Version bump için gerekli
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 2) Setup .NET 8 (DÜZELTME: setup-dotnet)
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      # 3) Install Android workload
+      # 3) Setup Android SDK and Emulator
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: Nexus 6
+
+      # 4) Enable KVM for faster emulation
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # 5) Install Android workload
+      - name: Install Android workload
+        run: dotnet workload install android
+
+      # 4) Restore dependencies
+      # 6) Restore dependencies
+      - name: Restore dependencies
+        run: dotnet restore
+
+      # 5) Build and Create Android .aab using msbuild Bundle target
+      - name: Make Android AAB build script executable
+        run: chmod +x scripts/build-android-aab.sh
+      # 7) Unit Tests (no device needed)
+      - name: Run Unit Tests
+        run: dotnet test KesifUygulamasiTemplate.Tests/KesifUygulamasiTemplate.Tests.csproj --verbosity normal --logger "trx;LogFileName=unit-test-results.trx"
+
+      # 8) Build Android AAB
+      - name: Build Android AAB
+        run: |
+          dotnet publish -f net8.0-android -c Release \
+            -p:AndroidPackageFormat=aab \
+            -o ./artifacts
+
+      # 9) Start Android Emulator for Device Tests
+      - name: Start Android Emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: Nexus 6
+          script: |
+            # Wait for emulator to be ready
+            adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed | tr -d '\r') ]]; do sleep 1; done; input keyevent 82'
+            
+      - name: Build Android AAB with msbuild Bundle
+        id: build_aab
+        run: ./scripts/build-android-aab.sh | tee build.log
+            # Install APK for testing
+            if [ -f ./artifacts/*.apk ]; then
+              adb install ./artifacts/*.apk
+            fi
+            
+      # 6) Run tests
+      - name: Run Tests
+        run: dotnet test KesifUygulamasiTemplate.Tests/KesifUygulamasiTemplate.Tests.csproj --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" | tee test.log
+            # Run UI/Integration Tests
+            dotnet test KesifUygulamasiTemplate.Tests/KesifUygulamasiTemplate.Tests.csproj \
+              --filter "Category=Integration" \
+              --verbosity normal \
+              --logger "trx;LogFileName=integration-test-results.trx"
+
+      # 7) Upload artifacts: .aab from artifacts/, test results, build logs
+      # 10) Upload artifacts
+      - name: Upload AAB Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aab
+          path: ./artifacts/*.aab
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            **/test-results.trx
+            **/unit-test-results.trx
+            **/integration-test-results.trx
+            **/TestResults/*.xml
+            test.log
+
+      - name: Upload Build Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: build.log
+
+      # 8) Version bump (patch) - sadece başarılı build sonrası ve master branch
+      - name: Make version bump script executable
+        if: github.ref == 'refs/heads/master' && success()
+        run: chmod +x scripts/version-bump.sh
+
+      - name: Version Bump (patch)
+        if: github.ref == 'refs/heads/master' && success()
+        id: version_bump
+        run: ./scripts/version-bump.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 9) Secret kontrolü ve deploy uyarısı
+      - name: Check Google Play Service Account Secret
+        if: github.ref == 'refs/heads/master' && success()
+        id: check_secret
+        run: |
+          if [ -z "${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}" ]; then
+            echo "secret_exists=false" >> $GITHUB_OUTPUT
+            echo "::warning::GOOGLE_PLAY_SERVICE_ACCOUNT secret bulunamadı!"
+            echo "::warning::Google Play Store deploy atlanacak."
+            echo "::warning::Deploy yapmak için repo Settings > Secrets'a GOOGLE_PLAY_SERVICE_ACCOUNT ekleyin."
+          else
+            echo "secret_exists=true" >> $GITHUB_OUTPUT
+            echo "✅ GOOGLE_PLAY_SERVICE_ACCOUNT secret mevcut, deploy yapılacak."
+          fi
+
+      # 10) Deploy to Google Play - sadece secret varsa ve master branch'te
+      - name: Deploy to Google Play
+        if: github.ref == 'refs/heads/master' && success() && steps.check_secret.outputs.secret_exists == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
+          packageName: ${{ env.PACKAGE_NAME }}
+          releaseFiles: ./artifacts/*.aab
+          track: internal
+          status: completed
+          changesNotSentForReview: true
+
+      # Secret eksikse deploy uyarısı
+      - name: Deploy Skipped Warning
+        if: github.ref == 'refs/heads/master' && success() && steps.check_secret.outputs.secret_exists == 'false'
+        run: |
+          echo "⚠️ Deploy atlandı: GOOGLE_PLAY_SERVICE_ACCOUNT secret eksik"
+          echo "::notice::Google Play Store'a deploy yapmak için:"
+          echo "::notice::1. Google Play Console'da Service Account oluşturun"
+          echo "::notice::2. JSON anahtarını indirin"
+          echo "::notice::3. GitHub repo Settings > Secrets and variables > Actions"
+          echo "::notice::4. GOOGLE_PLAY_SERVICE_ACCOUNT adıyla secret ekleyin"
+
+      # Error notification
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "::error::Build, test veya deploy başarısız! Artifact'leri kontrol edin:"
+          echo "::error::- android-aab: AAB dosyası (./artifacts/ içinde)"
+          echo "::error::- test-results: Test sonuçları ve logları"
+          echo "::error::- build-logs: Build detayları"
+
+      # Success notification
+      - name: Notify on Success
+        if: github.ref == 'refs/heads/master' && success()
+        run: |
+          echo "✅ Pipeline başarıyla tamamlandı!"
+          echo "📦 AAB dosyası sayısı: ${{ steps.build_aab.outputs.aab_count }}"
+          echo "📁 Artifacts klasörü: ${{ steps.build_aab.outputs.artifacts_dir }}"
+          echo "🎯 Ana AAB dosyası: ${{ steps.build_aab.outputs.primary_aab }}"
+          if [ -n "${{ steps.version_bump.outputs.new_version }}" ]; then
+            echo "🚀 Yeni version: ${{ steps.version_bump.outputs.new_version }}"
+            echo "🏷️  Yeni tag: ${{ steps.version_bump.outputs.tag_name }}"
+          fi
+          if [ "${{ steps.check_secret.outputs.secret_exists }}" == "true" ]; then
+            echo "📱 Google Play Store deploy başarılı!"
+          else
+            echo "⚠️ Google Play Store deploy atlandı (secret eksik)"
+          fi
+  
