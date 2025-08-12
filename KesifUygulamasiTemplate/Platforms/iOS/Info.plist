@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.vahit.kesifuygulamasi</string>
+
+    <key>CFBundleVersion</key>
+    <string>1</string>
+
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+
+    <key>CFBundleDisplayName</key>
+    <string>Kesif Uygulamasi</string>
+
+    <!-- Location permissions -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>📍 Bu uygulama, konumunuzu harita üzerinde göstermek ve ay pusulası hesaplamaları için kullanır.</string>
+
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>📍 Bu uygulama, arka planda da konum verisi toplayabilir ve astronomik hesaplamalar yapabilir.</string>
+    
+    <!-- Camera permission for AR features -->
+    <key>NSCameraUsageDescription</key>
+    <string>📷 Bu uygulama, artırılmış gerçeklik ay pusulası özelliği için kamerayı kullanır.</string>
+    
+    <!-- Photo library access -->
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>📸 Bu uygulama, ay görüntülerini kaydetmek için fotoğraf kütüphanesine erişir.</string>
+    
+    <!-- Motion sensors for compass -->
+    <key>NSMotionUsageDescription</key>
+    <string>🧭 Bu uygulama, pusula özelliği için cihazın hareket sensörlerini kullanır.</string>
+    
+    <!-- Required device capabilities -->
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>armv7</string>
+        <string>location-services</string>
+    </array>
+    
+    <!-- Supported orientations -->
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    
+    <!-- Background modes -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>location</string>
+        <string>background-processing</string>
+    </array>
+    
+    <!-- Launch screen -->
+    <key>UILaunchStoryboardName</key>
+    <string>LaunchScreen</string>
+    
+    <!-- App Transport Security -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
+</dict>
+</plist>

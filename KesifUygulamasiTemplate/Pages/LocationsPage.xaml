@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="KesifUygulamasi.Pages.LocationsPage"
+             Title="Konumlar">
+
+    <StackLayout Padding="10">
+        <Button Text="Yeni Konum Ekle" Clicked="OnAddLocationClicked" />
+
+        <CollectionView x:Name="LocationsCollectionView"
+                        SelectionMode="Single"
+                        SelectionChanged="OnLocationSelected">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Frame BorderColor="#512BD4"
+                           CornerRadius="8"
+                           Padding="10"
+                           Margin="5">
+                        <StackLayout>
+                            <Label Text="{Binding Title}"
+                                   FontAttributes="Bold"
+                                   FontSize="Medium"/>
+                            <Label Text="{Binding Description}"
+                                   FontSize="Small"
+                                   TextColor="Gray"/>
+                            <Label Text="{Binding Latitude, StringFormat='Enlem: {0:F6}'}"
+                                   FontSize="Small"/>
+                            <Label Text="{Binding Longitude, StringFormat='Boylam: {0:F6}'}"
+                                   FontSize="Small"/>
+                            <Label Text="{Binding CreatedAt, StringFormat='Eklenme Tarihi: {0:dd.MM.yyyy HH:mm}'}"
+                                   FontSize="Micro"
+                                   TextColor="Gray"/>
+                        </StackLayout>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </StackLayout>
+
+</ContentPage>

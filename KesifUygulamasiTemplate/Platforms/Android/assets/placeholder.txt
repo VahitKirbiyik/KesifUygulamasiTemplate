@@ -1,0 +1,2 @@
+# Android assets klasörü için placeholder dosyasý
+# Bu dosya assets klasörünün build sisteminde tanýnmasý için gereklidir

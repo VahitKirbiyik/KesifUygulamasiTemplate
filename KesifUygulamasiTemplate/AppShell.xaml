@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:views="clr-namespace:KesifUygulamasiTemplate.Views"
+       xmlns:ext="clr-namespace:KesifUygulamasiTemplate.Extensions"
+       x:Class="KesifUygulamasiTemplate.AppShell"
+       Title="{ext:TranslateBinding Key=AppName}"
+       Shell.FlyoutBehavior="Disabled">
+
+    <TabBar>
+        <Tab Title="{ext:TranslateBinding Key=MoonCompass}" Icon="moon_icon.png">
+            <ShellContent ContentTemplate="{DataTemplate views:MoonCompassPage}" />
+        </Tab>
+        <Tab Title="{ext:TranslateBinding Key=Compass}" Icon="compass.png">
+            <ShellContent ContentTemplate="{DataTemplate views:CompassPage}" />
+        </Tab>
+        <Tab Title="{ext:TranslateBinding Key=Settings}">
+            <ShellContent ContentTemplate="{DataTemplate views:SettingsPage}" />
+        </Tab>
+    </TabBar>
+    <ShellContent Route="ar-moon-compass" Title="AR Ay Pusulası" ContentTemplate="{DataTemplate local:ARMoonCompassPage}" />
+</Shell>
