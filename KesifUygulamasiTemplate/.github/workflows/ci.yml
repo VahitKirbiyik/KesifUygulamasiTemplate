@@ -2,9 +2,9 @@ name: .NET MAUI CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
 
 jobs:
   build:
@@ -70,13 +70,13 @@ jobs:
           name: build-logs
           path: build.log
 
-      # 8) Version bump (patch) - sadece başarılı build sonrası ve main branch
+      # 8) Version bump (patch) - sadece başarılı build sonrası ve master branch
       - name: Make version bump script executable
-        if: github.ref == 'refs/heads/main' && success()
+        if: github.ref == 'refs/heads/master' && success()
         run: chmod +x scripts/version-bump.sh
 
       - name: Version Bump (patch)
-        if: github.ref == 'refs/heads/main' && success()
+        if: github.ref == 'refs/heads/master' && success()
         id: version_bump
         run: ./scripts/version-bump.sh
         env:
@@ -84,7 +84,7 @@ jobs:
 
       # 9) Secret kontrolü ve deploy uyarısı
       - name: Check Google Play Service Account Secret
-        if: github.ref == 'refs/heads/main' && success()
+        if: github.ref == 'refs/heads/master' && success()
         id: check_secret
         run: |
           if [ -z "${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}" ]; then
@@ -97,9 +97,9 @@ jobs:
             echo "✅ GOOGLE_PLAY_SERVICE_ACCOUNT secret mevcut, deploy yapılacak."
           fi
 
-      # 10) Deploy to Google Play - sadece secret varsa ve main branch'te
+      # 10) Deploy to Google Play - sadece secret varsa ve master branch'te
       - name: Deploy to Google Play
-        if: github.ref == 'refs/heads/main' && success() && steps.check_secret.outputs.secret_exists == 'true'
+        if: github.ref == 'refs/heads/master' && success() && steps.check_secret.outputs.secret_exists == 'true'
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJson: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
@@ -111,7 +111,7 @@ jobs:
 
       # Secret eksikse deploy uyarısı
       - name: Deploy Skipped Warning
-        if: github.ref == 'refs/heads/main' && success() && steps.check_secret.outputs.secret_exists == 'false'
+        if: github.ref == 'refs/heads/master' && success() && steps.check_secret.outputs.secret_exists == 'false'
         run: |
           echo "⚠️ Deploy atlandı: GOOGLE_PLAY_SERVICE_ACCOUNT secret eksik"
           echo "::notice::Google Play Store'a deploy yapmak için:"
@@ -131,7 +131,7 @@ jobs:
 
       # Success notification
       - name: Notify on Success
-        if: github.ref == 'refs/heads/main' && success()
+        if: github.ref == 'refs/heads/master' && success()
         run: |
           echo "✅ Pipeline başarıyla tamamlandı!"
           echo "📦 AAB dosyası sayısı: ${{ steps.build_aab.outputs.aab_count }}"
