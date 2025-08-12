@@ -19,9 +19,9 @@ jobs:
           fetch-depth: 0  # Version bump için gerekli
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # 2) Setup .NET 8 with v3 (DÜZELTME: setup-dotnet)
+      # 2) Setup .NET 8 (DÜZELTME: setup-dotnet)
       - name: Setup .NET 8
-        uses: actions/setup-dotenv@v3
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '8.0.x'
 
@@ -47,7 +47,6 @@ jobs:
 
       # 7) Upload artifacts: .aab from artifacts/, test results, build logs
       - name: Upload AAB Artifacts
-        if: steps.build_aab.outputs.primary_aab != ''
         uses: actions/upload-artifact@v4
         with:
           name: android-aab
@@ -103,7 +102,7 @@ jobs:
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJson: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT }}
-          packageName: ${{ env.PACKAGE_NAME || 'com.vahit.kesifuygulamasi' }}
+          packageName: ${{ env.PACKAGE_NAME }}
           releaseFiles: ./artifacts/*.aab
           track: internal
           status: completed
