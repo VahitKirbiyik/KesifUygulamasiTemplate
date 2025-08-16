@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:maps="clr-namespace:Microsoft.Maui.Controls.Maps;assembly=Microsoft.Maui.Controls.Maps"
+             x:Class="KesifUygulamasi.Pages.MapPage"
+             Title="Harita">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*" Padding="10">
+
+        <!-- Başlık Girişi -->
+        <Entry x:Name="titleEntry"
+               Placeholder="Başlık girin" />
+
+        <!-- Açıklama Girişi -->
+        <Entry x:Name="descriptionEntry"
+               Placeholder="Açıklama girin"
+               Grid.Row="1" />
+
+        <!-- Butonlar -->
+        <StackLayout Orientation="Horizontal"
+                     Grid.Row="2"
+                     Spacing="10">
+            <Button x:Name="addPinButton"
+                    Text="Pin Ekle" />
+            <Button x:Name="saveButton"
+                    Text="Kaydet" />
+        </StackLayout>
+
+        <!-- Harita -->
+        <maps:Map x:Name="mapView"
+                  Grid.Row="3"
+                  HeightRequest="400"
+                  WidthRequest="400"
+                  IsShowingUser="True"
+                  MapType="Street" />
+
+    </Grid>
+</ContentPage>

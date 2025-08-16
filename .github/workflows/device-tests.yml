@@ -1,0 +1,61 @@
+name: Device Tests on Self-Hosted Runner
+
+on:
+  push:
+    branches: [ master ]  # master branch kullanýmý düzeltildi
+  workflow_dispatch:
+
+jobs:
+  physical-device-tests:
+    runs-on: [self-hosted, android-device]  # Özel runner
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4  # v4 kullan
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Check Connected Devices
+        run: |
+          adb devices
+          # Fiziksel cihazýn baðlý olduðunu doðrula
+          if [ $(adb devices | grep -v "List of devices" | grep "device" | wc -l) -eq 0 ]; then
+            echo "Hiç cihaz baðlý deðil!"
+            exit 1
+          fi
+
+      - name: Install Android workload
+        run: dotnet workload install android
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build and Deploy to Device
+        run: |
+          dotnet build -f net8.0-android -c Release
+          # APK'yý bul ve fiziksel cihaza yükle
+          APK_PATH=$(find . -name "*.apk" -path "*/bin/Release/*" | head -n 1)
+          if [ -n "$APK_PATH" ]; then
+            echo "APK bulundu: $APK_PATH"
+            adb install -r "$APK_PATH"
+          else
+            echo "APK dosyasý bulunamadý!"
+            exit 1
+          fi
+
+      - name: Run Device Tests
+        run: |
+          # Fiziksel cihazda testleri çalýþtýr
+          dotnet test --filter "Category=PhysicalDevice" --configuration Release
+
+      - name: Upload device test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: device-test-results
+          path: |
+            **/*.trx
+            **/TestResults/
+          if-no-files-found: ignore

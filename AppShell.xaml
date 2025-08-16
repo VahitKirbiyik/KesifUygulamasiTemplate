@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Shell
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:KesifUygulamasiTemplate.Views"
+    x:Class="KesifUygulamasiTemplate.AppShell">
+
+    <!-- ✅ Ana Sayfa -->
+    <ShellContent
+        Title="Ana Sayfa"
+        ContentTemplate="{DataTemplate views:MainPage}" />
+
+    <!-- ✅ Giriş Sayfası -->
+    <ShellContent
+        Title="Giriş"
+        ContentTemplate="{DataTemplate views:LoginPage}" />
+
+    <!-- ✅ Detay Sayfası -->
+    <ShellContent
+        Title="Detay"
+        ContentTemplate="{DataTemplate views:DetailPage}" />
+
+</Shell>

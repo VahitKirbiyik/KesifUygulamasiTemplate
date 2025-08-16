@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="KesifUygulamasi.Pages.SettingsPage"
+             Title="Ayarlar">
+
+    <ScrollView>
+        <StackLayout Padding="20" Spacing="25">
+
+            <Label Text="Ayarlar" FontSize="24" FontAttributes="Bold" />
+
+            <!-- Offline Mod -->
+            <StackLayout Orientation="Horizontal" VerticalOptions="Center">
+                <Label Text="Offline Mod:" VerticalOptions="Center" />
+                <Switch x:Name="OfflineModeSwitch"
+                        Toggled="OfflineModeSwitch_Toggled"
+                        HorizontalOptions="EndAndExpand" />
+            </StackLayout>
+
+            <!-- Tema Seçimi -->
+            <Label Text="Tema Seçimi:" />
+            <Picker ItemsSource="{Binding ThemeOptions}"
+                    SelectedItem="{Binding SelectedTheme, Mode=TwoWay}" />
+
+            <!-- Push Bildirimleri -->
+            <StackLayout Orientation="Horizontal" VerticalOptions="Center">
+                <Label Text="Push Bildirimleri:" VerticalOptions="Center" />
+                <Switch IsToggled="{Binding IsPushEnabled, Mode=TwoWay}" HorizontalOptions="EndAndExpand" />
+            </StackLayout>
+
+            <!-- Konum İzni Durumu -->
+            <StackLayout>
+                <Label Text="Konum İzni Durumu:" FontAttributes="Bold" />
+                <Label x:Name="LocationPermissionLabel"
+                       Text="İzin durumu yükleniyor..." />
+                <Button Text="İzin Kontrol Et / İste"
+                        Clicked="RequestLocationPermission_Clicked" />
+            </StackLayout>
+
+        </StackLayout>
+    </ScrollView>
+</ContentPage>

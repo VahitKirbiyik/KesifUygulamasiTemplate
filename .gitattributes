@@ -1,0 +1,4 @@
+﻿* text=auto
+*.sh eol=lf
+*.ps1 eol=crlf
+*.md text eol=lf

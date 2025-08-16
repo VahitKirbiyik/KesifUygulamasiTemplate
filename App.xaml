@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:converters="clr-namespace:KesifUygulamasiTemplate.Converters"
+             x:Class="KesifUygulamasiTemplate.App">
+    <Application.Resources>
+        <ResourceDictionary>
+            <!-- Converters -->
+            <converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
+            <converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+            <converters:MultiplyConverter x:Key="MultiplyConverter" />
+            <converters:NegativeConverter x:Key="NegativeConverter" />
+            <converters:AzimuthToLayoutBoundsConverter x:Key="AzimuthToLayoutBoundsConverter" />
+            
+            <!-- Colors -->
+            <Color x:Key="PrimaryColor">#2196F3</Color>
+            <Color x:Key="SecondaryColor">#00BCD4</Color>
+            <Color x:Key="AccentColor">#FFC107</Color>
+            <Color x:Key="BackgroundColor">#F5F5F5</Color>
+            
+            <!-- Styles -->
+            <Style TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{StaticResource PrimaryColor}" />
+                <Setter Property="TextColor" Value="White" />
+                <Setter Property="FontAttributes" Value="Bold" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="Padding" Value="20,10" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

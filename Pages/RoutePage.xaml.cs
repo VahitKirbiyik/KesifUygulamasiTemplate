@@ -1,0 +1,71 @@
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Maps;
+using Microsoft.Maui.Devices.Sensors;
+using KesifUygulamasiTemplate.ViewModels;
+using KesifUygulamasiTemplate.Services.Interfaces;
+
+namespace KesifUygulamasiTemplate.Pages
+{
+    public partial class RoutePage : ContentPage
+    {
+        private readonly RouteViewModel _viewModel;
+        private Polyline _routeLine;
+        
+        public RoutePage(IRouteService routeService)
+        {
+            InitializeComponent();
+            _viewModel = new RouteViewModel(routeService);
+            BindingContext = _viewModel;
+            _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+            // Varsayýlan baþlangýç/varýþ deðerleri
+            StartEntry.Text = "39.9,32.8";
+            EndEntry.Text = "41.0,29.0";
+        }
+        
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            // Temizleme iþlemleri
+            _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+        }
+
+        private void ViewModel_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(_viewModel.RoutePoints))
+            {
+                DrawRoute();
+            }
+        }
+
+        private void DrawRoute()
+        {
+            if (_routeLine != null)
+                RouteMap.MapElements.Remove(_routeLine);
+                
+            if (_viewModel.RoutePoints.Count < 2)
+                return;
+                
+            _routeLine = new Polyline
+            {
+                StrokeColor = Colors.Blue,
+                StrokeWidth = 4
+            };
+            
+            foreach (var loc in _viewModel.RoutePoints)
+                _routeLine.Geopath.Add(new Location(loc.Latitude, loc.Longitude));
+                
+            RouteMap.MapElements.Add(_routeLine);
+            
+            // Haritayý rotanýn ortasýna odakla
+            var center = _viewModel.RoutePoints[_viewModel.RoutePoints.Count / 2];
+            RouteMap.MoveToRegion(MapSpan.FromCenterAndRadius(
+                new Location(center.Latitude, center.Longitude), 
+                Distance.FromKilometers(20)));
+        }
+    }
+}

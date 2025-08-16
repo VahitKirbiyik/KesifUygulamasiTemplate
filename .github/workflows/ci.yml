@@ -1,0 +1,133 @@
+name: CI - .NET MAUI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  SOLUTION: 'YourSolution.sln'   # <- burayı kendi solution ile değiştir
+  BUILD_CONFIGURATION: 'Release'
+  ARTIFACT_DIR: 'artifacts'
+
+jobs:
+  build-matrix:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: android
+          - os: windows-latest
+            target: android
+          - os: macos-latest
+            target: ios
+          - os: ubuntu-latest
+            target: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Java (Android için, sadece linux/windows)
+        if: matrix.target == 'android'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.os == 'Windows' && 'C:\\Users\\runneradmin\\.nuget\\packages' || '~/.nuget/packages' }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj','**/*.sln') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Cache dotnet workloads & tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.dotnet
+            ~/.local/share/dotnet
+          key: dotnet-workload-${{ runner.os }}-${{ hashFiles('**/*.csproj','**/*.sln') }}
+          restore-keys: dotnet-workload-${{ runner.os }}-
+
+      - name: Make scripts executable (if any)
+        run: |
+          if [ -f ./scripts/build-android-aab.sh ]; then chmod +x ./scripts/build-android-aab.sh; fi
+          if [ -f ./scripts/build-ios-ipa.sh ]; then chmod +x ./scripts/build-ios-ipa.sh; fi
+        shell: bash
+
+      - name: dotnet workload restore (MAUI)
+        run: dotnet workload restore ${{ env.SOLUTION }}
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION }}
+
+      - name: Build solution
+        run: dotnet build ${{ env.SOLUTION }} -c ${{ env.BUILD_CONFIGURATION }} --no-restore
+
+      - name: Run tests
+        if: matrix.target == 'test'
+        run: dotnet test ${{ env.SOLUTION }} --no-build --verbosity normal
+
+      - name: Android - setup Android SDK (Ubuntu)
+        if: matrix.target == 'android' && runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends unzip
+          # Android SDK komandoları (kısaltılmış). Eğer kendi script'in varsa onu kullan.
+          mkdir -p $HOME/Android/Sdk
+          curl -o sdk-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+          unzip sdk-tools.zip -d $HOME/Android/Sdk/cmdline-tools
+          export ANDROID_SDK_ROOT=$HOME/Android/Sdk
+          yes | $HOME/Android/Sdk/cmdline-tools/cmdline-tools/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+        shell: bash
+      - name: Android - build AAB (Linux/Windows)
+        if: matrix.target == 'android'
+        run: |
+          # Eğer script varsa kullan, yoksa doğrudan publish
+          if [ -f ./scripts/build-android-aab.sh ]; then
+            ./scripts/build-android-aab.sh
+          else
+            dotnet publish ${{ env.SOLUTION }} -c ${{ env.BUILD_CONFIGURATION }} -f net8.0-android -o ${{ env.ARTIFACT_DIR }}/android --no-restore
+          fi
+        shell: bash
+
+      - name: iOS - build (macOS)
+        if: matrix.target == 'ios' && runner.os == 'macOS'
+        run: |
+          if [ -f ./scripts/build-ios-ipa.sh ]; then
+            ./scripts/build-ios-ipa.sh
+          else
+            dotnet build ${{ env.SOLUTION }} -c ${{ env.BUILD_CONFIGURATION }} -f net8.0-ios /p:BuildIpa=true --no-restore
+            mkdir -p ${{ env.ARTIFACT_DIR }}/ios
+          fi
+        shell: bash
+
+      - name: Publish Windows (optional)
+        if: matrix.target == 'test' && runner.os == 'Windows'
+        run: |
+          dotnet publish ${{ env.SOLUTION }} -c ${{ env.BUILD_CONFIGURATION }} -o ${{ env.ARTIFACT_DIR }}/windows --no-restore
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}-artifacts
+          path: ${{ env.ARTIFACT_DIR }}
+
+      - name: List artifacts (debug)
+        if: always()
+        run: ls -la ${{ env.ARTIFACT_DIR }} || true
+        shell: bash

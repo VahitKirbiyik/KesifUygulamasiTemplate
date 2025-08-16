@@ -1,0 +1,58 @@
+name: Release Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: 🔐 Encoding Guard
+      shell: pwsh
+      run: |
+        Write-Host "🔍 Encoding kontrolü başlatıldı..."
+
+        $files = Get-ChildItem -Path . -Recurse -Include *.cs
+        foreach ($file in $files) {
+            $content = Get-Content $file.FullName
+            $content | Set-Content -Path $file.FullName -Encoding utf8BOM
+        }
+
+        Write-Host "✅ Tüm .cs dosyaları UTF-8 with BOM formatına dönüştürüldü."
+
+        $errors = @()
+        foreach ($file in $files) {
+            $bytes = Get-Content $file.FullName -Encoding Byte
+            if (-not ($bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF)) {
+                $errors += $file.FullName
+            }
+        }
+
+        if ($errors.Count -gt 0) {
+            Write-Host "❌ BOM olmayan dosyalar bulundu:"
+            $errors | ForEach-Object { Write-Host " - $_" }
+            exit 1
+        } else {
+            Write-Host "🎯 Encoding doğrulaması başarıyla geçti."
+        }
+
+    - name: Build project
+      run: dotnet build --configuration Release
+
+    - name: Run tests
+      run: dotnet test --no-build --verbosity normal

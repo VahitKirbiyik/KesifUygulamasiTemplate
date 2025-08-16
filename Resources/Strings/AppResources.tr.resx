@@ -1,0 +1,102 @@
+using System;
+using Microsoft.Maui.Controls;
+using SkiaSharp;
+using SkiaSharp.Views.Maui.Controls;
+using CoordinateSharp;
+
+namespace KesifUygulamasiTemplate.Pages
+{
+    public class AyPusulasiPage : ContentPage
+    {
+        private Label ayFazLabel;
+        private Label ayDogusLabel;
+        private Label ayBatisLabel;
+        private Label aydinlanmaLabel;
+        private SKCanvasView canvasView;
+
+        public AyPusulasiPage()
+        {
+            Title = "Ay Pusulası";
+
+            ayFazLabel = new Label { FontSize = 18, HorizontalOptions = LayoutOptions.Center };
+            ayDogusLabel = new Label { FontSize = 16, HorizontalOptions = LayoutOptions.Center };
+            ayBatisLabel = new Label { FontSize = 16, HorizontalOptions = LayoutOptions.Center };
+            aydinlanmaLabel = new Label { FontSize = 16, HorizontalOptions = LayoutOptions.Center };
+
+            canvasView = new SKCanvasView();
+            canvasView.PaintSurface += OnCanvasViewPaintSurface;
+
+            Content = new StackLayout
+            {
+                Padding = 20,
+                Spacing = 15,
+                Children =
+                {
+                    ayFazLabel,
+                    ayDogusLabel,
+                    ayBatisLabel,
+                    aydinlanmaLabel,
+                    new Frame
+                    {
+                        Content = canvasView,
+                        HeightRequest = 250,
+                        CornerRadius = 15,
+                        HasShadow = true
+                    }
+                }
+            };
+
+            HesaplaVeGuncelle();
+        }
+
+        private void HesaplaVeGuncelle()
+        {
+            double enlem = 41.0082; // İstanbul örnek
+            double boylam = 28.9784;
+
+            DateTime simdi = DateTime.Now;
+            var koordinat = new Coordinate(enlem, boylam, simdi);
+
+            var ayFaz = koordinat.CelestialInfo.MoonIllumination.Phase;
+            var ayDogus = koordinat.CelestialInfo.MoonRise;
+            var ayBatis = koordinat.CelestialInfo.MoonSet;
+            var aydinlanma = koordinat.CelestialInfo.MoonIllumination.Fraction * 100;
+
+            ayFazLabel.Text = $"Ay Fazı: {ayFaz}";
+            ayDogusLabel.Text = $"Ay Doğuşu: {(ayDogus.HasValue ? ayDogus.Value.ToString("HH:mm") : "Yok")}";
+            ayBatisLabel.Text = $"Ay Batışı: {(ayBatis.HasValue ? ayBatis.Value.ToString("HH:mm") : "Yok")}";
+            aydinlanmaLabel.Text = $"Aydınlanma: {aydinlanma:F1}%";
+
+            canvasView.InvalidateSurface();
+        }
+
+        private void OnCanvasViewPaintSurface(object sender, SKPaintSurfaceEventArgs e)
+        {
+            var canvas = e.Surface.Canvas;
+            canvas.Clear(SKColors.Black);
+
+            var paint = new SKPaint
+            {
+                Style = SKPaintStyle.Stroke,
+                Color = SKColors.White,
+                StrokeWidth = 3,
+                IsAntialias = true
+            };
+
+            float centerX = e.Info.Width / 2;
+            float centerY = e.Info.Height / 2;
+            float radius = Math.Min(centerX, centerY) - 10;
+
+            canvas.DrawCircle(centerX, centerY, radius, paint);
+
+            var phasePaint = new SKPaint
+            {
+                Style = SKPaintStyle.Fill,
+                Color = SKColors.LightGray,
+                IsAntialias = true
+            };
+
+            float illumination = (float)(new Coordinate(41.0082, 28.9784, DateTime.Now).CelestialInfo.MoonIllumination.Fraction);
+            float phaseWidth = radius * illumination;
+
+            canvas.DrawOval(new SKRect(centerX - ph

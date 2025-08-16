@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ext="clr-namespace:KesifUygulamasiTemplate.Extensions"
+             x:Class="KesifUygulamasiTemplate.Views.SettingsPage"
+             Title="{ext:TranslateBinding Key=Settings}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="25">
+
+            <Label Text="{ext:TranslateBinding Key=Settings}" 
+                   FontSize="24" 
+                   FontAttributes="Bold" />
+
+            <!-- Dil Ayarlarý -->
+            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*">
+                <Label Text="{ext:TranslateBinding Key=Language}" 
+                       FontAttributes="Bold"
+                       Grid.Row="0" 
+                       Grid.ColumnSpan="2" />
+
+                <RadioButton x:Name="TurkishOption" 
+                            Content="{ext:TranslateBinding Key=LanguageTurkish}"
+                            GroupName="Language"
+                            IsChecked="{Binding IsTurkishSelected}"
+                            CheckedChanged="Turkish_CheckedChanged"
+                            Grid.Row="1" 
+                            Grid.Column="0" />
+
+                <RadioButton x:Name="EnglishOption" 
+                            Content="{ext:TranslateBinding Key=LanguageEnglish}"
+                            GroupName="Language"
+                            IsChecked="{Binding IsEnglishSelected}"
+                            CheckedChanged="English_CheckedChanged"
+                            Grid.Row="1" 
+                            Grid.Column="1" />
+            </Grid>
+            
+            <!-- Offline Mod -->
+            <StackLayout Orientation="Horizontal" VerticalOptions="Center">
+                <Label Text="Offline Mod:" VerticalOptions="Center" />
+                <Switch x:Name="OfflineModeSwitch"
+                        Toggled="OfflineModeSwitch_Toggled"
+                        HorizontalOptions="EndAndExpand" />
+            </StackLayout>
+
+            <!-- Tema Seçimi -->
+            <Label Text="{ext:TranslateBinding Key=Theme}" />
+            <Picker x:Name="ThemePicker"
+                    SelectedIndexChanged="ThemePicker_SelectedIndexChanged">
+                <Picker.ItemsSource>
+                    <x:Array Type="{x:Type x:String}">
+                        <x:String>{ext:Translate Key=ThemeLight}</x:String>
+                        <x:String>{ext:Translate Key=ThemeDark}</x:String>
+                        <x:String>{ext:Translate Key=ThemeSystem}</x:String>
+                    </x:Array>
+                </Picker.ItemsSource>
+            </Picker>
+
+            <!-- Konum Ýzni Durumu -->
+            <StackLayout>
+                <Label Text="{ext:TranslateBinding Key=LocationPermissionStatus}" 
+                       FontAttributes="Bold" />
+                <Label x:Name="LocationPermissionLabel"
+                       Text="{ext:TranslateBinding Key=Loading}" />
+                <Button Text="{ext:TranslateBinding Key=CheckRequestPermission}"
+                        Clicked="RequestLocationPermission_Clicked" />
+            </StackLayout>
+
+            <!-- Uygulama Bilgileri -->
+            <StackLayout>
+                <Label Text="{ext:TranslateBinding Key=AppInfo}" 
+                       FontAttributes="Bold" />
+                <Label>
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="{ext:Translate Key=Version}" />
+                            <Span Text=": " />
+                            <Span Text="{Binding AppVersion}" />
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+            </StackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
