@@ -19,9 +19,6 @@ jobs:
       with:
         dotnet-version: '8.0.x'
 
-    - name: Restore .NET workloads
-      run: dotnet workload restore
-
     - name: Restore dependencies
       run: dotnet restore
 
@@ -30,7 +27,7 @@ jobs:
       run: |
         Write-Host "🔍 Encoding kontrolü başlatıldı..."
 
-        $files = Get-ChildItem -Path . -Recurse -Include *.cs
+        $files = Get-ChildItem -Path . -Recurse -File -Filter *.cs
         foreach ($file in $files) {
             $content = Get-Content $file.FullName
             $content | Set-Content -Path $file.FullName -Encoding utf8BOM
@@ -40,9 +37,11 @@ jobs:
 
         $errors = @()
         foreach ($file in $files) {
-            $bytes = Get-Content $file.FullName -Encoding Byte
-            if (-not ($bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF)) {
-                $errors += $file.FullName
+            if ([System.IO.File]::Exists($file.FullName)) {
+                $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
+                if (-not ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF)) {
+                    $errors += $file.FullName
+                }
             }
         }
 
