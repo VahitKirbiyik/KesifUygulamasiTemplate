@@ -5,20 +5,17 @@
              x:Class="KesifUygulamasiTemplate.App">
     <Application.Resources>
         <ResourceDictionary>
-            <!-- Converters -->
             <converters:StringNotEmptyConverter x:Key="StringNotEmptyConverter" />
             <converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
             <converters:MultiplyConverter x:Key="MultiplyConverter" />
             <converters:NegativeConverter x:Key="NegativeConverter" />
             <converters:AzimuthToLayoutBoundsConverter x:Key="AzimuthToLayoutBoundsConverter" />
-            
-            <!-- Colors -->
+
             <Color x:Key="PrimaryColor">#2196F3</Color>
             <Color x:Key="SecondaryColor">#00BCD4</Color>
             <Color x:Key="AccentColor">#FFC107</Color>
             <Color x:Key="BackgroundColor">#F5F5F5</Color>
-            
-            <!-- Styles -->
+
             <Style TargetType="Button">
                 <Setter Property="BackgroundColor" Value="{StaticResource PrimaryColor}" />
                 <Setter Property="TextColor" Value="White" />

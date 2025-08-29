@@ -1,3 +1,18 @@
+  <data name="POIShow" xml:space="preserve">
+    <value>POI Display (EN)</value>
+  </data>
+  <data name="TransportationMode" xml:space="preserve">
+    <value>Transportation Mode (EN)</value>
+  </data>
+  <data name="RealTimeTraffic" xml:space="preserve">
+    <value>Real-Time Traffic (EN)</value>
+  </data>
+  <data name="SupportDeveloper" xml:space="preserve">
+    <value>Support Developer (EN)</value>
+  </data>
+  <data name="Donate" xml:space="preserve">
+    <value>Donate (EN)</value>
+  </data>
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
@@ -222,5 +237,35 @@
   </data>
   <data name="Distance" xml:space="preserve">
     <value>Distance</value>
+  </data>
+  <data name="VoiceNavigation" xml:space="preserve">
+    <value>Voice Navigation (EN)</value>
+  </data>
+  <data name="ARNavigation" xml:space="preserve">
+    <value>AR Navigation (EN)</value>
+  </data>
+  <data name="OfflineMap" xml:space="preserve">
+    <value>Offline Map (EN)</value>
+  </data>
+  <data name="RouteSelection" xml:space="preserve">
+    <value>Route Selection (EN)</value>
+  </data>
+  <data name="DestinationInput" xml:space="preserve">
+    <value>Destination Input (EN)</value>
+  </data>
+  <data name="MoonCompass" xml:space="preserve">
+    <value>Moon Compass (EN)</value>
+  </data>
+  <data name="QiblaDirection" xml:space="preserve">
+    <value>Qibla Direction (EN)</value>
+  </data>
+  <data name="POIShow" xml:space="preserve">
+    <value>Show POI (EN)</value>
+  </data>
+  <data name="TransportMode" xml:space="preserve">
+    <value>Transport Mode (EN)</value>
+  </data>
+  <data name="RealTimeTraffic" xml:space="preserve">
+    <value>Real-Time Traffic (EN)</value>
   </data>
 </root>

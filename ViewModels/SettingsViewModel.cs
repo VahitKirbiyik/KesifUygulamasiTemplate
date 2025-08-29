@@ -1,119 +1,89 @@
-using System;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using System.Linq;
-using Microsoft.Maui.ApplicationModel;
-using Microsoft.Maui.Devices.Sensors;
-using KesifUygulamasiTemplate.Resources.Strings;
+using System.Windows.Input;
+using Microsoft.Maui.Controls;
 using KesifUygulamasiTemplate.Services;
-using KesifUygulamasiTemplate.Models;
-using System.Globalization;
+using Microsoft.Maui.Devices.Sensors;
+using System;
 
 namespace KesifUygulamasiTemplate.ViewModels
 {
-    public class SettingsViewModel : BaseViewModel
+    public class StreetViewViewModel : INotifyPropertyChanged
     {
-        private readonly SettingsService _settingsService;
-        private readonly ThemeService _themeService;
-        private readonly PushNotificationService _pushService;
-        private bool _isOfflineMode;
-        private string _appVersion;
-        private Models.AppTheme _selectedTheme;
-        private bool _isPushEnabled;
+        private readonly StreetViewService _streetViewService = new StreetViewService();
 
-        public bool IsOfflineMode
+        private StreetViewPanorama _currentPanorama;
+        public StreetViewPanorama CurrentPanorama
         {
-            get => _isOfflineMode;
-            set => SetProperty(ref _isOfflineMode, value);
-        }
-
-        public string AppVersion
-        {
-            get => _appVersion;
-            set => SetProperty(ref _appVersion, value);
-        }
-
-        public Models.AppTheme SelectedTheme
-        {
-            get => _selectedTheme;
+            get => _currentPanorama;
             set
             {
-                if (SetProperty(ref _selectedTheme, value))
-                {
-                    _themeService.SetTheme(value);
-                }
+                _currentPanorama = value;
+                OnPropertyChanged();
+                UpdateStreetViewUrl();
             }
         }
 
-        public bool IsPushEnabled
+        private string _streetViewUrl;
+        public string StreetViewUrl
         {
-            get => _isPushEnabled;
-            set
+            get => _streetViewUrl;
+            private set { _streetViewUrl = value; OnPropertyChanged(); }
+        }
+
+        public ObservableCollection<StreetViewLink> Links { get; set; } = new ObservableCollection<StreetViewLink>();
+
+        private async void UpdateStreetViewUrl()
+        {
+            if (CurrentPanorama != null)
             {
-                if (SetProperty(ref _isPushEnabled, value))
-                {
-                    _pushService.SetPushEnabled(value);
-                }
+                var apiKey = await _streetViewService.GetApiKeyAsync();
+                StreetViewUrl = $"https://www.google.com/maps/embed/v1/streetview?key={apiKey}&location={CurrentPanorama.Latitude},{CurrentPanorama.Longitude}&heading=210&pitch=10&fov=80";
             }
         }
 
-        public bool IsTurkishSelected => LocalizationService.CurrentCulture.TwoLetterISOLanguageName == "tr";
-        public bool IsEnglishSelected => LocalizationService.CurrentCulture.TwoLetterISOLanguageName == "en";
-        public IEnumerable<Models.AppTheme> ThemeOptions => Enum.GetValues(typeof(Models.AppTheme)).Cast<Models.AppTheme>();
-
-        public SettingsViewModel(SettingsService settingsService, ThemeService themeService, PushNotificationService pushService)
-        {
-            _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
-            _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
-            _pushService = pushService ?? throw new ArgumentNullException(nameof(pushService));
-
-            LoadSettings();
-            LoadAppVersion();
-            _selectedTheme = _themeService.CurrentTheme;
-            _isPushEnabled = _pushService.IsPushEnabled;
-        }
-
-        private void LoadSettings()
-        {
-            IsOfflineMode = _settingsService.GetSetting<bool>("OfflineMode", false);
-        }
-        
-        private void LoadAppVersion()
-        {
-            AppVersion = AppInfo.VersionString;
-        }
-        
-        public void SetOfflineMode(bool value)
-        {
-            IsOfflineMode = value;
-            _settingsService.SaveSetting("OfflineMode", value);
-        }
-        
-        public async Task<string> CheckLocationPermissionAsync()
+        public ICommand LoadPanoramaCommand => new Command<string>(async panoramaId =>
         {
             try
             {
-                var status = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
-                return status == PermissionStatus.Granted 
-                    ? AppResources.PermissionGranted 
-                    : AppResources.PermissionDenied;
-            }
-            catch
-            {
-                return AppResources.Error;
-            }
-        }
-        
-        public async Task RequestLocationPermissionAsync()
-        {
-            try
-            {
-                await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
+                var panorama = await _streetViewService.GetPanoramaByIdAsync(panoramaId);
+                CurrentPanorama = panorama;
+                Links.Clear();
+                foreach (var link in panorama.Links)
+                    Links.Add(link);
             }
             catch (Exception ex)
             {
-                ErrorMessage = ex.Message;
+                await Application.Current.MainPage.DisplayAlert("Hata", $"Panorama yüklenemedi: {ex.Message}", "Tamam");
+            }
+        });
+
+        public async Task LoadPanoramaByUserLocationAsync()
+        {
+            try
+            {
+                var location = await Geolocation.GetLastKnownLocationAsync()
+                                ?? await Geolocation.GetLocationAsync(new GeolocationRequest(GeolocationAccuracy.Medium));
+
+                if (location != null)
+                {
+                    var panorama = await _streetViewService.GetPanorama(location.Latitude, location.Longitude);
+                    CurrentPanorama = panorama;
+                    Links.Clear();
+                    foreach (var link in panorama.Links)
+                        Links.Add(link);
+                }
+            }
+            catch (Exception ex)
+            {
+                await Application.Current.MainPage.DisplayAlert("Hata", $"Konum yüklenemedi: {ex.Message}", "Tamam");
             }
         }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        private void OnPropertyChanged([CallerMemberName] string name = null) =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }

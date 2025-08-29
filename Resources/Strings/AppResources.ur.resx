@@ -1,0 +1,75 @@
+  <data name="POIShow" xml:space="preserve">
+    <value>پی او آئی دکھائیں (UR)</value>
+  </data>
+  <data name="TransportationMode" xml:space="preserve">
+    <value>نقل و حمل کا موڈ (UR)</value>
+  </data>
+  <data name="RealTimeTraffic" xml:space="preserve">
+    <value>حقیقی وقت کی ٹریفک (UR)</value>
+  </data>
+  <data name="SupportDeveloper" xml:space="preserve">
+    <value>ڈویلپر کی حمایت کریں (UR)</value>
+  </data>
+  <data name="Donate" xml:space="preserve">
+    <value>عطیہ دیں (UR)</value>
+  </data>
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, ...</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
+  </resheader>
+  <data name="Hello" xml:space="preserve">
+    <value>ہیلو (UR)</value>
+  </data>
+  <data name="Exit" xml:space="preserve">
+    <value>خروج (UR)</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>ترتیبات (UR)</value>
+  </data>
+  <data name="Navigation" xml:space="preserve">
+    <value>نیویگیشن (UR)</value>
+  </data>
+  <data name="CompassHeading" xml:space="preserve">
+    <value>کمپاس ہیڈنگ (UR)</value>
+  </data>
+  <data name="VoiceNavigation" xml:space="preserve">
+    <value>وائس نیویگیشن (UR)</value>
+  </data>
+  <data name="ARNavigation" xml:space="preserve">
+    <value>اے آر نیویگیشن (UR)</value>
+  </data>
+  <data name="OfflineMap" xml:space="preserve">
+    <value>آف لائن نقشہ (UR)</value>
+  </data>
+  <data name="RouteSelection" xml:space="preserve">
+    <value>راستہ منتخب کریں (UR)</value>
+  </data>
+  <data name="DestinationInput" xml:space="preserve">
+    <value>منزل درج کریں (UR)</value>
+  </data>
+  <data name="MoonCompass" xml:space="preserve">
+    <value>چاند کمپاس (UR)</value>
+  </data>
+  <data name="QiblaDirection" xml:space="preserve">
+    <value>قبلہ سمت (UR)</value>
+  </data>
+  <data name="POIShow" xml:space="preserve">
+    <value>پی او آئی دکھائیں (UR)</value>
+  </data>
+  <data name="TransportMode" xml:space="preserve">
+    <value>نقل و حمل کا موڈ (UR)</value>
+  </data>
+  <data name="RealTimeTraffic" xml:space="preserve">
+    <value>حقیقی وقت کی ٹریفک (UR)</value>
+  </data>
+</root>

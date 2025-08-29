@@ -1,102 +1,75 @@
-using System;
-using Microsoft.Maui.Controls;
-using SkiaSharp;
-using SkiaSharp.Views.Maui.Controls;
-using CoordinateSharp;
-
-namespace KesifUygulamasiTemplate.Pages
-{
-    public class AyPusulasiPage : ContentPage
-    {
-        private Label ayFazLabel;
-        private Label ayDogusLabel;
-        private Label ayBatisLabel;
-        private Label aydinlanmaLabel;
-        private SKCanvasView canvasView;
-
-        public AyPusulasiPage()
-        {
-            Title = "Ay Pusulası";
-
-            ayFazLabel = new Label { FontSize = 18, HorizontalOptions = LayoutOptions.Center };
-            ayDogusLabel = new Label { FontSize = 16, HorizontalOptions = LayoutOptions.Center };
-            ayBatisLabel = new Label { FontSize = 16, HorizontalOptions = LayoutOptions.Center };
-            aydinlanmaLabel = new Label { FontSize = 16, HorizontalOptions = LayoutOptions.Center };
-
-            canvasView = new SKCanvasView();
-            canvasView.PaintSurface += OnCanvasViewPaintSurface;
-
-            Content = new StackLayout
-            {
-                Padding = 20,
-                Spacing = 15,
-                Children =
-                {
-                    ayFazLabel,
-                    ayDogusLabel,
-                    ayBatisLabel,
-                    aydinlanmaLabel,
-                    new Frame
-                    {
-                        Content = canvasView,
-                        HeightRequest = 250,
-                        CornerRadius = 15,
-                        HasShadow = true
-                    }
-                }
-            };
-
-            HesaplaVeGuncelle();
-        }
-
-        private void HesaplaVeGuncelle()
-        {
-            double enlem = 41.0082; // İstanbul örnek
-            double boylam = 28.9784;
-
-            DateTime simdi = DateTime.Now;
-            var koordinat = new Coordinate(enlem, boylam, simdi);
-
-            var ayFaz = koordinat.CelestialInfo.MoonIllumination.Phase;
-            var ayDogus = koordinat.CelestialInfo.MoonRise;
-            var ayBatis = koordinat.CelestialInfo.MoonSet;
-            var aydinlanma = koordinat.CelestialInfo.MoonIllumination.Fraction * 100;
-
-            ayFazLabel.Text = $"Ay Fazı: {ayFaz}";
-            ayDogusLabel.Text = $"Ay Doğuşu: {(ayDogus.HasValue ? ayDogus.Value.ToString("HH:mm") : "Yok")}";
-            ayBatisLabel.Text = $"Ay Batışı: {(ayBatis.HasValue ? ayBatis.Value.ToString("HH:mm") : "Yok")}";
-            aydinlanmaLabel.Text = $"Aydınlanma: {aydinlanma:F1}%";
-
-            canvasView.InvalidateSurface();
-        }
-
-        private void OnCanvasViewPaintSurface(object sender, SKPaintSurfaceEventArgs e)
-        {
-            var canvas = e.Surface.Canvas;
-            canvas.Clear(SKColors.Black);
-
-            var paint = new SKPaint
-            {
-                Style = SKPaintStyle.Stroke,
-                Color = SKColors.White,
-                StrokeWidth = 3,
-                IsAntialias = true
-            };
-
-            float centerX = e.Info.Width / 2;
-            float centerY = e.Info.Height / 2;
-            float radius = Math.Min(centerX, centerY) - 10;
-
-            canvas.DrawCircle(centerX, centerY, radius, paint);
-
-            var phasePaint = new SKPaint
-            {
-                Style = SKPaintStyle.Fill,
-                Color = SKColors.LightGray,
-                IsAntialias = true
-            };
-
-            float illumination = (float)(new Coordinate(41.0082, 28.9784, DateTime.Now).CelestialInfo.MoonIllumination.Fraction);
-            float phaseWidth = radius * illumination;
-
-            canvas.DrawOval(new SKRect(centerX - ph
+    <data name="POIShow" xml:space="preserve">
+        <value>POI Gösterimi (TR)</value>
+    </data>
+    <data name="TransportationMode" xml:space="preserve">
+        <value>Ulaşım Modu (TR)</value>
+    </data>
+    <data name="RealTimeTraffic" xml:space="preserve">
+        <value>Gerçek Zamanlı Trafik (TR)</value>
+    </data>
+    <data name="SupportDeveloper" xml:space="preserve">
+        <value>Geliştiriciye Destek (TR)</value>
+    </data>
+    <data name="Donate" xml:space="preserve">
+        <value>Bağış Yap (TR)</value>
+    </data>
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>2.0</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, ...</value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
+    </resheader>
+    <data name="Hello" xml:space="preserve">
+        <value>Merhaba (TR)</value>
+    </data>
+    <data name="Exit" xml:space="preserve">
+        <value>Çıkış (TR)</value>
+    </data>
+    <data name="Settings" xml:space="preserve">
+        <value>Ayarlar (TR)</value>
+    </data>
+    <data name="Navigation" xml:space="preserve">
+        <value>Navigasyon (TR)</value>
+    </data>
+    <data name="CompassHeading" xml:space="preserve">
+        <value>Pusula Yönü (TR)</value>
+    </data>
+    <data name="VoiceNavigation" xml:space="preserve">
+        <value>Sesli Navigasyon (TR)</value>
+    </data>
+    <data name="ARNavigation" xml:space="preserve">
+        <value>AR Navigasyon (TR)</value>
+    </data>
+    <data name="OfflineMap" xml:space="preserve">
+        <value>Çevrimdışı Harita (TR)</value>
+    </data>
+    <data name="RouteSelection" xml:space="preserve">
+        <value>Rota Seçimi (TR)</value>
+    </data>
+    <data name="DestinationInput" xml:space="preserve">
+        <value>Hedef Girişi (TR)</value>
+    </data>
+    <data name="MoonCompass" xml:space="preserve">
+        <value>Ay Pusulası (TR)</value>
+    </data>
+    <data name="QiblaDirection" xml:space="preserve">
+        <value>Kıble Yönü (TR)</value>
+    </data>
+    <data name="POIShow" xml:space="preserve">
+        <value>POI Göster (TR)</value>
+    </data>
+    <data name="TransportMode" xml:space="preserve">
+        <value>Ulaşım Modu (TR)</value>
+    </data>
+    <data name="RealTimeTraffic" xml:space="preserve">
+        <value>Anlık Trafik (TR)</value>
+    </data>
+</root>

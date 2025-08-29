@@ -1,0 +1,61 @@
+  <data name="POIShow" xml:space="preserve">
+    <value>Exibir POI (PT-BR)</value>
+  </data>
+  <data name="TransportationMode" xml:space="preserve">
+    <value>Modo de transporte (PT-BR)</value>
+  </data>
+  <data name="RealTimeTraffic" xml:space="preserve">
+    <value>Tráfego em tempo real (PT-BR)</value>
+  </data>
+  <data name="SupportDeveloper" xml:space="preserve">
+    <value>Apoiar o desenvolvedor (PT-BR)</value>
+  </data>
+  <data name="Donate" xml:space="preserve">
+    <value>Doar (PT-BR)</value>
+  </data>
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, ...</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
+  </resheader>
+  <!-- Portekizce (Brezilya) çeviriler buraya eklenecek -->
+  <data name="VoiceNavigation" xml:space="preserve">
+    <value>Navegação por voz (PT-BR)</value>
+  </data>
+  <data name="ARNavigation" xml:space="preserve">
+    <value>Navegação AR (PT-BR)</value>
+  </data>
+  <data name="OfflineMap" xml:space="preserve">
+    <value>Mapa offline (PT-BR)</value>
+  </data>
+  <data name="RouteSelection" xml:space="preserve">
+    <value>Seleção de rota (PT-BR)</value>
+  </data>
+  <data name="DestinationInput" xml:space="preserve">
+    <value>Entrada de destino (PT-BR)</value>
+  </data>
+  <data name="MoonCompass" xml:space="preserve">
+    <value>Bússola lunar (PT-BR)</value>
+  </data>
+  <data name="QiblaDirection" xml:space="preserve">
+    <value>Direção da Qibla (PT-BR)</value>
+  </data>
+  <data name="POIShow" xml:space="preserve">
+    <value>Mostrar POI (PT-BR)</value>
+  </data>
+  <data name="TransportMode" xml:space="preserve">
+    <value>Modo de transporte (PT-BR)</value>
+  </data>
+  <data name="RealTimeTraffic" xml:space="preserve">
+    <value>Tráfego em tempo real (PT-BR)</value>
+  </data>
+</root>

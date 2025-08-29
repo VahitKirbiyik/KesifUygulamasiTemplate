@@ -129,8 +129,17 @@
 		<Compile Remove="RouteViewModel.cs" />
 	</ItemGroup>
 	<ItemGroup>
+	  <MauiXaml Remove="KesifUygulamasi.AIHelper\KesifUygulamasi.OllamaTool\OllamaPanelContent.xaml" />
+	</ItemGroup>
+	<ItemGroup>
+	  <EmbeddedResource Include="KesifUygulamasi.AIHelper\KesifUygulamasi.OllamaTool\OllamaPanelContent.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </EmbeddedResource>
+	</ItemGroup>
+	<ItemGroup>
 	  <None Include=".github\workflows\device-tests.yml" />
 	  <None Include=".github\workflows\release.yml" />
+	  <None Include="KesifUygulamasiTemplate.sln" />
 	</ItemGroup>
 
 </Project>

@@ -17,19 +17,118 @@ env:
   ARTIFACT_DIR: 'artifacts'
 
 jobs:
-  build-matrix:
+  build-test:
+    name: Build & Test on Windows, Linux, Mac
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        include:
-          - os: ubuntu-latest
-            target: android
-          - os: windows-latest
-            target: android
-          - os: macos-latest
-            target: ios
-          - os: ubuntu-latest
-            target: test
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build solution
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run unit tests
+        run: dotnet test --no-build --verbosity normal --logger trx --results-directory TestResults
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: TestResults
+
+      - name: Run static analysis
+        run: dotnet build -warnaserror
+
+  security:
+    name: Secret Scan & NuGet Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Secret Scan
+        uses: trufflesecurity/trufflehog@v3
+        with:
+          path: .
+
+      - name: NuGet Vulnerable Packages
+        run: dotnet list package --vulnerable
+
+  release-android:
+    name: Build Android .aab
+    runs-on: windows-latest
+    needs: [build-test, security]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build Release
+        run: dotnet publish -c Release -f:net8.0-android -o out/Android
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android-Release
+          path: out/Android
+
+  release-ios:
+    name: Build iOS .ipa
+    runs-on: macos-latest
+    needs: [build-test, security]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build Release
+        run: dotnet publish -c Release -f:net8.0-ios -o out/iOS
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS-Release
+          path: out/iOS
+
+  versioning:
+    name: Automatic Versioning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update version
+        run: |
+          VERSION=$(date +'%Y.%m.%d.%H%M')
+          echo "##vso[task.setvariable variable=VERSION]$VERSION"
+          sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/" **/*.csproj
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add **/*.csproj
+          git commit -m "Bump version to $VERSION"
+          git push
 
     steps:
       - name: Checkout

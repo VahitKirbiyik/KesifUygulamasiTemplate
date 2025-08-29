@@ -2,7 +2,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Maui;
 using Microsoft.Maui.Hosting;
 using KesifUygulamasiTemplate.Services;
-using KesifUygulamasiTemplate.Models;
 using KesifUygulamasiTemplate.Views;
 using KesifUygulamasiTemplate.ViewModels;
 
@@ -22,20 +21,20 @@ public static class Program
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
-        // ✅ Services
+        // Services
         builder.Services.AddSingleton<IApiService, ApiService>();
         builder.Services.AddSingleton<IAuthService, AuthService>();
         builder.Services.AddSingleton<IStorageService, StorageService>();
+        builder.Services.AddSingleton<OllamaService>(); // ✅ Ollama AI desteği
+        builder.Services.AddSingleton<NavigationService>();
 
-        // ✅ ViewModels
+        // ViewModels
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<DetailViewModel>();
 
-        // ✅ Views
+        // Views
         builder.Services.AddSingleton<MainPage>();
-        builder.Services.AddTransient<LoginPage>();
-        builder.Services.AddTransient<DetailPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();

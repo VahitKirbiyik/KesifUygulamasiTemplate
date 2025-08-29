@@ -1,0 +1,20 @@
+<UserControl x:Class="KesifUygulamasi.AIHelper.OllamaPanel.OllamaPanelControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             Height="400" Width="300">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBox x:Name="OutputBox" Grid.Row="0" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="5"/>
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="5">
+            <TextBox x:Name="PromptBox" Width="200" />
+            <Button Content="Gönder" Width="75" Margin="5,0,0,0" Click="SendButton_Click"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

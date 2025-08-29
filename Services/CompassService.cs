@@ -1,43 +1,23 @@
-using System;
 using Microsoft.Maui.Devices.Sensors;
+using System;
 
-namespace KesifUygulamasiTemplate.Services
+namespace KesifUygulamasiTemplate.Services;
+
+public class CompassService
 {
-    public class CompassService : ICompassService
+    public event EventHandler<CompassChangedEventArgs> CompassChanged;
+
+    public void Start()
     {
-        public event Action<double> HeadingChanged;
-        public bool IsMonitoring { get; private set; }
-        public bool IsSupported => Compass.Default.IsSupported;
-
-        public CompassService()
+        Compass.ReadingChanged += (s, e) =>
         {
-            Compass.Default.ReadingChanged += OnReadingChanged;
-        }
+            CompassChanged?.Invoke(this, e);
+        };
+        Compass.Start(SensorSpeed.UI);
+    }
 
-        public void Start()
-        {
-            if (!IsSupported)
-                throw new NotSupportedException("Cihaz pusula sensörünü desteklemiyor.");
-
-            if (!IsMonitoring)
-            {
-                Compass.Default.Start(SensorSpeed.UI);
-                IsMonitoring = true;
-            }
-        }
-
-        public void Stop()
-        {
-            if (IsMonitoring)
-            {
-                Compass.Default.Stop();
-                IsMonitoring = false;
-            }
-        }
-
-        private void OnReadingChanged(object sender, CompassChangedEventArgs e)
-        {
-            HeadingChanged?.Invoke(e.Reading.HeadingMagneticNorth);
-        }
+    public void Stop()
+    {
+        Compass.Stop();
     }
 }

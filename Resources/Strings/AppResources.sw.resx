@@ -1,0 +1,61 @@
+  <data name="POIShow" xml:space="preserve">
+    <value>Onyesha POI (SW)</value>
+  </data>
+  <data name="TransportationMode" xml:space="preserve">
+    <value>Hali ya Usafiri (SW)</value>
+  </data>
+  <data name="RealTimeTraffic" xml:space="preserve">
+    <value>Trafiki ya Wakati Halisi (SW)</value>
+  </data>
+  <data name="SupportDeveloper" xml:space="preserve">
+    <value>Saidi Mwandishi (SW)</value>
+  </data>
+  <data name="Donate" xml:space="preserve">
+    <value>Toa Mchango (SW)</value>
+  </data>
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, ...</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
+  </resheader>
+  <!-- Svahili çeviriler buraya eklenecek -->
+  <data name="VoiceNavigation" xml:space="preserve">
+    <value>Urambazaji wa Sauti (SW)</value>
+  </data>
+  <data name="ARNavigation" xml:space="preserve">
+    <value>Urambazaji wa AR (SW)</value>
+  </data>
+  <data name="OfflineMap" xml:space="preserve">
+    <value>Ramani Isiyounganishwa (SW)</value>
+  </data>
+  <data name="RouteSelection" xml:space="preserve">
+    <value>Uteuzi wa Njia (SW)</value>
+  </data>
+  <data name="DestinationInput" xml:space="preserve">
+    <value>Ingizo la Marudio (SW)</value>
+  </data>
+  <data name="MoonCompass" xml:space="preserve">
+    <value>Kipima Mwezi (SW)</value>
+  </data>
+  <data name="QiblaDirection" xml:space="preserve">
+    <value>Mwelekeo wa Qibla (SW)</value>
+  </data>
+  <data name="POIShow" xml:space="preserve">
+    <value>Onyesha POI (SW)</value>
+  </data>
+  <data name="TransportMode" xml:space="preserve">
+    <value>Hali ya Usafiri (SW)</value>
+  </data>
+  <data name="RealTimeTraffic" xml:space="preserve">
+    <value>Trafiki ya Wakati Halisi (SW)</value>
+  </data>
+</root>

@@ -1,0 +1,75 @@
+  <data name="POIShow" xml:space="preserve">
+    <value>Εμφάνιση POI (EL)</value>
+  </data>
+  <data name="TransportationMode" xml:space="preserve">
+    <value>Λειτουργία μεταφοράς (EL)</value>
+  </data>
+  <data name="RealTimeTraffic" xml:space="preserve">
+    <value>Κυκλοφορία σε πραγματικό χρόνο (EL)</value>
+  </data>
+  <data name="SupportDeveloper" xml:space="preserve">
+    <value>Υποστήριξη προγραμματιστή (EL)</value>
+  </data>
+  <data name="Donate" xml:space="preserve">
+    <value>Δωρεά (EL)</value>
+  </data>
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, ...</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
+  </resheader>
+  <data name="Hello" xml:space="preserve">
+    <value>Γειά σου (EL)</value>
+  </data>
+  <data name="Exit" xml:space="preserve">
+    <value>Έξοδος (EL)</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Ρυθμίσεις (EL)</value>
+  </data>
+  <data name="Navigation" xml:space="preserve">
+    <value>Πλοήγηση (EL)</value>
+  </data>
+  <data name="CompassHeading" xml:space="preserve">
+    <value>Κατεύθυνση πυξίδας (EL)</value>
+  </data>
+  <data name="VoiceNavigation" xml:space="preserve">
+    <value>Φωνητική πλοήγηση (EL)</value>
+  </data>
+  <data name="ARNavigation" xml:space="preserve">
+    <value>Πλοήγηση AR (EL)</value>
+  </data>
+  <data name="OfflineMap" xml:space="preserve">
+    <value>Χάρτης εκτός σύνδεσης (EL)</value>
+  </data>
+  <data name="RouteSelection" xml:space="preserve">
+    <value>Επιλογή διαδρομής (EL)</value>
+  </data>
+  <data name="DestinationInput" xml:space="preserve">
+    <value>Εισαγωγή προορισμού (EL)</value>
+  </data>
+  <data name="MoonCompass" xml:space="preserve">
+    <value>Σεληνιακή πυξίδα (EL)</value>
+  </data>
+  <data name="QiblaDirection" xml:space="preserve">
+    <value>Κατεύθυνση Κίμπλα (EL)</value>
+  </data>
+  <data name="POIShow" xml:space="preserve">
+    <value>Εμφάνιση POI (EL)</value>
+  </data>
+  <data name="TransportMode" xml:space="preserve">
+    <value>Λειτουργία μεταφοράς (EL)</value>
+  </data>
+  <data name="RealTimeTraffic" xml:space="preserve">
+    <value>Κυκλοφορία σε πραγματικό χρόνο (EL)</value>
+  </data>
+</root>

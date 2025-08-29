@@ -1,0 +1,139 @@
+name: 🔒 Legal & Security Check
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  legal-check:
+    name: "Legal Compliance Check"
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: 📋 LICENSE File Check
+      run: |
+        if [ -f "LICENSE" ]; then
+          echo "✅ LICENSE dosyası bulundu"
+          head -5 LICENSE
+        else
+          echo "❌ LICENSE dosyası bulunamadı!"
+          exit 1
+        fi
+
+    - name: 🔒 Privacy Policy Check
+      run: |
+        if [ -f "legal/privacy-policy.html" ]; then
+          echo "✅ Gizlilik politikası bulundu"
+          grep -i "gizlilik\|privacy" legal/privacy-policy.html | head -3
+        else
+          echo "❌ Gizlilik politikası bulunamadı!"
+          exit 1
+        fi
+
+    - name: 📖 README License Section Check
+      run: |
+        if grep -q "## Lisans\|## License" README.md; then
+          echo "✅ README'de lisans bölümü bulundu"
+        else
+          echo "⚠️  README'de lisans bölümü bulunamadı"
+        fi
+
+  security-scan:
+    name: "Security Scan"
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: 🔍 Security Scan with Trivy
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: 📤 Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  dependency-check:
+    name: "Dependency Vulnerability Check"
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: 🔍 Dependency Check
+      uses: dependency-check/Dependency-Check_Action@main
+      with:
+        project: 'KesifUygulamasiTemplate'
+        path: '.'
+        format: 'ALL'
+        args: >
+          --enableRetired
+          --enableExperimental
+          --nvdValidForHours 24
+
+    - name: 📤 Upload Dependency Check results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: dependency-check-report
+        path: reports/
+
+  compliance-summary:
+    name: "Compliance Summary"
+    runs-on: ubuntu-latest
+    needs: [legal-check, security-scan, dependency-check]
+    if: always()
+    steps:
+    - name: 📊 Generate Compliance Report
+      run: |
+        echo "# 🔒 Güvenlik ve Uyumluluk Raporu" > compliance-report.md
+        echo "" >> compliance-report.md
+        echo "## 📋 Kontrol Sonuçları" >> compliance-report.md
+        echo "" >> compliance-report.md
+
+        if [ "${{ needs.legal-check.result }}" == "success" ]; then
+          echo "✅ **Legal Check:** Başarılı" >> compliance-report.md
+        else
+          echo "❌ **Legal Check:** Başarısız" >> compliance-report.md
+        fi
+
+        if [ "${{ needs.security-scan.result }}" == "success" ]; then
+          echo "✅ **Security Scan:** Başarılı" >> compliance-report.md
+        else
+          echo "❌ **Security Scan:** Başarısız" >> compliance-report.md
+        fi
+
+        if [ "${{ needs.dependency-check.result }}" == "success" ]; then
+          echo "✅ **Dependency Check:** Başarılı" >> compliance-report.md
+        else
+          echo "❌ **Dependency Check:** Başarısız" >> compliance-report.md
+        fi
+
+        echo "" >> compliance-report.md
+        echo "## 📅 Kontrol Tarihi" >> compliance-report.md
+        echo "$(date)" >> compliance-report.md
+        echo "" >> compliance-report.md
+        echo "---" >> compliance-report.md
+        echo "*Bu rapor otomatik olarak GitHub Actions tarafından oluşturulmuştur.*" >> compliance-report.md
+
+    - name: 📤 Upload Compliance Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: compliance-report
+        path: compliance-report.md
+
+    - name: 📢 Notification
+      if: failure()
+      run: |
+        echo "⚠️  Uyumluluk kontrolü başarısız oldu!"
+        echo "Detaylar için artifacts bölümünü kontrol edin."

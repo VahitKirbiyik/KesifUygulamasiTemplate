@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011">
+  <Metadata>
+    <Identity Id="KesifUygulamasi.OllamaTool"
+              Version="1.0.0"
+              Language="tr-TR"
+              Publisher="VAHIT" />
+    <DisplayName>KesifUygulamasi Ollama Tool</DisplayName>
+    <Description xml:space="preserve">
+      Visual Studio içinde Ollama destekli komut üretimi ve script tetikleme için özel panel.
+    </Description>
+    <Tags>AI, Ollama, Panel, VSIX, Türkçe Komut, Kod Üretimi</Tags>
+    <MoreInfo>https://github.com/vahit/KesifUygulamasi.OllamaTool</MoreInfo>
+    <License>LICENSE.txt</License>
+    <Icon>Resources\OllamaIcon.png</Icon>
+  </Metadata>
+
+  <Installation>
+    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0,18.0)" />
+    <InstallationTarget Id="Microsoft.VisualStudio.Professional" Version="[17.0,18.0)" />
+    <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.0,18.0)" />
+  </Installation>
+
+  <Dependencies>
+    <Dependency Id="Microsoft.VisualStudio.MPF.15.0" Version="[15.0]" />
+  </Dependencies>
+
+  <Assets>
+    <!-- ToolWindow Asset -->
+    <Asset Type="Microsoft.VisualStudio.Extensibility.ToolWindow"
+           d:Source="Project"
+           Path="OllamaPanelToolWindow" />
+
+    <!-- Command Asset -->
+    <Asset Type="Microsoft.VisualStudio.Extensibility.Command"
+           d:Source="Project"
+           Path="OllamaPanelCommand" />
+
+    <!-- VSCT dosyası -->
+    <Asset Type="Microsoft.VisualStudio.Vsct"
+           Path="OllamaPanel.vsct" />
+
+    <!-- Kod dosyaları -->
+    <Asset Type="Microsoft.VisualStudio.Code"
+           Path="OllamaPanelToolWindow.cs" />
+    <Asset Type="Microsoft.VisualStudio.Code"
+           Path="OllamaPanelContent.cs" />
+    <Asset Type="Microsoft.VisualStudio.Code"
+           Path="OllamaPanelViewModel.cs" />
+    <Asset Type="Microsoft.VisualStudio.Code"
+           Path="OllamaPanelCommand.cs" />
+  </Assets>
+</PackageManifest>
