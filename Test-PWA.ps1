@@ -4,11 +4,10 @@
 # -*- coding: utf-8 -*-
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-param(
-    [string]$BaseUrl = "https://kesifapp.com",
-    [switch]$Verbose,
-    [switch]$SkipNetworkTests
-)
+# Parametreler
+$BaseUrl = if ($args.Count -gt 0 -and $args[0] -notmatch '^-') { $args[0] } else { "https://kesifapp.com" }
+$Verbose = $args -contains '-Verbose' -or $args -contains '-verbose'
+$SkipNetworkTests = $args -contains '-SkipNetworkTests' -or $args -contains '-skipnetworktests'
 
 Write-Host "🔍 KesifApp PWA Test Başlatılıyor..." -ForegroundColor Cyan
 if ($Verbose) {
