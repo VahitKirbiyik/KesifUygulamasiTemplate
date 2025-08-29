@@ -30,6 +30,35 @@
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="canonical" href="https://kesifapp.com/privacy-policy.html">
 
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#c62828">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Kesif App">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="msapplication-TileColor" content="#c62828">
+
+  <!-- Apple Touch Icons -->
+  <link rel="apple-touch-icon" href="/favicon.ico">
+
+  <!-- Manifest -->
+  <link rel="manifest" href="/manifest.json">
+
+  <!-- Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(function(registration) {
+            console.log('Service Worker registered for privacy policy page');
+          })
+          .catch(function(error) {
+            console.log('Service Worker registration failed:', error);
+          });
+      });
+    }
+  </script>
+
   <style>
     body { font-family: Arial, sans-serif; margin: 40px; background-color: #fefefe; color: #333; }
     h1 { color: #c62828; }

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>404 - Sayfa Bulunamadı | Kesif Uygulaması</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Aradığınız sayfa bulunamadı. Kesif Uygulaması ana sayfasına dönün.">
+  <meta name="robots" content="noindex, nofollow">
+
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#0057b8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Kesif App">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+
+  <!-- Manifest -->
+  <link rel="manifest" href="/manifest.json">
+
+  <!-- Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(function(registration) {
+            console.log('Service Worker registered successfully');
+          })
+          .catch(function(error) {
+            console.log('Service Worker registration failed:', error);
+          });
+      });
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      text-align: center;
+      padding: 2rem;
+      max-width: 600px;
+    }
+
+    .error-code {
+      font-size: 8rem;
+      font-weight: bold;
+      margin: 0;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+      background: linear-gradient(45deg, #ff6b6b, #ffa500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .error-message {
+      font-size: 1.5rem;
+      margin: 1rem 0;
+      opacity: 0.9;
+    }
+
+    .home-button {
+      display: inline-block;
+      padding: 1rem 2rem;
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      text-decoration: none;
+      border-radius: 50px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      font-weight: 600;
+      transition: all 0.3s ease;
+      margin-top: 2rem;
+    }
+
+    .home-button:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+
+    .suggestions {
+      margin-top: 3rem;
+      opacity: 0.8;
+    }
+
+    .suggestions h3 {
+      margin-bottom: 1rem;
+    }
+
+    .suggestions ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .suggestions li {
+      margin: 0.5rem 0;
+    }
+
+    .suggestions a {
+      color: white;
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .error-code {
+        font-size: 6rem;
+      }
+
+      .error-message {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="error-code">404</h1>
+    <p class="error-message">Aradığınız sayfa bulunamadı veya taşınmış olabilir.</p>
+
+    <a href="/" class="home-button">🏠 Ana Sayfaya Dön</a>
+
+    <div class="suggestions">
+      <h3>Popüler Sayfalar:</h3>
+      <ul>
+        <li><a href="/legal.html">📜 Yasal Bilgiler</a></li>
+        <li><a href="/privacy-policy.html">🔒 Gizlilik Politikası</a></li>
+        <li><a href="https://github.com/VahitKirbiyik/KesifUygulamasiTemplate">📂 GitHub Repository</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Sayfa yüklendiğinde animasyon efekti
+    document.addEventListener('DOMContentLoaded', function() {
+      const errorCode = document.querySelector('.error-code');
+      errorCode.style.opacity = '0';
+      errorCode.style.transform = 'translateY(20px)';
+
+      setTimeout(() => {
+        errorCode.style.transition = 'all 0.8s ease';
+        errorCode.style.opacity = '1';
+        errorCode.style.transform = 'translateY(0)';
+      }, 100);
+    });
+
+    // Geri tuşu ile ana sayfaya yönlendirme
+    window.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' || e.key === 'Backspace') {
+        window.location.href = '/';
+      }
+    });
+  </script>
+</body>
+</html>
