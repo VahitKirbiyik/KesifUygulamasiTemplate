@@ -1,10 +1,14 @@
 # KesifUygulamasiTemplate
 
-[![CI](https://github.com/your-username/KesifUygulamasiTemplate/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/KesifUygulamasiTemplate/actions/workflows/ci.yml)
-[![Code Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen)](https://github.com/your-username/KesifUygulamasiTemplate/actions/workflows/ci.yml/badge.svg)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Active-brightgreen)](https://kesifapp.com/)
+[![CI](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/ci.yml/badge.svg)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/ci.yml)
+[![Code Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://kesifapp.com/legal.html)
 [![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)](https://dotnet.microsoft.com/)
 [![Platforms](https://img.shields.io/badge/Platforms-iOS%20%7C%20Android%20%7C%20Windows-lightgrey.svg)](https://dotnet.microsoft.com/en-us/apps/maui)
+[![GitHub stars](https://img.shields.io/github/stars/VahitKirbiyik/KesifUygulamasiTemplate)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/VahitKirbiyik/KesifUygulamasiTemplate)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/issues)
+[![GitHub last commit](https://img.shields.io/github/last-commit/VahitKirbiyik/KesifUygulamasiTemplate)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/commits/main)
 
 .NET MAUI tabanlı gelişmiş keşif uygulaması template projesi. Modern navigasyon, pusula özellikleri ve kapsamlı harita desteği ile donatılmıştır.
 
