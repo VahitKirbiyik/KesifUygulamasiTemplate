@@ -7,13 +7,13 @@ using Microsoft.Maui.Controls;
 namespace KesifUygulamasiTemplate.Services
 {
     /// <summary>
-    /// Kullanýcý geri bildirim mekanizmasý (Toast, Snackbar, Alert)
-    /// Platform baðýmsýz þekilde mesaj gösterimi saðlar
+    /// Kullanï¿½cï¿½ geri bildirim mekanizmasï¿½ (Toast, Snackbar, Alert)
+    /// Platform baï¿½ï¿½msï¿½z ï¿½ekilde mesaj gï¿½sterimi saï¿½lar
     /// </summary>
     public class NotificationService
     {
         /// <summary>
-        /// Kýsa süreli bilgilendirme mesajý gösterir (Toast)
+        /// Kï¿½sa sï¿½reli bilgilendirme mesajï¿½ gï¿½sterir (Toast)
         /// </summary>
         public async Task ShowToastAsync(string message, ToastDuration duration = ToastDuration.Short)
         {
@@ -24,12 +24,12 @@ namespace KesifUygulamasiTemplate.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Toast gösterim hatasý: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Toast gï¿½sterim hatasï¿½: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Baþarý mesajý gösterir (yeþil renkte)
+        /// Baï¿½arï¿½ mesajï¿½ gï¿½sterir (yeï¿½il renkte)
         /// </summary>
         public async Task ShowSuccessAsync(string message)
         {
@@ -37,7 +37,7 @@ namespace KesifUygulamasiTemplate.Services
         }
 
         /// <summary>
-        /// Hata mesajý gösterir (kýrmýzý renkte)
+        /// Hata mesajï¿½ gï¿½sterir (kï¿½rmï¿½zï¿½ renkte)
         /// </summary>
         public async Task ShowErrorAsync(string message)
         {
@@ -45,7 +45,7 @@ namespace KesifUygulamasiTemplate.Services
         }
 
         /// <summary>
-        /// Uyarý mesajý gösterir (sarý renkte)
+        /// Uyarï¿½ mesajï¿½ gï¿½sterir (sarï¿½ renkte)
         /// </summary>
         public async Task ShowWarningAsync(string message)
         {
@@ -53,7 +53,7 @@ namespace KesifUygulamasiTemplate.Services
         }
 
         /// <summary>
-        /// Bilgi mesajý gösterir (mavi renkte)
+        /// Bilgi mesajï¿½ gï¿½sterir (mavi renkte)
         /// </summary>
         public async Task ShowInfoAsync(string message)
         {
@@ -61,9 +61,9 @@ namespace KesifUygulamasiTemplate.Services
         }
 
         /// <summary>
-        /// Snackbar gösterir (action button ile)
+        /// Snackbar gï¿½sterir (action button ile)
         /// </summary>
-        public async Task ShowSnackbarAsync(string message, string actionText = null, Func<Task> action = null)
+        public async Task ShowSnackbarAsync(string message, string? actionText = null, Func<Task>? action = null)
         {
             try
             {
@@ -77,35 +77,36 @@ namespace KesifUygulamasiTemplate.Services
                     ActionButtonFont = Microsoft.Maui.Font.SystemFontOfSize(14, FontWeight.Bold)
                 };
 
-                var snackbar = Snackbar.Make(message, action, actionText, TimeSpan.FromSeconds(3), snackbarOptions);
+                Action? actionDelegate = action != null ? () => action() : null;
+                var snackbar = Snackbar.Make(message, actionDelegate, actionText ?? "OK", TimeSpan.FromSeconds(3), snackbarOptions);
                 await snackbar.Show();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Snackbar gösterim hatasý: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Snackbar gï¿½sterim hatasï¿½: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Konfirmasyon dialog'u gösterir
+        /// Konfirmasyon dialog'u gï¿½sterir
         /// </summary>
-        public async Task<bool> ShowConfirmationAsync(string title, string message, string accept = "Evet", string cancel = "Ýptal")
+        public async Task<bool> ShowConfirmationAsync(string title, string message, string accept = "Evet", string cancel = "ï¿½ptal")
         {
             try
             {
-                return await Application.Current?.MainPage?.DisplayAlert(title, message, accept, cancel) == true;
+                return Application.Current?.MainPage != null && await Application.Current.MainPage.DisplayAlert(title, message, accept, cancel) == true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Confirmation dialog hatasý: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Confirmation dialog hatasï¿½: {ex.Message}");
                 return false;
             }
         }
 
         /// <summary>
-        /// Loading mesajý gösterir
+        /// Loading mesajï¿½ gï¿½sterir
         /// </summary>
-        public async Task ShowLoadingAsync(string message = "Yükleniyor...")
+        public async Task ShowLoadingAsync(string message = "Yï¿½kleniyor...")
         {
             await ShowInfoAsync(message);
         }

@@ -6,6 +6,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Maui.Devices.Sensors;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Maui.Networking;
 using KesifUygulamasiTemplate.Models;
 
@@ -24,17 +25,17 @@ namespace KesifUygulamasiTemplate.Services
         private readonly HttpClient _httpClient;
         private readonly IConnectivity _connectivity;
         private readonly IGeolocation _geolocation;
-        private readonly string _apiKey;
-        private readonly Random _random; // Simülasyon için
+        private readonly string? _apiKey;
+        private readonly Random _random; // SimÃ¼lasyon iÃ§in
         private DateTime _lastUpdated;
         private readonly SemaphoreSlim _cacheLock = new SemaphoreSlim(1, 1);
         private Dictionary<string, CachedTrafficData> _trafficCache = new Dictionary<string, CachedTrafficData>();
-        
-        // Cache verilerini tutan yardýmcý sýnýf
+
+        // Cache verilerini tutan yardÄ±mcÄ± sÄ±nÄ±f
         private class CachedTrafficData
         {
-            public TrafficInfo TrafficInfo { get; set; }
-            public List<TrafficIncident> Incidents { get; set; }
+            public TrafficInfo? TrafficInfo { get; set; }
+            public List<TrafficIncident>? Incidents { get; set; }
             public DateTime CacheTime { get; set; }
         }
 
@@ -43,28 +44,29 @@ namespace KesifUygulamasiTemplate.Services
             _httpClient = httpClient;
             _connectivity = connectivity;
             _geolocation = geolocation;
-            _apiKey = config["MapServices:ApiKey"];
+            _apiKey = config["MapServices:ApiKey"] ?? string.Empty;
             _random = new Random();
             _lastUpdated = DateTime.UtcNow;
         }
 
         public async Task<TrafficInfo> GetTrafficInfoAsync(double latitude, double longitude, double radius = 5.0)
         {
-            // Ýnternet baðlantýsý kontrolü
+            // ï¿½nternet baï¿½lantï¿½sï¿½ kontrolï¿½
             if (_connectivity.NetworkAccess != NetworkAccess.Internet)
                 return CreateDefaultTrafficInfo();
-                
+
             try
             {
-                // Cache kontrolü
+                // Cache kontrolÃ¼
                 string cacheKey = $"traffic_{latitude:F3}_{longitude:F3}_{radius:F1}";
-                
+
                 await _cacheLock.WaitAsync();
                 try
                 {
-                    // Cache'de varsa ve son 5 dakika içinde güncellenmiþ ise cache'den döndür
-                    if (_trafficCache.TryGetValue(cacheKey, out var cachedData) && 
-                        (DateTime.UtcNow - cachedData.CacheTime).TotalMinutes < 5)
+                    // Cache'de varsa ve son 5 dakika iÃ§inde gÃ¼ncellenmiÅŸ ise cache'den dÃ¶ndÃ¼r
+                    if (_trafficCache.TryGetValue(cacheKey, out var cachedData) &&
+                        (DateTime.UtcNow - cachedData.CacheTime).TotalMinutes < 5 &&
+                        cachedData.TrafficInfo != null)
                     {
                         return cachedData.TrafficInfo;
                     }
@@ -73,48 +75,48 @@ namespace KesifUygulamasiTemplate.Services
                 {
                     _cacheLock.Release();
                 }
-                
-                // Gerçek API çaðrýsý burada olacak
-                // Örnek: Google Maps Distance Matrix API veya alternatif bir trafik API'si
-                
-                // API simulasyonu - gerçek uygulamada burayý gerçek API çaðrýsý ile deðiþtirin
-                await Task.Delay(300); // API çaðrýsý simülasyonu
-                
-                // Günün saatine göre trafik yoðunluðunu deðiþtir (sabah ve akþam yoðun)
+
+                // GerÃ§ek API Ã§aÄŸrÄ±sÄ± burada olacak
+                // Ã–rnek: Google Maps Distance Matrix API veya alternatif bir trafik API'si
+
+                // API simulasyonu - gerï¿½ek uygulamada burayï¿½ gerï¿½ek API ï¿½aï¿½rï¿½sï¿½ ile deï¿½iï¿½tirin
+                await Task.Delay(300); // API ï¿½aï¿½rï¿½sï¿½ simï¿½lasyonu
+
+                // Gï¿½nï¿½n saatine gï¿½re trafik yoï¿½unluï¿½unu deï¿½iï¿½tir (sabah ve akï¿½am yoï¿½un)
                 var hour = DateTime.Now.Hour;
-                int congestionBase = 20; // Normal zamanlarda temel yoðunluk
-                
-                // Sabah ve akþam trafik yoðunluðu artar
+                int congestionBase = 20; // Normal zamanlarda temel yoï¿½unluk
+
+                // Sabah ve akï¿½am trafik yoï¿½unluï¿½u artar
                 if ((hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19))
                 {
-                    congestionBase = 70; // Yoðun trafik
+                    congestionBase = 70; // Yoï¿½un trafik
                 }
                 else if ((hour >= 10 && hour <= 16) || (hour >= 20 && hour <= 21))
                 {
-                    congestionBase = 40; // Orta yoðunlukta trafik
+                    congestionBase = 40; // Orta yoï¿½unlukta trafik
                 }
-                
+
                 // Random dalgalanmalar ekle
                 int congestionLevel = Math.Min(100, Math.Max(0, congestionBase + _random.Next(-15, 16)));
-                
-                // Trafik bilgisini oluþtur
+
+                // Trafik bilgisini oluï¿½tur
                 var trafficInfo = new TrafficInfo
                 {
-                    CongestionLevel = congestionLevel,
-                    DelayTime = TimeSpan.FromMinutes(congestionLevel / 10.0 * 2), // Her 10 birim yoðunluk için 2 dakika gecikme
-                    TypicalTravelTime = TimeSpan.FromMinutes(radius * 2), // Yaklaþýk hesaplama
-                    CurrentTravelTime = TimeSpan.FromMinutes(radius * 2 * (1 + congestionLevel / 100.0)), // Trafik yoðunluðuna göre artýrýlmýþ süre
+                    CongestionLevel = congestionLevel.ToString(),
+                    DelayTime = TimeSpan.FromMinutes(congestionLevel / 10.0 * 2), // Her 10 birim yoï¿½unluk iï¿½in 2 dakika gecikme
+                    TypicalTravelTime = TimeSpan.FromMinutes(radius * 2), // Yaklaï¿½ï¿½k hesaplama
+                    CurrentTravelTime = TimeSpan.FromMinutes(radius * 2 * (1 + congestionLevel / 100.0)), // Trafik yoï¿½unluï¿½una gï¿½re artï¿½rï¿½lmï¿½ï¿½ sï¿½re
                     LastUpdated = DateTime.UtcNow
                 };
-                
+
                 // Cache'e ekle
                 await _cacheLock.WaitAsync();
                 try
                 {
                     if (!_trafficCache.ContainsKey(cacheKey))
                     {
-                        _trafficCache[cacheKey] = new CachedTrafficData 
-                        { 
+                        _trafficCache[cacheKey] = new CachedTrafficData
+                        {
                             TrafficInfo = trafficInfo,
                             CacheTime = DateTime.UtcNow
                         };
@@ -124,17 +126,17 @@ namespace KesifUygulamasiTemplate.Services
                         _trafficCache[cacheKey].TrafficInfo = trafficInfo;
                         _trafficCache[cacheKey].CacheTime = DateTime.UtcNow;
                     }
-                    
+
                     // Cache boyutunu kontrol et
                     if (_trafficCache.Count > 100)
                     {
-                        // En eski 20 öðeyi sil
+                        // En eski 20 ï¿½ï¿½eyi sil
                         var oldestKeys = _trafficCache
                             .OrderBy(x => x.Value.CacheTime)
                             .Take(20)
                             .Select(x => x.Key)
                             .ToList();
-                            
+
                         foreach (var key in oldestKeys)
                         {
                             _trafficCache.Remove(key);
@@ -145,12 +147,12 @@ namespace KesifUygulamasiTemplate.Services
                 {
                     _cacheLock.Release();
                 }
-                
+
                 return trafficInfo;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Trafik bilgisi alma hatasý: {ex.Message}");
+                Console.WriteLine($"Trafik bilgisi alma hatasï¿½: {ex.Message}");
                 return CreateDefaultTrafficInfo();
             }
         }
@@ -159,17 +161,17 @@ namespace KesifUygulamasiTemplate.Services
         {
             if (_connectivity.NetworkAccess != NetworkAccess.Internet)
                 return new List<TrafficIncident>();
-                
+
             try
             {
-                // Cache kontrolü için bounding box keyleri
+                // Cache kontrolï¿½ iï¿½in bounding box keyleri
                 string cacheKey = $"incidents_{north:F3}_{south:F3}_{east:F3}_{west:F3}";
-                
+
                 await _cacheLock.WaitAsync();
                 try
                 {
-                    // Cache'de varsa ve son 5 dakika içinde güncellenmiþ ise cache'den döndür
-                    if (_trafficCache.TryGetValue(cacheKey, out var cachedData) && 
+                    // Cache'de varsa ve son 5 dakika iï¿½inde gï¿½ncellenmiï¿½ ise cache'den dï¿½ndï¿½r
+                    if (_trafficCache.TryGetValue(cacheKey, out var cachedData) &&
                         (DateTime.UtcNow - cachedData.CacheTime).TotalMinutes < 5 &&
                         cachedData.Incidents != null)
                     {
@@ -180,40 +182,40 @@ namespace KesifUygulamasiTemplate.Services
                 {
                     _cacheLock.Release();
                 }
-                
-                // Gerçek API çaðrýsý burada olacak
-                // Örnek: HERE, TomTom veya Google Maps trafik olaylarý API'si
-                
-                // API simulasyonu - gerçek uygulamada burayý gerçek API çaðrýsý ile deðiþtirin
-                await Task.Delay(500); // API çaðrýsý simülasyonu
-                
-                // Simüle edilmiþ trafik olaylarý - gerçek uygulamada API yanýtýný kullanýn
+
+                // Gerï¿½ek API ï¿½aï¿½rï¿½sï¿½ burada olacak
+                // ï¿½rnek: HERE, TomTom veya Google Maps trafik olaylarï¿½ API'si
+
+                // API simulasyonu - gerï¿½ek uygulamada burayï¿½ gerï¿½ek API ï¿½aï¿½rï¿½sï¿½ ile deï¿½iï¿½tirin
+                await Task.Delay(500); // API ï¿½aï¿½rï¿½sï¿½ simï¿½lasyonu
+
+                // Simï¿½le edilmiï¿½ trafik olaylarï¿½ - gerï¿½ek uygulamada API yanï¿½tï¿½nï¿½ kullanï¿½n
                 List<TrafficIncident> incidents = new List<TrafficIncident>();
-                
-                // Olaylarýn sayýsý için rastgele deðer
+
+                // Olaylarï¿½n sayï¿½sï¿½ iï¿½in rastgele deï¿½er
                 int incidentCount = _random.Next(0, 4);
-                
+
                 for (int i = 0; i < incidentCount; i++)
                 {
-                    // Bounding box içinde rastgele konum oluþtur
+                    // Bounding box iï¿½inde rastgele konum oluï¿½tur
                     double lat = south + (north - south) * _random.NextDouble();
                     double lng = west + (east - west) * _random.NextDouble();
-                    
-                    // Rastgele olay türü seç
+
+                    // Rastgele olay tï¿½rï¿½ seï¿½
                     var types = new[] { "ACCIDENT", "CONSTRUCTION", "ROAD_CLOSED", "LANE_CLOSED", "HEAVY_TRAFFIC" };
                     var type = types[_random.Next(types.Length)];
-                    
-                    // Baþlangýç zamaný - þimdiden 2 saat öncesine kadar
+
+                    // Baï¿½langï¿½ï¿½ zamanï¿½ - ï¿½imdiden 2 saat ï¿½ncesine kadar
                     var startTime = DateTime.UtcNow.AddMinutes(-1 * _random.Next(1, 120));
-                    
-                    // Bitiþ zamaný - þimdiden 3 saat sonrasýna kadar (bazýlarý null olabilir)
-                    DateTime? endTime = _random.Next(3) == 0 ? 
-                        null : // Bazý olaylarýn bitiþ zamaný belli deðil
+
+                    // Bitiï¿½ zamanï¿½ - ï¿½imdiden 3 saat sonrasï¿½na kadar (bazï¿½larï¿½ null olabilir)
+                    DateTime? endTime = _random.Next(3) == 0 ?
+                        null : // Bazï¿½ olaylarï¿½n bitiï¿½ zamanï¿½ belli deï¿½il
                         DateTime.UtcNow.AddMinutes(_random.Next(30, 180));
-                    
+
                     // Ciddiyet seviyesi (1: minor, 4: major)
                     int severity = _random.Next(1, 5);
-                    
+
                     incidents.Add(new TrafficIncident
                     {
                         Id = Guid.NewGuid().ToString(),
@@ -226,15 +228,15 @@ namespace KesifUygulamasiTemplate.Services
                         SeverityCode = severity
                     });
                 }
-                
+
                 // Cache'e ekle
                 await _cacheLock.WaitAsync();
                 try
                 {
                     if (!_trafficCache.ContainsKey(cacheKey))
                     {
-                        _trafficCache[cacheKey] = new CachedTrafficData 
-                        { 
+                        _trafficCache[cacheKey] = new CachedTrafficData
+                        {
                             Incidents = incidents,
                             CacheTime = DateTime.UtcNow
                         };
@@ -249,19 +251,19 @@ namespace KesifUygulamasiTemplate.Services
                 {
                     _cacheLock.Release();
                 }
-                
+
                 return incidents;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Trafik olaylarý alma hatasý: {ex.Message}");
+                Console.WriteLine($"Trafik olaylarï¿½ alma hatasï¿½: {ex.Message}");
                 return new List<TrafficIncident>();
             }
         }
 
         public Task<bool> IsTrafficAvailableAsync()
         {
-            // Ýnternet baðlantýsýný ve API anahtarýnýn geçerliliðini kontrol et
+            // ï¿½nternet baï¿½lantï¿½sï¿½nï¿½ ve API anahtarï¿½nï¿½n geï¿½erliliï¿½ini kontrol et
             return Task.FromResult(_connectivity.NetworkAccess == NetworkAccess.Internet && !string.IsNullOrEmpty(_apiKey));
         }
 
@@ -269,67 +271,67 @@ namespace KesifUygulamasiTemplate.Services
             Location start, Location end, TransportMode mode, RouteOptimizationPreference preference)
         {
             if (_connectivity.NetworkAccess != NetworkAccess.Internet)
-                throw new InvalidOperationException("Ýnternet baðlantýsý yok. Trafik durumuna göre rota hesaplanamýyor.");
-                
+                throw new InvalidOperationException("ï¿½nternet baï¿½lantï¿½sï¿½ yok. Trafik durumuna gï¿½re rota hesaplanamï¿½yor.");
+
             try
             {
                 // Bu metod, IRoutingService'in CalculateRouteAsync metoduna benzer, 
-                // ancak trafik durumunu dikkate alýr.
-                // Gerçek implementasyonda, Google Maps Directions API veya 
-                // benzer bir API ile trafik durumunu dikkate alan rota hesaplama yapmalýsýnýz.
-                
-                // API simulasyonu - gerçek uygulamada burayý gerçek API çaðrýsý ile deðiþtirin
-                await Task.Delay(800); // API çaðrýsý simülasyonu
-                
-                // Haversine formülüyle kuþ uçuþu mesafeyi hesapla (gerçek mesafe daha uzun olacak)
+                // ancak trafik durumunu dikkate alï¿½r.
+                // Gerï¿½ek implementasyonda, Google Maps Directions API veya 
+                // benzer bir API ile trafik durumunu dikkate alan rota hesaplama yapmalï¿½sï¿½nï¿½z.
+
+                // API simulasyonu - gerï¿½ek uygulamada burayï¿½ gerï¿½ek API ï¿½aï¿½rï¿½sï¿½ ile deï¿½iï¿½tirin
+                await Task.Delay(800); // API ï¿½aï¿½rï¿½sï¿½ simï¿½lasyonu
+
+                // Haversine formï¿½lï¿½yle kuï¿½ uï¿½uï¿½u mesafeyi hesapla (gerï¿½ek mesafe daha uzun olacak)
                 double distanceKm = CalculateDistance(
-                    start.Latitude, start.Longitude, 
+                    start.Latitude, start.Longitude,
                     end.Latitude, end.Longitude);
-                    
-                // Tahmini sürücü hýzýný hesapla
+
+                // Tahmini sï¿½rï¿½cï¿½ hï¿½zï¿½nï¿½ hesapla
                 double baseSpeedKph = mode switch
                 {
-                    TransportMode.Walking => 5,  // 5 km/saat yürüme hýzý
-                    TransportMode.Bicycling => 15, // 15 km/saat bisiklet hýzý
-                    TransportMode.Transit => 25, // 25 km/saat toplu taþýma hýzý
-                    _ => 50 // 50 km/saat araba hýzý
+                    TransportMode.Walking => 5,  // 5 km/saat yï¿½rï¿½me hï¿½zï¿½
+                    TransportMode.Bicycling => 15, // 15 km/saat bisiklet hï¿½zï¿½
+                    TransportMode.Transit => 25, // 25 km/saat toplu taï¿½ï¿½ma hï¿½zï¿½
+                    _ => 50 // 50 km/saat araba hï¿½zï¿½
                 };
-                
-                // Trafik bilgisi al (yalnýzca araba için)
+
+                // Trafik bilgisi al (yalnï¿½zca araba iï¿½in)
                 double trafficMultiplier = 1.0;
                 if (mode == TransportMode.Driving)
                 {
                     var trafficInfo = await GetTrafficInfoAsync(
-                        (start.Latitude + end.Latitude) / 2, 
+                        (start.Latitude + end.Latitude) / 2,
                         (start.Longitude + end.Longitude) / 2,
                         distanceKm / 2);
-                        
-                    // Trafik yoðunluðuna göre hýzý ayarla
-                    trafficMultiplier = 1.0 + (trafficInfo.CongestionLevel / 100.0);
+
+                    // Trafik yoï¿½unluï¿½una gï¿½re hï¿½zï¿½ ayarla
+                    trafficMultiplier = 1.0 + (double.Parse(trafficInfo.CongestionLevel) / 100.0);
                 }
-                
-                // Rota tercihi faktörünü hesapla
+
+                // Rota tercihi faktï¿½rï¿½nï¿½ hesapla
                 double prefFactor = preference switch
                 {
-                    RouteOptimizationPreference.Optimistic => 0.8, // Optimistik: trafik daha az yoðun
-                    RouteOptimizationPreference.Pessimistic => 1.2, // Pesimistik: trafik daha yoðun
+                    RouteOptimizationPreference.Optimistic => 0.8, // Optimistik: trafik daha az yoï¿½un
+                    RouteOptimizationPreference.Pessimistic => 1.2, // Pesimistik: trafik daha yoï¿½un
                     _ => 1.0 // En iyi tahmin: normal trafik
                 };
-                
-                // Gerçek yol mesafesini tahmin et (kuþ uçuþu mesafenin 1.3 - 1.6 katý)
+
+                // Gerï¿½ek yol mesafesini tahmin et (kuï¿½ uï¿½uï¿½u mesafenin 1.3 - 1.6 katï¿½)
                 double routeFactor = 1.3 + (_random.NextDouble() * 0.3);
                 double actualDistanceKm = distanceKm * routeFactor;
-                
-                // Seyahat süresini hesapla
+
+                // Seyahat sï¿½resini hesapla
                 double travelTimeHours = (actualDistanceKm / baseSpeedKph) * trafficMultiplier * prefFactor;
-                
-                // Rota noktalarýný oluþtur (gerçek API bunlarý döndürür)
+
+                // Rota noktalarï¿½nï¿½ oluï¿½tur (gerï¿½ek API bunlarï¿½ dï¿½ndï¿½rï¿½r)
                 List<Location> path = GenerateSimulatedRoutePath(start, end, 20);
-                
-                // Adýmlarý oluþtur
+
+                // Adï¿½mlarï¿½ oluï¿½tur
                 List<RouteStep> steps = GenerateSimulatedRouteSteps(path, actualDistanceKm, TimeSpan.FromHours(travelTimeHours));
-                
-                // Route nesnesini oluþtur
+
+                // Route nesnesini oluï¿½tur
                 var route = new Route
                 {
                     RouteId = Guid.NewGuid().ToString(),
@@ -341,132 +343,132 @@ namespace KesifUygulamasiTemplate.Services
                     Duration = TimeSpan.FromHours(travelTimeHours),
                     TransportMode = mode
                 };
-                
+
                 return route;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Optimize edilmiþ rota hesaplama hatasý: {ex.Message}");
+                Console.WriteLine($"Optimize edilmiÅŸ rota hesaplama hatasÄ±: {ex.Message}");
                 throw;
             }
         }
 
-        // Yardýmcý metotlar
+        // YardÄ±mcÄ± metotlar
         private TrafficInfo CreateDefaultTrafficInfo()
         {
             return new TrafficInfo
             {
-                CongestionLevel = 0, // Trafik bilgisi yok
+                CongestionLevel = "Low", // Trafik bilgisi yok
                 DelayTime = TimeSpan.Zero,
                 TypicalTravelTime = TimeSpan.Zero,
                 CurrentTravelTime = TimeSpan.Zero,
                 LastUpdated = _lastUpdated
             };
         }
-        
+
         private string GetIncidentDescription(string type)
         {
             return type switch
             {
-                "ACCIDENT" => "Trafik kazasý",
-                "CONSTRUCTION" => "Yol çalýþmasý",
-                "ROAD_CLOSED" => "Yol kapalý",
-                "LANE_CLOSED" => "Þerit kapalý",
-                "HEAVY_TRAFFIC" => "Yoðun trafik",
-                _ => "Trafik olayý"
+                "ACCIDENT" => "Trafik kazasÄ±",
+                "CONSTRUCTION" => "Yol Ã§alÄ±ÅŸmasÄ±",
+                "ROAD_CLOSED" => "Yol kapalÄ±",
+                "LANE_CLOSED" => "Åžerit kapalÄ±",
+                "HEAVY_TRAFFIC" => "YoÄŸun trafik",
+                _ => "Trafik olayÄ±"
             };
         }
-        
+
         private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
         {
-            const double R = 6371; // Dünya yarýçapý (km)
+            const double R = 6371; // DÃ¼nya yarÄ±Ã§apÄ± (km)
             var dLat = ToRadians(lat2 - lat1);
             var dLon = ToRadians(lon2 - lon1);
-            
+
             var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
                     Math.Cos(ToRadians(lat1)) * Math.Cos(ToRadians(lat2)) *
                     Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-                    
+
             var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
             return R * c;
         }
-        
+
         private double ToRadians(double degrees)
         {
             return degrees * Math.PI / 180;
         }
-        
+
         private List<Location> GenerateSimulatedRoutePath(Location start, Location end, int pointCount)
         {
             var path = new List<Location>
             {
-                start // Baþlangýç noktasý
+                start // BaÅŸlangÄ±Ã§ noktasÄ±
             };
-            
+
             for (int i = 1; i < pointCount - 1; i++)
             {
-                // Ara noktalar için doðrusal interpolasyon + küçük rastgele sapmalar
+                // Ara noktalar iÃ§in doÄŸrusal interpolasyon + kÃ¼Ã§Ã¼k rastgele sapmalar
                 double ratio = (double)i / (pointCount - 1);
                 double lat = start.Latitude + (end.Latitude - start.Latitude) * ratio;
                 double lon = start.Longitude + (end.Longitude - start.Longitude) * ratio;
-                
-                // Rastgele sapmalar (gerçekçi yol eðrisi oluþturmak için)
+
+                // Rastgele sapmalar (gerÃ§ekÃ§i yol eÄŸrisi oluÅŸturmak iÃ§in)
                 double offset = 0.005 * Math.Sin(ratio * Math.PI); // Max 0.005 derece (~500m)
                 lat += (_random.NextDouble() - 0.5) * offset;
                 lon += (_random.NextDouble() - 0.5) * offset;
-                
+
                 path.Add(new Location(lat, lon));
             }
-            
-            path.Add(end); // Bitiþ noktasý
+
+            path.Add(end); // BitiÅŸ noktasÄ±
             return path;
         }
-        
+
         private List<RouteStep> GenerateSimulatedRouteSteps(List<Location> path, double totalDistanceKm, TimeSpan totalDuration)
         {
             var steps = new List<RouteStep>();
-            
-            // Gerçekçi adýmlar oluþtur
+
+            // GerÃ§ekÃ§i adÄ±mlar oluÅŸtur
             double distanceSoFar = 0;
             TimeSpan timeSoFar = TimeSpan.Zero;
-            
-            string[] directions = { "saða", "sola", "düz" };
+
+            string[] directions = { "saÄŸa", "sola", "dÃ¼z" };
             string[] streetTypes = { "Cadde", "Sokak", "Bulvar", "Yol" };
-            string[] streetNames = { "Atatürk", "Cumhuriyet", "Ýstiklal", "Gazi", "Fatih", "Barýþ", "Lale", "Menekþe" };
-            
+            string[] streetNames = { "AtatÃ¼rk", "Cumhuriyet", "Ä°stiklal", "Gazi", "Fatih", "BarÄ±ÅŸ", "Lale", "MenekÅŸe" };
+
             for (int i = 0; i < path.Count - 1; i++)
             {
-                // Bu adýmýn mesafesini hesapla
+                // Bu adÄ±mÄ±n mesafesini hesapla
                 double stepDistance = CalculateDistance(
                     path[i].Latitude, path[i].Longitude,
                     path[i + 1].Latitude, path[i + 1].Longitude);
-                    
-                // Toplam mesafenin yüzdesi
+
+                // Toplam mesafenin yÃ¼zdesi
                 double distanceRatio = stepDistance / totalDistanceKm;
-                
-                // Bu adýmýn süresini hesapla
+
+                // Bu adÄ±mÄ±n sÃ¼resini hesapla
                 TimeSpan stepDuration = TimeSpan.FromTicks((long)(totalDuration.Ticks * distanceRatio));
-                
-                // Kümülatif deðerleri güncelle
+
+                // KÃ¼mÃ¼latif deÄŸerleri gÃ¼ncelle
                 distanceSoFar += stepDistance;
                 timeSoFar += stepDuration;
-                
-                // Manevra türünü belirle
-                string maneuverType = i == path.Count - 2 ? "arrive" : 
-                                    i == 0 ? "depart" : 
-                                    directions[_random.Next(directions.Length)] == "düz" ? "straight" :
-                                    directions[_random.Next(directions.Length)] == "saða" ? "turn-right" : "turn-left";
-                
-                // Rastgele sokak adý oluþtur
+
+                // Manevra tÃ¼rÃ¼nÃ¼ belirle
+                string maneuverType = i == path.Count - 2 ? "arrive" :
+                                    i == 0 ? "depart" :
+                                    directions[_random.Next(directions.Length)] == "dÃ¼z" ? "straight" :
+                                    directions[_random.Next(directions.Length)] == "saÄŸa" ? "turn-right" : "turn-left";
+
+                // Rastgele sokak adÄ± oluÅŸtur
                 string streetName = $"{streetNames[_random.Next(streetNames.Length)]} {streetTypes[_random.Next(streetTypes.Length)]}";
-                
-                // Talimat metni oluþtur
-                string instruction = i == 0 ? 
-                    $"{streetName} üzerinde yolculuða baþlayýn." :
+
+                // Talimat metni oluÅŸtur
+                string instruction = i == 0 ?
+                    $"{streetName} Ã¼zerinde yolculuÄŸa baÅŸlayÄ±n." :
                     i == path.Count - 2 ?
-                    "Hedefinize ulaþtýnýz." :
-                    $"{directions[_random.Next(directions.Length)]} dönün ve {streetName} üzerinde {stepDistance:F1} km devam edin.";
-                
+                    "Hedefinize ulaÅŸtÄ±nÄ±z." :
+                    $"{directions[_random.Next(directions.Length)]} dÃ¶nÃ¼n ve {streetName} Ã¼zerinde {stepDistance:F1} km devam edin.";
+
                 steps.Add(new RouteStep
                 {
                     Instruction = instruction,
@@ -477,7 +479,7 @@ namespace KesifUygulamasiTemplate.Services
                     ManeuverType = maneuverType
                 });
             }
-            
+
             return steps;
         }
     }

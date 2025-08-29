@@ -12,5 +12,31 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
   </resheader>
+  <data name="POIShow" xml:space="preserve">
+    <value>Hin th POI (VI)</value>
+  </data>
+  <data name="TransportationMode" xml:space="preserve">
+    <value>Ch  di chuyn (VI)</value>
+  </data>
+  <data name="RealTimeTraffic" xml:space="preserve">
+    <value>Giao thông thi gian thc (VI)</value>
+  </data>
+  <data name="Donate" xml:space="preserve">
+    <value>ng h (VI)</value>
+  </data>
+  <data name="AR" xml:space="preserve">
+    <value>Thc t tng cng (VI)</value>
+  </data>
+  <data name="Offline Map" xml:space="preserve">
+    <value>Bn  ngoi tuyn (VI)</value>
+  </data>
+  <data name="Voice Navigation" xml:space="preserve">
+    <value>iu hng bng ging nói (VI)</value>
+  </data>
+  <data name="TestKey" xml:space="preserve">
+    <value>Khóa kim tra (VI)</value>
+  </data>
   <!-- Vietnamca çeviriler buraya eklenecek -->
 </root>
+
+

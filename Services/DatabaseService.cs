@@ -50,6 +50,12 @@ namespace KesifUygulamasiTemplate.Services
             return await db.Table<LocationModel>().ToListAsync();
         }
 
+        // Tüm konumları getirir (MapPage için)
+        public async Task<List<LocationModel>> GetAllLocationsAsync()
+        {
+            return await GetAllAsync();
+        }
+
         // ID ile kayıt getirir
         public async Task<LocationModel?> GetByIdAsync(int id)
         {
@@ -61,14 +67,14 @@ namespace KesifUygulamasiTemplate.Services
         public async Task<int> SaveLocationAsync(LocationModel location)
         {
             await EnsureInitializedAsync();
-            
+
             if (location == null)
                 throw new ArgumentNullException(nameof(location));
 
             location.CreatedAt = location.CreatedAt == default ? DateTime.UtcNow : location.CreatedAt;
-            
-            return location.Id != 0 
-                ? await db.UpdateAsync(location) 
+
+            return location.Id != 0
+                ? await db.UpdateAsync(location)
                 : await db.InsertAsync(location);
         }
 
@@ -76,10 +82,10 @@ namespace KesifUygulamasiTemplate.Services
         public async Task<int> DeleteLocationAsync(LocationModel location)
         {
             await EnsureInitializedAsync();
-            
+
             if (location == null)
                 throw new ArgumentNullException(nameof(location));
-                
+
             return await db.DeleteAsync(location);
         }
 

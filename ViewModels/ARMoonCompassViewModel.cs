@@ -4,18 +4,19 @@ using System.Windows.Input;
 using Microsoft.Maui.Devices.Sensors;
 using KesifUygulamasiTemplate.Models;
 using KesifUygulamasiTemplate.Services;
+using KesifUygulamasiTemplate.ViewModels.Base;
 
 namespace KesifUygulamasiTemplate.ViewModels
 {
     public class ARMoonCompassViewModel : BaseViewModel
     {
         private readonly IMoonCompassService _moonCompassService;
-        private Location _currentLocation;
+        private Location? _currentLocation;
         private double _moonAzimuth;
         private double _moonAltitude;
         private DateTime _currentTime;
 
-        public Location CurrentLocation
+        public Location? CurrentLocation
         {
             get => _currentLocation;
             set => SetProperty(ref _currentLocation, value);
@@ -59,7 +60,7 @@ namespace KesifUygulamasiTemplate.ViewModels
                     MoonAzimuth = moonData.Azimuth; // Modelde yoksa eklenmeli
                     MoonAltitude = moonData.Altitude; // Modelde yoksa eklenmeli
                 }
-            }, "AR verileri güncelleniyor...");
+            }, "AR verileri gï¿½ncelleniyor...");
         }
     }
 }

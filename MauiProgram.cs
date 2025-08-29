@@ -5,10 +5,13 @@ using KesifUygulamasiTemplate.Services;
 using KesifUygulamasiTemplate.Services.Interfaces;
 using KesifUygulamasiTemplate.Views;
 using KesifUygulamasiTemplate.ViewModels;
+using KesifUygulamasiTemplate.Models;
 using Microsoft.Maui.Controls.Hosting;
 using Microsoft.Maui.Hosting;
 using System.IO;
 using Microsoft.Maui.Storage;
+using Microsoft.Maui;
+using KesifUygulamasiTemplate.Helpers;
 
 namespace KesifUygulamasiTemplate
 {
@@ -30,11 +33,19 @@ namespace KesifUygulamasiTemplate
             // -----------------------
             // Core Services
             // -----------------------
+            // Global exception handler for centralized error management
+            builder.Services.AddSingleton<IGlobalExceptionHandler, GlobalExceptionHandler>();
+
+            // Configuration service for API keys and settings
+            builder.Services.AddSingleton<ConfigurationService>();
+
             // Database service initialized with app data path
             builder.Services.AddSingleton<DatabaseService>(sp => new DatabaseService(Path.Combine(FileSystem.AppDataDirectory, "appdata.db3")));
             builder.Services.AddSingleton<ConnectivityService>();
+            builder.Services.AddSingleton<HttpClient>();
+            builder.Services.AddSingleton<OfflineMapTileService>();
             builder.Services.AddSingleton<IMoonCompassService, MoonCompassService>();
-            builder.Services.AddSingleton<ICompassService, CompassService>();
+            builder.Services.AddSingleton<KesifUygulamasiTemplate.Services.Interfaces.ICompassService, CompassService>();
             builder.Services.AddSingleton<ICompassCalibrationService, CompassCalibrationService>();
             builder.Services.AddSingleton<LocationService>();
             builder.Services.AddSingleton<SettingsService>();
@@ -62,12 +73,13 @@ namespace KesifUygulamasiTemplate
             builder.Services.AddSingleton<INavigationVoiceService, NavigationVoiceService>();
             builder.Services.AddSingleton<IOfflineRouteService, OfflineRouteService>();
             builder.Services.AddSingleton<IRoutingService, RoutingService>();
+            builder.Services.AddSingleton<IRouteService, RouteService>();
             builder.Services.AddSingleton<IEmergencyPointsService, EmergencyPointsService>();
             builder.Services.AddSingleton<IFavoritePlacesService, FavoritePlacesService>();
             builder.Services.AddSingleton<ITrafficService, TrafficService>();
             builder.Services.AddSingleton<ISearchService, SearchService>();
             builder.Services.AddSingleton<IStreetViewService, StreetViewService>();
-            builder.Services.AddSingleton<IPreferencesService, PreferencesService>();
+            builder.Services.AddSingleton<KesifUygulamasiTemplate.Services.Interfaces.IPreferencesService, KesifUygulamasiTemplate.Services.PreferencesService>();
             builder.Services.AddSingleton<ILocationSharingService, LocationSharingService>();
 
             // If you have a MapDataService / IMapDataService, register it so others can use it:
@@ -92,9 +104,9 @@ namespace KesifUygulamasiTemplate
             builder.Services.AddTransient<SettingsPage>();
             builder.Services.AddTransient<ARMoonCompassPage>();
 
-    #if DEBUG
-            builder.Logging.AddDebug();
-    #endif
+#if DEBUG
+            // builder.Logging.AddDebug();
+#endif
 
             return builder.Build();
         }

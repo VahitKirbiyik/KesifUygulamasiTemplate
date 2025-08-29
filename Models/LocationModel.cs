@@ -39,6 +39,62 @@ namespace KesifUygulamasiTemplate.Models
             }
         }
 
+        private string name = string.Empty;
+        public string Name
+        {
+            get => name;
+            set
+            {
+                if (name != value)
+                {
+                    name = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private string address = string.Empty;
+        public string Address
+        {
+            get => address;
+            set
+            {
+                if (address != value)
+                {
+                    address = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private string category = string.Empty;
+        public string Category
+        {
+            get => category;
+            set
+            {
+                if (category != value)
+                {
+                    category = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private string iconName = string.Empty;
+        public string IconName
+        {
+            get => iconName;
+            set
+            {
+                if (iconName != value)
+                {
+                    iconName = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         private double latitude;
         public double Latitude
         {

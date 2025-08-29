@@ -15,8 +15,8 @@ namespace KesifUygulamasiTemplate.ViewModels
 
         public async Task LoadAsync()
         {
-            // Buraya veri yükleme iþlemleri gelecek
-            await Task.Delay(500); // Simülasyon
+            // Buraya veri yÃ¼kleme iÅŸlemleri gelecek
+            await Task.Delay(500); // SimÃ¼lasyon
         }
     }
 }

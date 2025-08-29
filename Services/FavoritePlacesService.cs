@@ -1,17 +1,20 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Maui.Devices.Sensors;
+using KesifUygulamasiTemplate.Services.Interfaces;
+using KesifUygulamasiTemplate.Models;
 
-namespace KesifUygamamasiTemplate.Services
+namespace KesifUygulamasiTemplate.Services
 {
     public class FavoritePlacesService : IFavoritePlacesService
     {
         private readonly Dictionary<string, (string name, Location location)> _store = new();
 
-        public Task AddFavoriteAsync(string id, Location location, string name)
+        public Task AddFavoriteAsync(LocationModel place)
         {
-            _store[id] = (name, location);
+            var location = new Location(place.Latitude, place.Longitude);
+            _store[place.Id.ToString()] = (place.Title, location);
             return Task.CompletedTask;
         }
 
@@ -21,9 +24,25 @@ namespace KesifUygamamasiTemplate.Services
             return Task.CompletedTask;
         }
 
-        public Task<List<(string id, string name, Location location)>> GetFavoritesAsync()
+        public Task<IEnumerable<LocationModel>> GetFavoritesAsync()
         {
-            return Task.FromResult(_store.Select(kv => (kv.Key, kv.Value.name, kv.Value.location)).ToList());
+            var favorites = _store.Select(kv =>
+            {
+                var (name, location) = kv.Value;
+                return new LocationModel
+                {
+                    Id = int.Parse(kv.Key),
+                    Title = name,
+                    Latitude = location.Latitude,
+                    Longitude = location.Longitude
+                };
+            });
+            return Task.FromResult(favorites);
+        }
+
+        public Task<IEnumerable<LocationModel>> GetAllFavoritePlacesAsync()
+        {
+            return GetFavoritesAsync();
         }
     }
 }

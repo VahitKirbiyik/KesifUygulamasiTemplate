@@ -7,6 +7,7 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui.Devices.Sensors;
 using Microsoft.Maui.ApplicationModel;
 using KesifUygulamasiTemplate.Services;
+using KesifUygulamasiTemplate.Models;
 using System;
 
 namespace KesifUygulamasiTemplate.ViewModels
@@ -109,6 +110,14 @@ namespace KesifUygulamasiTemplate.ViewModels
             {
                 await Application.Current.MainPage.DisplayAlert("Hata", $"Konum yüklenemedi: {ex.Message}", "Tamam");
             }
+        }
+
+        public string StreetName { get; set; }
+        public string City { get; set; }
+
+        public void LoadStreetData()
+        {
+            // Veri yükleme işlemi
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

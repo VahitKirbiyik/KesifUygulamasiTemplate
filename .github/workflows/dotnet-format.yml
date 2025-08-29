@@ -2,20 +2,20 @@ name: Dotnet Format
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   format:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '7.0.x'
+        dotnet-version: '8.0.x'
     - name: Install dotnet-format
-      run: dotnet tool install -g dotnet-format
+      run: dotnet tool install -g dotnet-format --version 8.0.0
     - name: Run dotnet format
       run: dotnet format --check

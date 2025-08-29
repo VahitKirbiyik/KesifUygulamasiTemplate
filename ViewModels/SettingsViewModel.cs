@@ -1,89 +1,170 @@
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+using System;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using KesifUygulamasiTemplate.Services.Interfaces;
+using KesifUygulamasiTemplate.ViewModels.Base;
 using Microsoft.Maui.Controls;
-using KesifUygulamasiTemplate.Services;
-using Microsoft.Maui.Devices.Sensors;
-using System;
+using Microsoft.Maui.ApplicationModel;
 
 namespace KesifUygulamasiTemplate.ViewModels
 {
-    public class StreetViewViewModel : INotifyPropertyChanged
+    public class SettingsViewModel : BaseViewModel
     {
-        private readonly StreetViewService _streetViewService = new StreetViewService();
+        private readonly IPreferencesService _preferencesService;
+        private readonly ILocationPrivacyService _locationPrivacyService;
 
-        private StreetViewPanorama _currentPanorama;
-        public StreetViewPanorama CurrentPanorama
+        private bool _isDarkMode;
+        private string _language = "en";
+        private bool _isOfflineMode;
+        private AppTheme _selectedTheme;
+        private bool _isPushEnabled;
+
+        public bool IsDarkMode
         {
-            get => _currentPanorama;
-            set
+            get => _isDarkMode;
+            set => SetProperty(ref _isDarkMode, value);
+        }
+
+        public string Language
+        {
+            get => _language;
+            set => SetProperty(ref _language, value);
+        }
+
+        public bool IsOfflineMode
+        {
+            get => _isOfflineMode;
+            set => SetProperty(ref _isOfflineMode, value);
+        }
+
+        public AppTheme SelectedTheme
+        {
+            get => _selectedTheme;
+            set => SetProperty(ref _selectedTheme, value);
+        }
+
+        public bool IsPushEnabled
+        {
+            get => _isPushEnabled;
+            set => SetProperty(ref _isPushEnabled, value);
+        }
+
+        public AppTheme[] ThemeOptions => new[] { AppTheme.Light, AppTheme.Dark };
+
+        public bool IsTurkishSelected => Language == "tr";
+        public bool IsEnglishSelected => Language == "en";
+
+        public ICommand SetTurkishCommand { get; }
+        public ICommand SetEnglishCommand { get; }
+        public ICommand SetOfflineModeCommand { get; }
+        public ICommand RequestLocationPermissionCommand { get; }
+        public ICommand CheckLocationPermissionCommand { get; }
+        public ICommand ToggleOfflineModeCommand { get; }
+        public ICommand PayPalDonationCommand { get; }
+        public ICommand StripeDonationCommand { get; }
+
+        public SettingsViewModel(IPreferencesService preferencesService, ILocationPrivacyService locationPrivacyService)
+        {
+            _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
+            _locationPrivacyService = locationPrivacyService ?? throw new ArgumentNullException(nameof(locationPrivacyService));
+
+            SetTurkishCommand = new Command(() => SetLanguage("tr"));
+            SetEnglishCommand = new Command(() => SetLanguage("en"));
+            SetOfflineModeCommand = new Command<bool>(SetOfflineMode);
+            RequestLocationPermissionCommand = new Command(async () => await RequestLocationPermissionAsync());
+            CheckLocationPermissionCommand = new Command(async () =>
             {
-                _currentPanorama = value;
-                OnPropertyChanged();
-                UpdateStreetViewUrl();
-            }
-        }
+                var status = await CheckLocationPermissionAsync();
+                // Handle the status if needed
+            });
+            ToggleOfflineModeCommand = new Command(ToggleOfflineMode);
+            PayPalDonationCommand = new Command(OpenPayPalDonation);
+            StripeDonationCommand = new Command(OpenStripeDonation);
 
-        private string _streetViewUrl;
-        public string StreetViewUrl
-        {
-            get => _streetViewUrl;
-            private set { _streetViewUrl = value; OnPropertyChanged(); }
-        }
-
-        public ObservableCollection<StreetViewLink> Links { get; set; } = new ObservableCollection<StreetViewLink>();
-
-        private async void UpdateStreetViewUrl()
-        {
-            if (CurrentPanorama != null)
+            SetTurkishCommand = new Command(() => SetLanguage("tr"));
+            SetEnglishCommand = new Command(() => SetLanguage("en"));
+            SetOfflineModeCommand = new Command<bool>(SetOfflineMode);
+            RequestLocationPermissionCommand = new Command(async () => await RequestLocationPermissionAsync());
+            CheckLocationPermissionCommand = new Command(async () => 
             {
-                var apiKey = await _streetViewService.GetApiKeyAsync();
-                StreetViewUrl = $"https://www.google.com/maps/embed/v1/streetview?key={apiKey}&location={CurrentPanorama.Latitude},{CurrentPanorama.Longitude}&heading=210&pitch=10&fov=80";
-            }
+                var status = await CheckLocationPermissionAsync();
+                // Handle the status if needed
+            });
         }
 
-        public ICommand LoadPanoramaCommand => new Command<string>(async panoramaId =>
+        private void SetLanguage(string language)
+        {
+            Language = language;
+            OnPropertyChanged(nameof(IsTurkishSelected));
+            OnPropertyChanged(nameof(IsEnglishSelected));
+        }
+
+        public void SetOfflineMode(bool isOffline)
+        {
+            IsOfflineMode = isOffline;
+        }
+
+        public async Task RequestLocationPermissionAsync()
         {
             try
             {
-                var panorama = await _streetViewService.GetPanoramaByIdAsync(panoramaId);
-                CurrentPanorama = panorama;
-                Links.Clear();
-                foreach (var link in panorama.Links)
-                    Links.Add(link);
-            }
-            catch (Exception ex)
-            {
-                await Application.Current.MainPage.DisplayAlert("Hata", $"Panorama yüklenemedi: {ex.Message}", "Tamam");
-            }
-        });
-
-        public async Task LoadPanoramaByUserLocationAsync()
-        {
-            try
-            {
-                var location = await Geolocation.GetLastKnownLocationAsync()
-                                ?? await Geolocation.GetLocationAsync(new GeolocationRequest(GeolocationAccuracy.Medium));
-
-                if (location != null)
+                var result = await _locationPrivacyService.RequestLocationPermissionWithPrivacyInfoAsync();
+                if (!result)
                 {
-                    var panorama = await _streetViewService.GetPanorama(location.Latitude, location.Longitude);
-                    CurrentPanorama = panorama;
-                    Links.Clear();
-                    foreach (var link in panorama.Links)
-                        Links.Add(link);
+                    if (Application.Current?.MainPage != null)
+                    {
+                        await Application.Current.MainPage.DisplayAlert("Permission Denied", "Location permission is required for this feature.", "OK");
+                    }
                 }
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Hata", $"Konum yüklenemedi: {ex.Message}", "Tamam");
+                if (Application.Current?.MainPage != null)
+                {
+                    await Application.Current.MainPage.DisplayAlert("Error", $"Failed to request location permission: {ex.Message}", "OK");
+                }
             }
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
-        private void OnPropertyChanged([CallerMemberName] string name = null) =>
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        public async Task<string> CheckLocationPermissionAsync()
+        {
+            try
+            {
+                // Implementation for checking location permission
+                // For now, return a mock status
+                return "Permission status checked";
+            }
+            catch (Exception ex)
+            {
+                if (Application.Current?.MainPage != null)
+                {
+                    await Application.Current.MainPage.DisplayAlert("Error", $"Failed to check location permission: {ex.Message}", "OK");
+                }
+                return "Error checking permission";
+            }
+        }
+
+        private void ToggleOfflineMode()
+        {
+            IsOfflineMode = !IsOfflineMode;
+        }
+
+        private void OpenPayPalDonation()
+        {
+            // Open PayPal donation link
+            if (Application.Current?.MainPage != null)
+            {
+                Application.Current.MainPage.DisplayAlert("PayPal Donation", "Opening PayPal donation page...", "OK");
+            }
+        }
+
+        private void OpenStripeDonation()
+        {
+            // Open Stripe donation link
+            if (Application.Current?.MainPage != null)
+            {
+                Application.Current.MainPage.DisplayAlert("Stripe Donation", "Opening Stripe donation page...", "OK");
+            }
+        }
     }
 }

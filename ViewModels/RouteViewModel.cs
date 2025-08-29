@@ -1,72 +1,133 @@
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using Microsoft.Maui.Devices.Sensors;
-using KesifUygulamasiTemplate.ViewModels;
-using KesifUygulamasiTemplate.Services;
+using KesifUygulamasiTemplate.Models;
+using KesifUygulamasiTemplate.Services.Interfaces;
+using Microsoft.Maui.Controls;
 
 namespace KesifUygulamasiTemplate.ViewModels
 {
-    // Rota ViewModel'i: Baþlangýç/varýþ noktasý ve polyline verisi
-    public class RouteViewModel : BaseViewModel
+    public class RouteViewModel : INotifyPropertyChanged
     {
-        private readonly IRouteService _routeService;
-        private Location _startLocation;
-        private Location _endLocation;
+        private LocationModel? _startLocation;
+        private LocationModel? _endLocation;
+        private ObservableCollection<LocationModel> _routePoints;
+        private bool _isBusy;
+        private string _errorMessage;
 
-        public Location StartLocation
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public LocationModel? StartLocation
         {
             get => _startLocation;
-            set => SetProperty(ref _startLocation, value);
+            set
+            {
+                _startLocation = value;
+                OnPropertyChanged();
+            }
         }
 
-        public Location EndLocation
+        public LocationModel? EndLocation
         {
             get => _endLocation;
-            set => SetProperty(ref _endLocation, value);
+            set
+            {
+                _endLocation = value;
+                OnPropertyChanged();
+            }
         }
 
-        public ObservableCollection<Location> RoutePoints { get; } = new();
+        public ObservableCollection<LocationModel> RoutePoints
+        {
+            get => _routePoints;
+            set
+            {
+                _routePoints = value;
+                OnPropertyChanged();
+            }
+        }
 
+        public bool IsBusy
+        {
+            get => _isBusy;
+            set
+            {
+                _isBusy = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string ErrorMessage
+        {
+            get => _errorMessage;
+            set
+            {
+                _errorMessage = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ICommand GetRouteCommand { get; }
         public ICommand GenerateRouteCommand { get; }
+
+        private readonly IRouteService _routeService;
 
         public RouteViewModel(IRouteService routeService)
         {
-            _routeService = routeService;
+            _routeService = routeService ?? throw new ArgumentNullException(nameof(routeService));
+            _routePoints = new ObservableCollection<LocationModel>();
+            _errorMessage = string.Empty;
+            GetRouteCommand = new Command(async () => await GenerateRouteAsync());
+            GenerateRouteCommand = new Command(async () => await GenerateRouteAsync());
+        }
+
+        public RouteViewModel()
+        {
+            _routePoints = new ObservableCollection<LocationModel>();
+            _errorMessage = string.Empty;
+            GetRouteCommand = new Command(async () => await GenerateRouteAsync());
             GenerateRouteCommand = new Command(async () => await GenerateRouteAsync());
         }
 
         private async Task GenerateRouteAsync()
         {
-            if (IsBusy)
+            if (StartLocation == null || EndLocation == null)
+            {
+                ErrorMessage = "BaÅŸlangÄ±Ã§ ve bitiÅŸ noktalarÄ±nÄ± belirtin";
                 return;
+            }
 
             IsBusy = true;
             ErrorMessage = string.Empty;
 
             try
             {
-                if (StartLocation == null || EndLocation == null)
-                {
-                    ErrorMessage = "Start and End locations must be set.";
-                    return;
-                }
-
-                var route = await _routeService.GetRouteAsync(StartLocation, EndLocation);
+                // Route generation logic here
+                // This is a placeholder - implement actual routing logic
+                await Task.Delay(100); // Simulate async operation
                 RoutePoints.Clear();
-                foreach (var point in route)
+                if (StartLocation != null && EndLocation != null)
                 {
-                    RoutePoints.Add(point);
+                    RoutePoints.Add(StartLocation);
+                    RoutePoints.Add(EndLocation);
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                ErrorMessage = $"Failed to generate route: {ex.Message}";
+                ErrorMessage = $"Rota oluÅŸturma hatasÄ±: {ex.Message}";
             }
             finally
             {
                 IsBusy = false;
             }
+        }
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName ?? string.Empty));
         }
     }
 }

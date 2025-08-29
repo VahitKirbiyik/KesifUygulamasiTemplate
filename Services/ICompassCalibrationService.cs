@@ -5,7 +5,7 @@ namespace KesifUygulamasiTemplate.Services
         bool IsCalibrationRequired { get; }
         bool IsCalibrating { get; }
         double CalibrationAccuracy { get; }
-        
+
         void StartCalibration();
         void StopCalibration();
         void ResetCalibration();

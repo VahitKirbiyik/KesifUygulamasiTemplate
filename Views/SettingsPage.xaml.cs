@@ -57,7 +57,7 @@ namespace KesifUygulamasiTemplate.Views
 
         private void ThemePicker_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // Tema deðiþikliði kodu
+            // Tema deÄŸiÅŸikliÄŸi kodu
         }
 
         private async void RequestLocationPermission_Clicked(object sender, EventArgs e)

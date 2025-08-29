@@ -8,13 +8,13 @@ using KesifUygulamasiTemplate.Models;
 using KesifUygulamasiTemplate.Resources.Strings;
 using KesifUygulamasiTemplate.Services;
 using Microsoft.Maui.ApplicationModel.DataTransfer;
-using KesifUygulamasiTemplate.Services;
+using KesifUygulamasiTemplate.ViewModels.Base;
 
 namespace KesifUygulamasiTemplate.ViewModels
 {
     /// <summary>
-    /// Ay pusulasý sayfasý için ViewModel
-    /// Ay verileri (faz, doðuþ, batýþ) ve konum yönetimi
+    /// Ay pusulasï¿½ sayfasï¿½ iï¿½in ViewModel
+    /// Ay verileri (faz, doï¿½uï¿½, batï¿½ï¿½) ve konum yï¿½netimi
     /// </summary>
     public class MoonCompassViewModel : BaseViewModel
     {
@@ -23,95 +23,111 @@ namespace KesifUygulamasiTemplate.ViewModels
         private readonly LocationService _locationService;
         private readonly ConnectivityService _connectivityService;
         private readonly AppCenterAnalyticsService _analyticsService;
-        private MoonData _moonData;
-        private Location _currentLocation;
+        private MoonData? _moonData;
+        private Location? _currentLocation;
+        private bool _isLoading;
+        private bool _isOnline;
         #endregion
 
         #region Public Properties
         /// <summary>
-        /// Ay verileri (faz, doðuþ, batýþ saatleri)
+        /// Ay verileri (faz, doï¿½uï¿½, batï¿½ï¿½ saatleri)
         /// </summary>
-        public MoonData MoonData
+        public MoonData? MoonData
         {
             get => _moonData;
             set => SetProperty(ref _moonData, value);
         }
-        
+
         /// <summary>
         /// Mevcut konum bilgisi
         /// </summary>
-        public Location CurrentLocation
+        public Location? CurrentLocation
         {
             get => _currentLocation;
             set => SetProperty(ref _currentLocation, value);
         }
 
         /// <summary>
-        /// Formatlanmýþ ay doðuþ saati (kullanýcý dilinde)
+        /// Veri yï¿½kleniyor durumu
         /// </summary>
-        public string FormattedRiseTime => MoonData?.RiseTime != null 
-            ? LocalizationService.FormatTime(MoonData.RiseTime) 
+        public bool IsLoading
+        {
+            get => _isLoading;
+            set => SetProperty(ref _isLoading, value);
+        }
+
+        /// <summary>
+        /// ï¿½nternet baï¿½lantï¿½sï¿½ durumu
+        /// </summary>
+        public bool IsOnline => Microsoft.Maui.Networking.Connectivity.Current.NetworkAccess == Microsoft.Maui.Networking.NetworkAccess.Internet;
+
+        /// <summary>
+        /// Formatlanmï¿½ï¿½ ay doï¿½uï¿½ saati (kullanï¿½cï¿½ dilinde)
+        /// </summary>
+        public string FormattedRiseTime => MoonData?.RiseTime != null
+            ? LocalizationService.FormatTime(MoonData.RiseTime)
             : string.Empty;
 
         /// <summary>
-        /// Formatlanmýþ ay batýþ saati (kullanýcý dilinde)
+        /// Formatlanmï¿½ï¿½ ay batï¿½ï¿½ saati (kullanï¿½cï¿½ dilinde)
         /// </summary>
-        public string FormattedSetTime => MoonData?.SetTime != null 
-            ? LocalizationService.FormatTime(MoonData.SetTime) 
+        public string FormattedSetTime => MoonData?.SetTime != null
+            ? LocalizationService.FormatTime(MoonData.SetTime)
             : string.Empty;
 
         /// <summary>
-        /// Formatlanmýþ ay fazý yüzdesi
+        /// Formatlanmï¿½ï¿½ ay fazï¿½ yï¿½zdesi
         /// </summary>
-        public string FormattedPhase => MoonData != null 
-            ? LocalizationService.FormatNumber(MoonData.Phase * 100) + "%" 
+        public string FormattedPhase => MoonData != null
+            ? LocalizationService.FormatNumber(MoonData.Phase * 100) + "%"
             : string.Empty;
 
         /// <summary>
-        /// Formatlanmýþ aydýnlanma yüzdesi
+        /// Formatlanmï¿½ï¿½ aydï¿½nlanma yï¿½zdesi
         /// </summary>
-        public string FormattedIllumination => MoonData != null 
-            ? LocalizationService.FormatNumber(MoonData.Illumination * 100) + "%" 
+        public string FormattedIllumination => MoonData != null
+            ? LocalizationService.FormatNumber(MoonData.Illumination * 100) + "%"
             : string.Empty;
 
         /// <summary>
-        /// Ay fazýnýn adý
+        /// Ay fazï¿½nï¿½n adï¿½
         /// </summary>
         public string MoonPhaseName => MoonData?.PhaseName ?? string.Empty;
 
         /// <summary>
-        /// Ay fazýnýn emoji temsili
+        /// Ay fazï¿½nï¿½n emoji temsili
         /// </summary>
         public string MoonPhaseEmoji => MoonData?.PhaseEmoji ?? "??";
 
         /// <summary>
-        /// Formatlanmýþ ay mesafesi
+        /// Formatlanmï¿½ï¿½ ay mesafesi
         /// </summary>
-        public string FormattedDistance => MoonData != null 
-            ? $"{LocalizationService.FormatNumber(MoonData.Distance)} km" 
+        public string FormattedDistance => MoonData != null
+            ? $"{LocalizationService.FormatNumber(MoonData.Distance)} km"
             : string.Empty;
 
         /// <summary>
-        /// Formatlanmýþ azimuth açýsý
+        /// Formatlanmï¿½ï¿½ azimuth aï¿½ï¿½sï¿½
         /// </summary>
-        public string FormattedAzimuth => MoonData != null 
-            ? $"{LocalizationService.FormatNumber(MoonData.Azimuth)}°" 
+        public string FormattedAzimuth => MoonData != null
+            ? $"{LocalizationService.FormatNumber(MoonData.Azimuth)}ï¿½"
             : string.Empty;
 
         /// <summary>
-        /// Formatlanmýþ altitude açýsý
+        /// Formatlanmï¿½ï¿½ altitude aï¿½ï¿½sï¿½
         /// </summary>
-        public string FormattedAltitude => MoonData != null 
-            ? $"{LocalizationService.FormatNumber(MoonData.Altitude)}°" 
+        public string FormattedAltitude => MoonData != null
+            ? $"{LocalizationService.FormatNumber(MoonData.Altitude)}ï¿½"
             : string.Empty;
 
         /// <summary>
-        /// Konum bilgisi var mý?
+        /// Konum bilgisi var mï¿½?
         /// </summary>
         public bool HasLocationData => CurrentLocation != null;
 
         /// <summary>
-        /// Ay verisi var mý?
+        /// Ay verisi var mï¿½?
         /// </summary>
         public bool HasMoonData => MoonData != null;
         #endregion
@@ -120,6 +136,7 @@ namespace KesifUygulamasiTemplate.ViewModels
         public ICommand RefreshCommand { get; }
         public ICommand GetLocationCommand { get; }
         public ICommand ShareCommand { get; }
+        public ICommand LoadMoonDataCommand { get; }
         #endregion
 
         #region Constructor
@@ -129,17 +146,18 @@ namespace KesifUygulamasiTemplate.ViewModels
             _locationService = locationService;
             _connectivityService = connectivityService;
             _analyticsService = analyticsService;
-            
-            // Baþlangýç deðerleri
+
+            // Baï¿½langï¿½ï¿½ deï¿½erleri
             Title = AppResources.MoonCompass;
             MoonData = new MoonData();
-            
+
             // Commands
             RefreshCommand = new Command(async () => await RefreshAsync(), () => IsNotBusy);
             GetLocationCommand = new Command(async () => await GetCurrentLocationAsync(), () => IsNotBusy);
             ShareCommand = new Command(async () => await ShareMoonDataAsync(), () => HasMoonData && IsNotBusy);
-            
-            // Dil deðiþikliði dinleyicisi
+            LoadMoonDataCommand = new Command(async () => await LoadMoonDataForCurrentLocationAsync(), () => IsNotBusy);
+
+            // Dil deï¿½iï¿½ikliï¿½i dinleyicisi
             LocalizationService.Instance.PropertyChanged += OnLocalizationChanged;
             _connectivityService.ConnectivityChanged += OnConnectivityChanged;
         }
@@ -147,7 +165,7 @@ namespace KesifUygulamasiTemplate.ViewModels
 
         #region Public Methods
         /// <summary>
-        /// Belirli koordinatlar için ay verilerini yükler
+        /// Belirli koordinatlar iï¿½in ay verilerini yï¿½kler
         /// </summary>
         public async Task LoadMoonDataAsync(double latitude, double longitude)
         {
@@ -160,37 +178,35 @@ namespace KesifUygulamasiTemplate.ViewModels
             {
                 CurrentLocation = new Location(latitude, longitude);
                 MoonData = await _moonCompassService.GetMoonDataAsync(latitude, longitude);
-                
+
                 UpdateFormattedProperties();
                 UpdateCommandStates();
-                
+
                 await ShowSuccessAsync(AppResources.MoonInformation);
                 _analyticsService.TrackEvent("MoonDataLoadSucceeded");
             }, AppResources.Loading);
         }
 
         /// <summary>
-        /// ViewModel initialize edildiðinde otomatik çaðrýlýr
+        /// Mevcut konum iÃ§in ay verilerini yÃ¼kler
         /// </summary>
-        public override async Task InitializeAsync()
+        public async Task LoadMoonDataForCurrentLocationAsync()
         {
-            await RefreshAsync();
+            if (CurrentLocation != null)
+            {
+                await LoadMoonDataAsync(CurrentLocation.Latitude, CurrentLocation.Longitude);
+            }
+            else
+            {
+                await GetCurrentLocationAsync();
+            }
         }
 
-        /// <summary>
-        /// Kaynaklarý temizler
-        /// </summary>
-        public override void Cleanup()
-        {
-            LocalizationService.Instance.PropertyChanged -= OnLocalizationChanged;
-            _connectivityService.ConnectivityChanged -= OnConnectivityChanged;
-            base.Cleanup();
-        }
         #endregion
 
         #region Private Methods
         /// <summary>
-        /// Veri yenileme iþlemi
+        /// Veri yenileme iï¿½lemi
         /// </summary>
         private async Task RefreshAsync()
         {
@@ -199,28 +215,28 @@ namespace KesifUygulamasiTemplate.ViewModels
             {
                 // 1. Mevcut konum varsa onu kullan, yoksa yeni konum al
                 var location = CurrentLocation ?? await GetLocationSafelyAsync();
-                
+
                 if (location == null)
                 {
-                    // Varsayýlan konum kullan (Ýstanbul)
+                    // Varsayï¿½lan konum kullan (ï¿½stanbul)
                     location = new Location(41.0082, 28.9784);
                     await ShowWarningAsync(AppResources.DefaultLocation);
                 }
-                
+
                 CurrentLocation = location;
-                
+
                 // 2. Ay verilerini al
                 MoonData = await _moonCompassService.GetMoonDataAsync(location.Latitude, location.Longitude);
-                
+
                 UpdateFormattedProperties();
                 UpdateCommandStates();
-                
+
                 _analyticsService.TrackEvent("MoonDataRefreshCompleted");
             }, "Veriler yenileniyor...");
         }
 
         /// <summary>
-        /// Mevcut konumu güvenli þekilde alýr
+        /// Mevcut konumu gï¿½venli ï¿½ekilde alï¿½r
         /// </summary>
         private async Task GetCurrentLocationAsync()
         {
@@ -228,17 +244,17 @@ namespace KesifUygulamasiTemplate.ViewModels
             await ExecuteAsync(async () =>
             {
                 var location = await _locationService.GetCurrentLocationAsync();
-                
+
                 if (location != null)
                 {
                     CurrentLocation = location;
-                    
-                    // Yeni konum ile ay verilerini güncelle
+
+                    // Yeni konum ile ay verilerini gï¿½ncelle
                     MoonData = await _moonCompassService.GetMoonDataAsync(location.Latitude, location.Longitude);
-                    
+
                     UpdateFormattedProperties();
                     UpdateCommandStates();
-                    
+
                     await ShowSuccessAsync(AppResources.LocationUpdated);
                     _analyticsService.TrackEvent("GetCurrentLocationSucceeded");
                 }
@@ -266,7 +282,7 @@ namespace KesifUygulamasiTemplate.ViewModels
         }
 
         /// <summary>
-        /// Ay verilerini paylaþma
+        /// Ay verilerini paylaï¿½ma
         /// </summary>
         private async Task ShareMoonDataAsync()
         {
@@ -291,7 +307,7 @@ namespace KesifUygulamasiTemplate.ViewModels
         }
 
         /// <summary>
-        /// Formatlanmýþ property'leri günceller
+        /// Formatlanmï¿½ï¿½ property'leri gï¿½nceller
         /// </summary>
         private void UpdateFormattedProperties()
         {
@@ -309,7 +325,7 @@ namespace KesifUygulamasiTemplate.ViewModels
         }
 
         /// <summary>
-        /// Command durumlarýný günceller
+        /// Command durumlarï¿½nï¿½ gï¿½nceller
         /// </summary>
         private void UpdateCommandStates()
         {
@@ -319,7 +335,7 @@ namespace KesifUygulamasiTemplate.ViewModels
         }
 
         /// <summary>
-        /// Dil deðiþikliði olayýný yakalar
+        /// Dil deï¿½iï¿½ikliï¿½i olayï¿½nï¿½ yakalar
         /// </summary>
         private void OnLocalizationChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {

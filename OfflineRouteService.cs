@@ -1,121 +1,40 @@
-// Services/OfflineRouteService.cs
-public class OfflineRouteService : IOfflineRouteService
+using SQLite;
+using KesifUygulamasiTemplate.Models;
+using KesifUygulamasiTemplate.Services.Interfaces;
+
+namespace KesifUygulamasiTemplate.Services
 {
-    private readonly SQLiteConnection _database;
-    
-    public OfflineRouteService(SQLiteConnection database)
+    // Services/OfflineRouteService.cs
+    public class OfflineRouteService : IOfflineRouteService
     {
-        _database = database;
-        _database.CreateTable<SavedRoute>();
-        _database.CreateTable<RoutePoint>();
-    }
-    
-    public async Task<int> SaveRouteAsync(SavedRoute route, List<Location> points)
-    {
-        _database.BeginTransaction();
-        try
+        public OfflineRouteService(SQLiteConnection database)
         {
-            var routeId = _database.Insert(route);
-            
-            for (int i = 0; i < points.Count; i++)
-            {
-                _database.Insert(new RoutePoint
-                {
-                    RouteId = routeId,
-                    Latitude = points[i].Latitude,
-                    Longitude = points[i].Longitude,
-                    Sequence = i
-                });
-            }
-            
-            _database.Commit();
-            return routeId;
-        }
-        catch (Exception ex)
-        {
-            _database.Rollback();
-            Console.WriteLine($"Rota kaydetme hatasý: {ex.Message}");
-            throw;
-        }
-    }
-    
-    public SavedRoute GetRouteById(int id)
-    {
-        var route = _database.Get<SavedRoute>(id);
-        if (route != null)
-        {
-            route.Points = _database.Table<RoutePoint>()
-                .Where(p => p.RouteId == id)
-                .OrderBy(p => p.Sequence)
-                .Select(p => new Location(p.Latitude, p.Longitude))
-                .ToList();
-        }
-        return route;
-    }
-    
-    public List<SavedRoute> GetAllRoutes()
-    {
-        var routes = _database.Table<SavedRoute>().ToList();
-        
-        foreach (var route in routes)
-        {
-            route.Points = _database.Table<RoutePoint>()
-                .Where(p => p.RouteId == route.Id)
-                .OrderBy(p => p.Sequence)
-                .Select(p => new Location(p.Latitude, p.Longitude))
-                .ToList();
+            // Stub implementation
         }
         
-        return routes;
-    }
-    
-    public bool DeleteRoute(int id)
-    {
-        _database.BeginTransaction();
-        try
+        public async Task<bool> HasOfflineRouteAsync(string id)
         {
-            _database.Delete<RoutePoint>(p => p.RouteId == id);
-            _database.Delete<SavedRoute>(id);
-            _database.Commit();
-            return true;
+            // Stub implementation
+            return await Task.FromResult(false);
         }
-        catch
+        
+        public async Task<string> SaveRouteAsync(Route route)
         {
-            _database.Rollback();
-            return false;
+            // Stub implementation
+            return await Task.FromResult("1");
+        }
+        
+        public async Task<Route> LoadRouteAsync(string routeId)
+        {
+            // Stub implementation
+            await Task.CompletedTask;
+            throw new KeyNotFoundException($"Route with ID {routeId} not found");
+        }
+        
+        public async Task<List<Route>> GetAllSavedRoutesAsync()
+        {
+            // Stub implementation
+            return await Task.FromResult(new List<Route>());
         }
     }
-}
-
-// Models/SavedRoute.cs
-public class SavedRoute
-{
-    [PrimaryKey, AutoIncrement]
-    public int Id { get; set; }
-    
-    public string Name { get; set; }
-    public string Description { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public double StartLatitude { get; set; }
-    public double StartLongitude { get; set; }
-    public double EndLatitude { get; set; }
-    public double EndLongitude { get; set; }
-    public double DistanceKm { get; set; }
-    public TimeSpan EstimatedDuration { get; set; }
-    public string TransportMode { get; set; } = "Driving";
-    
-    [Ignore]
-    public List<Location> Points { get; set; } = new();
-}
-
-// Models/RoutePoint.cs
-public class RoutePoint
-{
-    [PrimaryKey, AutoIncrement]
-    public int Id { get; set; }
-    
-    public int RouteId { get; set; }
-    public double Latitude { get; set; }
-    public double Longitude { get; set; }
-    public int Sequence { get; set; }
 }

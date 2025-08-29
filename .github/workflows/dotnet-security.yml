@@ -1,0 +1,65 @@
+name: Gelişmiş Güvenlik ve Paket Raporlama
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  security-scan:
+    name: Güvenlik Taraması ve Paket Raporlama
+    runs-on: windows-latest
+
+    steps:
+      - name: Repo'yu Klonla
+        uses: actions/checkout@v4
+
+      - name: .NET Setup
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Paket Listesi ve Güvenlik Açığı Kontrolü
+        run: |
+          echo "=== Güvenlik Açıkları (Vulnerable) ===" > security_report.txt
+          dotnet list package --vulnerable >> security_report.txt || true
+          echo "" >> security_report.txt
+          echo "=== Güncel Olmayan Paketler (Outdated) ===" >> security_report.txt
+          dotnet list package --outdated >> security_report.txt || true
+
+      - name: Security Report Artifact Olarak Yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report-${{ github.run_number }}
+          path: security_report.txt
+
+      - name: GitHub Summary Güncelle
+        run: |
+          echo "## 🔒 Güvenlik ve Paket Raporu" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "<details>" >> $GITHUB_STEP_SUMMARY
+          echo "<summary>📄 Raporu Görüntüle</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔍 Vulnerable Paketler" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          dotnet list package --vulnerable || true >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⚠️ Outdated Paketler" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          dotnet list package --outdated || true >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Artifact olarak yüklendi: **security-report-${{ github.run_number }}**" >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "💡 İpucu: Summary'deki 'Raporu Görüntüle' yazısına tıklayarak detayları açabilir/kapatabilirsiniz." >> $GITHUB_STEP_SUMMARY
+
+      - name: E-posta Bildirimi (Opsiyonel)
+        if: false  # E-posta göndermek için aktifleştirin
+        run: |
+          echo "SMTP ile güvenlik raporu e-posta gönderimi burada yapılabilir."
+          # SMTP_USER ve SMTP_PASS secrets'lerini repository ayarlarından tanımlayın
+          # Ardından if koşulunu düzenleyin

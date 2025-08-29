@@ -1,4 +1,5 @@
 using Microsoft.Maui.Controls;
+using KesifUygulamasiTemplate.Views;
 
 namespace KesifUygulamasiTemplate;
 

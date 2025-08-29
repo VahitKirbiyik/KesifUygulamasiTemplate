@@ -1,18 +1,20 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using Microsoft.Maui.ApplicationModel.DataTransfer;
 using QRCoder;
 using System.IO;
+using KesifUygulamasiTemplate.Services.Interfaces;
+using KesifUygulamasiTemplate.Models;
 
-namespace KesifUygamamasiTemplate.Services
+namespace KesifUygulamasiTemplate.Services
 {
     public class LocationSharingService : ILocationSharingService
     {
-        public async Task ShareLocationAsync(double lat, double lon, string label = null)
+        public async Task ShareLocationAsync(LatLng location, string? message = null)
         {
-            var url = await GenerateGeoUrlAsync(lat, lon);
+            var url = await GenerateGeoUrlAsync(location.Lat, location.Lng);
             var request = new ShareTextRequest
             {
-                Text = label != null ? $"{label}\n{url}" : url,
+                Text = message != null ? $"{message}\n{url}" : url,
                 Title = "Konum paylaş"
             };
             await Share.Default.RequestAsync(request);

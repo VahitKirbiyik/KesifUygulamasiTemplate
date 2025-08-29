@@ -1,20 +1,33 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using KesifUygulamasiTemplate.Models;
 
-namespace KesifUygamamasiTemplate.Services
+namespace KesifUygulamasiTemplate.Services
 {
     public class TrafficService : ITrafficService
     {
         // TODO: Gerçek API; stub döndürüyor
-        public Task<TrafficInfo> GetTrafficInfoAsync(double lat, double lon)
+        public Task<object> GetTrafficDataAsync(double lat, double lon, double? radiusKm = null)
         {
-            var t = new TrafficInfo { CongestionLevel = "Low" };
-            return Task.FromResult(t);
+            if (radiusKm.HasValue)
+            {
+                return Task.FromResult<object>(new List<TrafficInfo>());
+            }
+            else
+            {
+                return Task.FromResult<object>(new TrafficInfo { CongestionLevel = "Low" });
+            }
         }
 
-        public Task<List<TrafficInfo>> GetTrafficIncidentsAsync(double lat, double lon, double radiusKm = 5)
+        public double GetTrafficDelay(string start, string end)
         {
-            return Task.FromResult(new List<TrafficInfo>());
+            // Placeholder: gerçek trafik algoritması daha sonra eklenecek
+            return 0.0;
+        }
+
+        public void UpdateTrafficData()
+        {
+            // Placeholder: trafik verisi güncelleme
         }
     }
 }

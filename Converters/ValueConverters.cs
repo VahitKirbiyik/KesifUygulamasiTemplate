@@ -5,39 +5,37 @@ using Microsoft.Maui.Controls;
 namespace KesifUygulamasiTemplate.Converters
 {
     /// <summary>
-    /// Bir string'in boþ olup olmadýðýný kontrol eder. String boþ deðilse true, boþsa false döner.
+    /// Bir string'in boï¿½ olup olmadï¿½ï¿½ï¿½nï¿½ kontrol eder. String boï¿½ deï¿½ilse true, boï¿½sa false dï¿½ner.
     /// </summary>
     public class StringNotEmptyConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             return !string.IsNullOrEmpty(value as string);
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }
     }
 
     /// <summary>
-    /// Boolean deðeri tersine çevirir. True ise false, false ise true döner.
+    /// Boolean deï¿½eri tersine ï¿½evirir. True ise false, false ise true dï¿½ner.
     /// </summary>
     public class InvertedBoolConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is bool boolValue)
                 return !boolValue;
-                
             return false;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is bool boolValue)
                 return !boolValue;
-                
             return false;
         }
     }
@@ -48,10 +46,8 @@ namespace KesifUygulamasiTemplate.Converters
         {
             if (values.Length < 2)
                 return 0;
-                
             if (values[0] is double value1 && values[1] is double value2)
                 return value1 * value2;
-                
             return 0;
         }
 
@@ -63,19 +59,17 @@ namespace KesifUygulamasiTemplate.Converters
 
     public class NegativeConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is double doubleValue)
                 return -doubleValue;
-                
             return 0;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is double doubleValue)
                 return -doubleValue;
-                
             return 0;
         }
     }

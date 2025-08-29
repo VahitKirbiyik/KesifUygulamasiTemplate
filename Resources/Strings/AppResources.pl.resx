@@ -12,11 +12,35 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
   </resheader>
+  <data name="POIShow" xml:space="preserve">
+    <value>Poka POI (PL)</value>
+  </data>
+  <data name="TransportationMode" xml:space="preserve">
+    <value>Tryb transportu (PL)</value>
+  </data>
+  <data name="RealTimeTraffic" xml:space="preserve">
+    <value>Ruch drogowy w czasie rzeczywistym (PL)</value>
+  </data>
+  <data name="Donate" xml:space="preserve">
+    <value>Wesprzyj (PL)</value>
+  </data>
+  <data name="AR" xml:space="preserve">
+    <value>Rzeczywisto rozszerzona (PL)</value>
+  </data>
+  <data name="Offline Map" xml:space="preserve">
+    <value>Mapa offline (PL)</value>
+  </data>
+  <data name="Voice Navigation" xml:space="preserve">
+    <value>Nawigacja gosowa (PL)</value>
+  </data>
+  <data name="TestKey" xml:space="preserve">
+    <value>Klucz testowy (PL)</value>
+  </data>
   <data name="Hello" xml:space="preserve">
-    <value>Cześć (PL)</value>
+    <value>Cze (PL)</value>
   </data>
   <data name="Exit" xml:space="preserve">
-    <value>Wyjście (PL)</value>
+    <value>Wyjcie (PL)</value>
   </data>
   <data name="Settings" xml:space="preserve">
     <value>Ustawienia (PL)</value>
@@ -28,3 +52,5 @@
     <value>Kierunek kompasu (PL)</value>
   </data>
 </root>
+
+

@@ -1,18 +1,3 @@
-  <data name="POIShow" xml:space="preserve">
-    <value>POI表示 (JA)</value>
-  </data>
-  <data name="TransportationMode" xml:space="preserve">
-    <value>交通モード (JA)</value>
-  </data>
-  <data name="RealTimeTraffic" xml:space="preserve">
-    <value>リアルタイム交通 (JA)</value>
-  </data>
-  <data name="SupportDeveloper" xml:space="preserve">
-    <value>開発者をサポート (JA)</value>
-  </data>
-  <data name="Donate" xml:space="preserve">
-    <value>寄付する (JA)</value>
-  </data>
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype">
@@ -27,49 +12,30 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
   </resheader>
-  <data name="Hello" xml:space="preserve">
-    <value>こんにちは (JA)</value>
-  </data>
-  <data name="Exit" xml:space="preserve">
-    <value>終了 (JA)</value>
-  </data>
-  <data name="Settings" xml:space="preserve">
-    <value>設定 (JA)</value>
-  </data>
-  <data name="Navigation" xml:space="preserve">
-    <value>ナビゲーション (JA)</value>
-  </data>
-  <data name="CompassHeading" xml:space="preserve">
-    <value>コンパス方位 (JA)</value>
-  </data>
-  <data name="VoiceNavigation" xml:space="preserve">
-    <value>音声ナビゲーション (JA)</value>
-  </data>
-  <data name="ARNavigation" xml:space="preserve">
-    <value>ARナビゲーション (JA)</value>
-  </data>
-  <data name="OfflineMap" xml:space="preserve">
-    <value>オフラインマップ (JA)</value>
-  </data>
-  <data name="RouteSelection" xml:space="preserve">
-    <value>ルート選択 (JA)</value>
-  </data>
-  <data name="DestinationInput" xml:space="preserve">
-    <value>目的地入力 (JA)</value>
-  </data>
-  <data name="MoonCompass" xml:space="preserve">
-    <value>月コンパス (JA)</value>
-  </data>
-  <data name="QiblaDirection" xml:space="preserve">
-    <value>キブラ方向 (JA)</value>
-  </data>
   <data name="POIShow" xml:space="preserve">
-    <value>POI表示 (JA)</value>
+    <value>POI (JA)</value>
   </data>
-  <data name="TransportMode" xml:space="preserve">
-    <value>交通モード (JA)</value>
+  <data name="TransportationMode" xml:space="preserve">
+    <value> (JA)</value>
   </data>
   <data name="RealTimeTraffic" xml:space="preserve">
-    <value>リアルタイム交通 (JA)</value>
+    <value> (JA)</value>
+  </data>
+  <data name="Donate" xml:space="preserve">
+    <value> (JA)</value>
+  </data>
+  <data name="AR" xml:space="preserve">
+    <value> (JA)</value>
+  </data>
+  <data name="Offline Map" xml:space="preserve">
+    <value> (JA)</value>
+  </data>
+  <data name="Voice Navigation" xml:space="preserve">
+    <value> (JA)</value>
+  </data>
+  <data name="TestKey" xml:space="preserve">
+    <value> (JA)</value>
   </data>
 </root>
+
+

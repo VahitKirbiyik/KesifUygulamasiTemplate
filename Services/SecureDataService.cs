@@ -7,25 +7,44 @@ using System.Security;
 
 namespace KesifUygulamasiTemplate.Services
 {
-    // API anahtarlarý ve kullanýcý bilgileri için güvenli depolama
+    // API anahtarlarï¿½ ve kullanï¿½cï¿½ bilgileri iï¿½in gï¿½venli depolama
     public class SecureDataService : ISecureDataService
     {
         public async Task<string> GetSecureValueAsync(string key)
         {
             try
             {
-                return await SecureStorage.Default.GetAsync(key) 
-                    ?? throw new KeyNotFoundException($"Güvenli deðer bulunamadý: {key}");
+                return await SecureStorage.Default.GetAsync(key)
+                    ?? throw new KeyNotFoundException($"GÃ¼venli deÄŸer bulunamadÄ±: {key}");
             }
             catch (Exception ex) when (ex is not KeyNotFoundException)
             {
-                throw new SecurityException("Güvenli veri eriþimi baþarýsýz", ex);
+                throw new SecurityException("GÃ¼venli veri eriÅŸimi baÅŸarÄ±sÄ±z", ex);
             }
         }
-        
+
         public async Task SetSecureValueAsync(string key, string value)
         {
             await SecureStorage.Default.SetAsync(key, value);
+        }
+
+        // ISecureDataService sync contract
+        void ISecureDataService.Set(string key, string value)
+        {
+            // Fire-and-forget wrapper for the async Set
+            _ = SetSecureValueAsync(key, value);
+        }
+
+        string? ISecureDataService.Get(string key)
+        {
+            try
+            {
+                return GetSecureValueAsync(key).GetAwaiter().GetResult();
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

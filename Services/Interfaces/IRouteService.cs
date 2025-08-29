@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
-using Microsoft.Maui.Devices.Sensors;
+using KesifUygulamasiTemplate.Models;
 
-namespace KesifUygulamasiTemplate.Services
+namespace KesifUygulamasiTemplate.Services.Interfaces
 {
     /// <summary>
     /// Interface for route generation services
@@ -14,6 +14,6 @@ namespace KesifUygulamasiTemplate.Services
         /// <param name="start">Starting location</param>
         /// <param name="end">Ending location</param>
         /// <returns>List of location points that make up the route</returns>
-        Task<System.Collections.Generic.List<Location>> GetRouteAsync(Location start, Location end);
+        Task<System.Collections.Generic.List<LocationModel>> GetRouteAsync(LocationModel start, LocationModel end);
     }
 }

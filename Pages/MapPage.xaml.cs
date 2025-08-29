@@ -10,16 +10,16 @@ namespace KesifUygulamasiTemplate.Pages
 {
     public partial class MapPage : ContentPage
     {
-        readonly DatabaseService _databaseService;
+        readonly Services.DatabaseService _databaseService;
 
-        public MapPage(DatabaseService databaseService)
+        public MapPage(Services.DatabaseService databaseService)
         {
             InitializeComponent();
             _databaseService = databaseService ?? throw new ArgumentNullException(nameof(databaseService));
 
             // Harita ayarları
             mapView.IsShowingUser = true;
-            mapView.MapType = MapType.Street;
+            mapView.MapType = Microsoft.Maui.Maps.MapType.Street;
 
             // Kaydet butonunu başta pasif yap
             saveButton.IsEnabled = false;

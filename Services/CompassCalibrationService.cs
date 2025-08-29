@@ -26,19 +26,20 @@ namespace KesifUygulamasiTemplate.Services
         {
             if (_isCalibrating)
                 return;
-                
+
             _isCalibrating = true;
             _status = CalibrationStatus.NotCalibrated;
             _calibrationAccuracy = 0;
-            
-            // Gerçek bir uygulamada burada sensör verileri kullanýlýr
-            // Bu örnek için rastgele iyileþen bir doðruluk simüle ediyoruz
-            System.Threading.Tasks.Task.Run(async () => {
+
+            // GerÃ§ek bir uygulamada burada sensÃ¶r verileri kullanÄ±lÄ±r
+            // Bu Ã¶rnek iÃ§in rastgele iyileÅŸen bir doÄŸruluk simÃ¼le ediyoruz
+            System.Threading.Tasks.Task.Run(async () =>
+            {
                 while (_isCalibrating && _calibrationAccuracy < 0.95)
                 {
                     await System.Threading.Tasks.Task.Delay(500);
                     _calibrationAccuracy += _random.NextDouble() * 0.2;
-                    
+
                     if (_calibrationAccuracy > 0.95)
                     {
                         _status = CalibrationStatus.HighAccuracy;

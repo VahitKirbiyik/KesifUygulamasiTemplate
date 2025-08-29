@@ -12,6 +12,8 @@ namespace KesifUygulamasiTemplate.Tests
     {
         private readonly Mock<IMoonCompassService> _moonServiceMock;
         private readonly Mock<LocationService> _locationServiceMock;
+        private readonly Mock<ConnectivityService> _connectivityServiceMock;
+        private readonly Mock<AppCenterAnalyticsService> _analyticsServiceMock;
         private readonly MoonCompassViewModel _viewModel;
         
         public MoonCompassViewModelTests()
@@ -19,6 +21,8 @@ namespace KesifUygulamasiTemplate.Tests
             // Arrange - Setup mocks
             _moonServiceMock = new Mock<IMoonCompassService>();
             _locationServiceMock = new Mock<LocationService>();
+            _connectivityServiceMock = new Mock<ConnectivityService>();
+            _analyticsServiceMock = new Mock<AppCenterAnalyticsService>();
             
             // Mock moon data
             var mockMoonData = new MoonData
@@ -33,7 +37,7 @@ namespace KesifUygulamasiTemplate.Tests
                 .ReturnsAsync(mockMoonData);
             
             // Create ViewModel with mocks
-            _viewModel = new MoonCompassViewModel(_moonServiceMock.Object, _locationServiceMock.Object);
+            _viewModel = new MoonCompassViewModel(_moonServiceMock.Object, _locationServiceMock.Object, _connectivityServiceMock.Object, _analyticsServiceMock.Object);
         }
         
         [Fact]

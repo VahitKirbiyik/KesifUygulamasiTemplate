@@ -8,7 +8,7 @@ using System.Threading;
 namespace KesifUygulamasiTemplate.Services
 {
     /// <summary>
-    /// Uygulama genelinde lokalizasyon ve kültür yönetimi saðlar.
+    /// Uygulama genelinde lokalizasyon ve kï¿½ltï¿½r yï¿½netimi saï¿½lar.
     /// </summary>
     public class LocalizationService : INotifyPropertyChanged
     {
@@ -22,7 +22,7 @@ namespace KesifUygulamasiTemplate.Services
         public static LocalizationService Instance => _instance;
 
         /// <summary>
-        /// Geçerli kültür (dil)
+        /// Geï¿½erli kï¿½ltï¿½r (dil)
         /// </summary>
         public static CultureInfo CurrentCulture
         {
@@ -30,7 +30,7 @@ namespace KesifUygulamasiTemplate.Services
             set => Instance.SetCulture(value);
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         private LocalizationService()
         {
@@ -76,7 +76,24 @@ namespace KesifUygulamasiTemplate.Services
         }
 
         /// <summary>
-        /// Tarih/saat deðerini geçerli kültüre göre kýsa saat formatýnda döndürür.
+        /// Tarih/saat deï¿½erini geï¿½erli kï¿½ltï¿½re gï¿½re kï¿½sa tarih formatï¿½nda dï¿½ndï¿½rï¿½r.
+        /// </summary>
+        public static string FormatDate(DateTime? date)
+        {
+            if (date == null) return string.Empty;
+            return date.Value.ToString("d", CurrentCulture);
+        }
+
+        /// <summary>
+        /// Para birimi deï¿½erini geï¿½erli kï¿½ltï¿½re gï¿½re formatlar.
+        /// </summary>
+        public static string FormatCurrency(decimal amount)
+        {
+            return amount.ToString("C", CurrentCulture);
+        }
+
+        /// <summary>
+        /// Tarih/saat deï¿½erini geï¿½erli kï¿½ltï¿½re gï¿½re kï¿½sa saat formatï¿½nda dï¿½ndï¿½rï¿½r.
         /// </summary>
         public static string FormatTime(DateTime? time)
         {
@@ -85,16 +102,16 @@ namespace KesifUygulamasiTemplate.Services
         }
 
         /// <summary>
-        /// Sayý deðerini geçerli kültüre göre formatlar.
+        /// Sayï¿½ deï¿½erini geï¿½erli kï¿½ltï¿½re gï¿½re formatlar.
         /// </summary>
         public static string FormatNumber(double number)
         {
             return number.ToString("N0", CurrentCulture);
         }
 
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName ?? string.Empty));
         }
     }
 }

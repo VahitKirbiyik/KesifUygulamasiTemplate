@@ -29,7 +29,7 @@ namespace KesifUygulamasiTemplate.Services
             {
                 Models.AppTheme.Light => Microsoft.Maui.ApplicationModel.AppTheme.Light,
                 Models.AppTheme.Dark => Microsoft.Maui.ApplicationModel.AppTheme.Dark,
-                Models.AppTheme.Custom => Microsoft.Maui.ApplicationModel.AppTheme.Light, // Custom için Light baz alýnýr
+                Models.AppTheme.Custom => Microsoft.Maui.ApplicationModel.AppTheme.Light, // Custom iÃ§in Light baz alÄ±nÄ±r
                 _ => Microsoft.Maui.ApplicationModel.AppTheme.Light
             };
         }

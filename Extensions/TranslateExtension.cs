@@ -25,7 +25,7 @@ namespace KesifUygulamasiTemplate.Extensions
         }
     }
 
-    // Dinamik olarak dil değişiminde otomatik güncellenen çeviri için
+    // Dinamik olarak dil deÄŸiÅŸiminde otomatik gÃ¼ncellenen Ã§eviri iÃ§in
     public class TranslateBindingExtension : IMarkupExtension
     {
         public string Key { get; set; }

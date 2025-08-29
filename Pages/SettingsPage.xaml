@@ -37,6 +37,25 @@
                         Clicked="RequestLocationPermission_Clicked" />
             </StackLayout>
 
+            <!-- Bağış Butonu -->
+            <StackLayout Spacing="10">
+                <Label Text="💝 Uygulamayı Destekleyin" FontAttributes="Bold" FontSize="18" />
+                <Label Text="Bu uygulama ücretsizdir. Bağış yaparak geliştirilmesine katkıda bulunabilirsiniz." FontSize="14" />
+                <Button Text="💳 PayPal ile Bağış Yap"
+                        BackgroundColor="#0070ba"
+                        TextColor="White"
+                        Clicked="PayPalDonationButton_Clicked"
+                        CornerRadius="8"
+                        HeightRequest="45" />
+                <Button Text="💳 Stripe ile Bağış Yap"
+                        BackgroundColor="#635bff"
+                        TextColor="White"
+                        Clicked="StripeDonationButton_Clicked"
+                        CornerRadius="8"
+                        HeightRequest="45" />
+                <Label Text="Alternatif: GitHub Sponsors, Buy Me a Coffee vb." FontSize="12" TextColor="Gray" />
+            </StackLayout>
+
         </StackLayout>
     </ScrollView>
 </ContentPage>

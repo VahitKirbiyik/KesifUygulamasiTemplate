@@ -2,19 +2,33 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Maui.Controls;
+using KesifUygulamasiTemplate.Helpers;
 
 namespace KesifUygulamasiTemplate.Services
 {
     public class NavigationService
     {
+        private readonly IGlobalExceptionHandler _exceptionHandler;
         private INavigation Navigation => Application.Current?.MainPage?.Navigation;
+
+        public NavigationService(IGlobalExceptionHandler exceptionHandler)
+        {
+            _exceptionHandler = exceptionHandler ?? throw new ArgumentNullException(nameof(exceptionHandler));
+        }
 
         public async Task PushAsync(Page page, bool animated = true)
         {
             if (Navigation != null && page != null)
             {
-                try { await Navigation.PushAsync(page, animated); }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Navigation error: {ex.Message}"); }
+                try
+                {
+                    await Navigation.PushAsync(page, animated);
+                }
+                catch (Exception ex)
+                {
+                    _exceptionHandler.HandleException(ex);
+                    _exceptionHandler.LogUserFriendlyError("Sayfa açılırken bir hata oluştu", ex);
+                }
             }
         }
 
@@ -22,8 +36,15 @@ namespace KesifUygulamasiTemplate.Services
         {
             if (Navigation != null && Navigation.NavigationStack.Count > 1)
             {
-                try { await Navigation.PopAsync(animated); }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Navigation pop error: {ex.Message}"); }
+                try
+                {
+                    await Navigation.PopAsync(animated);
+                }
+                catch (Exception ex)
+                {
+                    _exceptionHandler.HandleException(ex);
+                    _exceptionHandler.LogUserFriendlyError("Sayfadan çıkılırken bir hata oluştu", ex);
+                }
             }
         }
 
@@ -31,8 +52,15 @@ namespace KesifUygulamasiTemplate.Services
         {
             if (Navigation != null && page != null)
             {
-                try { await Navigation.PushModalAsync(page, animated); }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Modal navigation error: {ex.Message}"); }
+                try
+                {
+                    await Navigation.PushModalAsync(page, animated);
+                }
+                catch (Exception ex)
+                {
+                    _exceptionHandler.HandleException(ex);
+                    _exceptionHandler.LogUserFriendlyError("Modal sayfa açılırken bir hata oluştu", ex);
+                }
             }
         }
 
@@ -40,8 +68,15 @@ namespace KesifUygulamasiTemplate.Services
         {
             if (Navigation != null && Navigation.ModalStack.Count > 0)
             {
-                try { await Navigation.PopModalAsync(animated); }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Modal pop error: {ex.Message}"); }
+                try
+                {
+                    await Navigation.PopModalAsync(animated);
+                }
+                catch (Exception ex)
+                {
+                    _exceptionHandler.HandleException(ex);
+                    _exceptionHandler.LogUserFriendlyError("Modal sayfadan çıkılırken bir hata oluştu", ex);
+                }
             }
         }
 
@@ -49,8 +84,15 @@ namespace KesifUygulamasiTemplate.Services
         {
             if (Navigation != null && Navigation.NavigationStack.Count > 1)
             {
-                try { await Navigation.PopToRootAsync(animated); }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Pop to root error: {ex.Message}"); }
+                try
+                {
+                    await Navigation.PopToRootAsync(animated);
+                }
+                catch (Exception ex)
+                {
+                    _exceptionHandler.HandleException(ex);
+                    _exceptionHandler.LogUserFriendlyError("Ana sayfaya dönülürken bir hata oluştu", ex);
+                }
             }
         }
 
@@ -58,8 +100,15 @@ namespace KesifUygulamasiTemplate.Services
         {
             if (!string.IsNullOrWhiteSpace(route))
             {
-                try { await Shell.Current.GoToAsync(route, animated); }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Shell navigation error: {ex.Message}"); }
+                try
+                {
+                    await Shell.Current.GoToAsync(route, animated);
+                }
+                catch (Exception ex)
+                {
+                    _exceptionHandler.HandleException(ex);
+                    _exceptionHandler.LogUserFriendlyError($"'{route}' rotasına gidilirken bir hata oluştu", ex);
+                }
             }
         }
 
@@ -67,8 +116,15 @@ namespace KesifUygulamasiTemplate.Services
         {
             if (!string.IsNullOrWhiteSpace(route))
             {
-                try { await Shell.Current.GoToAsync(route, animated, parameters); }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Shell navigation with parameters error: {ex.Message}"); }
+                try
+                {
+                    await Shell.Current.GoToAsync(route, animated, parameters);
+                }
+                catch (Exception ex)
+                {
+                    _exceptionHandler.HandleException(ex);
+                    _exceptionHandler.LogUserFriendlyError($"'{route}' rotasına parametrelerle gidilirken bir hata oluştu", ex);
+                }
             }
         }
 

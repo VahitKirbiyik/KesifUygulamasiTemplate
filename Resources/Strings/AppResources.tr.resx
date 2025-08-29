@@ -1,75 +1,77 @@
-    <data name="POIShow" xml:space="preserve">
-        <value>POI Gösterimi (TR)</value>
-    </data>
-    <data name="TransportationMode" xml:space="preserve">
-        <value>Ulaşım Modu (TR)</value>
-    </data>
-    <data name="RealTimeTraffic" xml:space="preserve">
-        <value>Gerçek Zamanlı Trafik (TR)</value>
-    </data>
-    <data name="SupportDeveloper" xml:space="preserve">
-        <value>Geliştiriciye Destek (TR)</value>
-    </data>
-    <data name="Donate" xml:space="preserve">
-        <value>Bağış Yap (TR)</value>
-    </data>
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-    <resheader name="resmimetype">
-        <value>text/microsoft-resx</value>
-    </resheader>
-    <resheader name="version">
-        <value>2.0</value>
-    </resheader>
-    <resheader name="reader">
-        <value>System.Resources.ResXResourceReader, System.Windows.Forms, ...</value>
-    </resheader>
-    <resheader name="writer">
-        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
-    </resheader>
-    <data name="Hello" xml:space="preserve">
-        <value>Merhaba (TR)</value>
-    </data>
-    <data name="Exit" xml:space="preserve">
-        <value>Çıkış (TR)</value>
-    </data>
-    <data name="Settings" xml:space="preserve">
-        <value>Ayarlar (TR)</value>
-    </data>
-    <data name="Navigation" xml:space="preserve">
-        <value>Navigasyon (TR)</value>
-    </data>
-    <data name="CompassHeading" xml:space="preserve">
-        <value>Pusula Yönü (TR)</value>
-    </data>
-    <data name="VoiceNavigation" xml:space="preserve">
-        <value>Sesli Navigasyon (TR)</value>
-    </data>
-    <data name="ARNavigation" xml:space="preserve">
-        <value>AR Navigasyon (TR)</value>
-    </data>
-    <data name="OfflineMap" xml:space="preserve">
-        <value>Çevrimdışı Harita (TR)</value>
-    </data>
-    <data name="RouteSelection" xml:space="preserve">
-        <value>Rota Seçimi (TR)</value>
-    </data>
-    <data name="DestinationInput" xml:space="preserve">
-        <value>Hedef Girişi (TR)</value>
-    </data>
-    <data name="MoonCompass" xml:space="preserve">
-        <value>Ay Pusulası (TR)</value>
-    </data>
-    <data name="QiblaDirection" xml:space="preserve">
-        <value>Kıble Yönü (TR)</value>
-    </data>
-    <data name="POIShow" xml:space="preserve">
-        <value>POI Göster (TR)</value>
-    </data>
-    <data name="TransportMode" xml:space="preserve">
-        <value>Ulaşım Modu (TR)</value>
-    </data>
-    <data name="RealTimeTraffic" xml:space="preserve">
-        <value>Anlık Trafik (TR)</value>
-    </data>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, ...</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
+  </resheader>
+  <data name="Hello" xml:space="preserve">
+    <value>Merhaba (TR)</value>
+  </data>
+  <data name="Exit" xml:space="preserve">
+    <value>Çıkı (TR)</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Ayarlar (TR)</value>
+  </data>
+  <data name="Navigation" xml:space="preserve">
+    <value>Navigasyon (TR)</value>
+  </data>
+  <data name="CompassHeading" xml:space="preserve">
+    <value>Pusula Yönü (TR)</value>
+  </data>
+  <data name="VoiceNavigation" xml:space="preserve">
+    <value>Sesli Navigasyon (TR)</value>
+  </data>
+  <data name="ARNavigation" xml:space="preserve">
+    <value>AR Navigasyon (TR)</value>
+  </data>
+  <data name="OfflineMap" xml:space="preserve">
+    <value>Çevrimdıı Harita (TR)</value>
+  </data>
+  <data name="RouteSelection" xml:space="preserve">
+    <value>Rota Seçimi (TR)</value>
+  </data>
+  <data name="DestinationInput" xml:space="preserve">
+    <value>Hedef Girii (TR)</value>
+  </data>
+  <data name="MoonCompass" xml:space="preserve">
+    <value>Ay Pusulası (TR)</value>
+  </data>
+  <data name="QiblaDirection" xml:space="preserve">
+    <value>Kıble Yönü (TR)</value>
+  </data>
+  <data name="POIShow" xml:space="preserve">
+    <value>POI Gösterimi (TR)</value>
+  </data>
+  <data name="TransportMode" xml:space="preserve">
+    <value>Ulaım Modu (TR)</value>
+  </data>
+  <data name="RealTimeTraffic" xml:space="preserve">
+    <value>Anlık Trafik (TR)</value>
+  </data>
+  <data name="Donate" xml:space="preserve">
+    <value>Baı Yap (TR)</value>
+  </data>
+  <data name="AR" xml:space="preserve">
+    <value>Artırılmı Gerçeklik (TR)</value>
+  </data>
+  <data name="Offline Map" xml:space="preserve">
+    <value>Çevrimdıı Harita (TR)</value>
+  </data>
+  <data name="Voice Navigation" xml:space="preserve">
+    <value>Sesli Navigasyon (TR)</value>
+  </data>
+  <data name="TestKey" xml:space="preserve">
+    <value>Test Anahtarı (TR)</value>
+  </data>
 </root>
+
+

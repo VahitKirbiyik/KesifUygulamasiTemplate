@@ -1,0 +1,37 @@
+name: Release Full CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+
+  build-release:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore
+
+      - name: Test
+        run: dotnet test --no-build --logger "trx;LogFileName=test-results.trx"
+        continue-on-error: false
+
+      - name: Run release-full.ps1
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./tools/release-full.ps1

@@ -1,5 +1,10 @@
-public class StreetViewLink
+using System;
+
+namespace KesifUygulamasiTemplate.Models
 {
-    public string PanoramaId { get; set; }
-    public string Title { get; set; }
+    public class StreetViewLink
+    {
+        public string PanoramaId { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+    }
 }

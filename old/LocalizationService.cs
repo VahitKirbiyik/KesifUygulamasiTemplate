@@ -1,1 +1,0 @@
-// Bu dosya eski LocalizationService.cs'nin yedeðidir. Artýk kullanýlmamaktadýr.

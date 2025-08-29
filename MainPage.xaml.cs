@@ -24,18 +24,18 @@ namespace KesifUygulamasiTemplate
                 return;
             }
 
-            ResponseLabel.Text = "⏳ Yanıt bekleniyor...";
+            ResponseEditor.Text = "⏳ Yanıt bekleniyor...";
 
             try
             {
                 // Örn: "llama3:13b" modelini çağırıyoruz
                 string result = await _ollamaService.GenerateTextAsync("llama3:13b", prompt);
 
-                ResponseLabel.Text = result;
+                ResponseEditor.Text = result;
             }
             catch (Exception ex)
             {
-                ResponseLabel.Text = $"⚠️ Hata oluştu: {ex.Message}";
+                ResponseEditor.Text = $"⚠️ Hata oluştu: {ex.Message}";
             }
         }
     }

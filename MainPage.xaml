@@ -1,22 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:views="clr-namespace:KesifUygulamasiTemplate.Views"
+             xmlns:local="clr-namespace:KesifUygulamasiTemplate.Views"
              x:Class="KesifUygulamasiTemplate.MainPage"
-             Title="Keşif Uygulaması">
+             Title="Ana Sayfa">
 
-    <Grid ColumnDefinitions="*, Auto" RowDefinitions="*">
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="20">
 
-        <!-- Ana içerik -->
-        <StackLayout Grid.Column="0" Padding="10">
-            <Label Text="Ana Uygulama Alanı" 
-                   FontSize="20" 
-                   HorizontalOptions="Center" />
-        </StackLayout>
+            <!-- Başlık -->
+            <Label Text="Ollama AI Asistanı"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   HorizontalTextAlignment="Center"
+                   TextColor="{StaticResource Primary}" />
 
-        <!-- Ollama Yan Panel -->
-        <StackLayout Grid.Column="1" BackgroundColor="#e0e0e0" WidthRequest="300">
-            <views:OllamaPanel />
-        </StackLayout>
+            <!-- Prompt giriş alanı -->
+            <VerticalStackLayout Spacing="10">
+                <Label Text="Sorunuzu yazın:" FontSize="16" />
+                <Entry x:Name="PromptEntry"
+                       Placeholder="Buraya yazın..."
+                       HeightRequest="100"
+                       Keyboard="Default"
+                       HorizontalTextAlignment="Start"
+                       VerticalTextAlignment="Start" />
+            </VerticalStackLayout>
 
-    </Grid>
+            <!-- Gönder butonu -->
+            <Button Text="Gönder"
+                    x:Name="SendButton"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="White"
+                    HeightRequest="50"
+                    CornerRadius="8"
+                    Clicked="OnSendPromptClicked" />
+
+            <!-- Cevap alanı -->
+            <VerticalStackLayout Spacing="10">
+                <Label Text="Cevap:" FontSize="16" />
+                <Editor x:Name="ResponseEditor"
+                        Placeholder="Cevap burada görünecek..."
+                        HeightRequest="200"
+                        IsReadOnly="True"
+                        BackgroundColor="#F5F5F5" />
+            </VerticalStackLayout>
+
+            <!-- Ollama Panel -->
+            <local:OllamaPanelControl x:Name="OllamaPanel" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
 </ContentPage>

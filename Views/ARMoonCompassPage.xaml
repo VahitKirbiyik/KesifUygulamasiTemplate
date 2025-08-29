@@ -3,17 +3,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:media="clr-namespace:Microsoft.Maui.Controls;assembly=Microsoft.Maui.Controls"
              x:Class="KesifUygulamasiTemplate.Views.ARMoonCompassPage"
-             Title="AR Ay Pusulas�">
+             Title="AR Ay Pusulas�">
     <Grid>
-        <!-- Kamera �nizleme (MediaElement ile) -->
-        <media:MediaElement x:Name="CameraPreview"
-                            ShowsPlaybackControls="False"
-                            AutoPlay="True"
-                            Aspect="AspectFill"
-                            HeightRequest="400"
-                            WidthRequest="300"
-                            VerticalOptions="Center"
-                            HorizontalOptions="Center" />
+        <!-- Kamera önizleme yerine placeholder -->
+        <Image x:Name="CameraPreview"
+               Source="placeholder_camera.png"
+               Aspect="AspectFill"
+               HeightRequest="400"
+               WidthRequest="300"
+               VerticalOptions="Center"
+               HorizontalOptions="Center" />
         <!-- Overlay: Ay konumu -->
         <AbsoluteLayout>
             <Image Source="moon_icon.png"
@@ -24,4 +23,6 @@
         <!-- Yenile Butonu -->
         <Button Text="Yenile" Command="{Binding RefreshCommand}" VerticalOptions="End" HorizontalOptions="Center" Margin="0,0,0,30"/>
     </Grid>
+    <!-- MediaElement kaldırıldı -->
 </ContentPage>
+

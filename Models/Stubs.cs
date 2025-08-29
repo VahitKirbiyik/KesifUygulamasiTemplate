@@ -1,0 +1,96 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace KesifUygulamasiTemplate.Models
+{
+    // Small model stubs to unblock build. Replace with fuller implementations as needed.
+
+    public class DirectionsRoute
+    {
+        public List<LatLng> Points { get; set; } = new();
+        public string? Summary { get; set; }
+        public double Distance { get; set; }
+        public TimeSpan Duration { get; set; }
+    }
+
+    public class Route
+    {
+        public List<LatLng> Points { get; set; } = new();
+        public string? Name { get; set; }
+        public double Distance { get; set; }
+        public TimeSpan Duration { get; set; }
+        public LatLng Start { get; set; } = new();
+        public LatLng End { get; set; } = new();
+        public List<DirectionStep> Steps { get; set; } = new();
+        public double DistanceKm { get; set; }
+    }
+
+    public class DirectionStep
+    {
+        public string? Instructions { get; set; }
+        public double Distance { get; set; }
+        public TimeSpan Duration { get; set; }
+        public LatLng? StartLocation { get; set; }
+        public LatLng? EndLocation { get; set; }
+    }
+
+    public enum TransportMode
+    {
+        Driving,
+        Walking,
+        Cycling,
+        Transit
+    }
+
+    public class TrafficInfo
+    {
+        public List<TrafficIncident> Incidents { get; set; } = new();
+        public Dictionary<string, double> Speeds { get; set; } = new();
+        public string CongestionLevel { get; set; } = "Low";
+        public TimeSpan DelayTime { get; set; }
+        public TimeSpan TypicalTravelTime { get; set; }
+        public TimeSpan CurrentTravelTime { get; set; }
+        public DateTime LastUpdated { get; set; }
+    }
+
+    public class TrafficIncident
+    {
+        public string? Description { get; set; }
+        public LatLng Location { get; set; } = new();
+        public TrafficSeverity Severity { get; set; }
+        public string? Id { get; set; }
+        public string? Type { get; set; }
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public DateTime? StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public int SeverityCode { get; set; }
+    }
+
+    public enum TrafficSeverity
+    {
+        Low,
+        Medium,
+        High,
+        Critical
+    }
+
+    public enum RouteOptimizationPreference
+    {
+        Optimistic,
+        Pessimistic
+    }
+
+    public enum MoonName
+    {
+        New_Moon,
+        Waxing_Crescent,
+        First_Quarter,
+        Waxing_Gibbous,
+        Full_Moon,
+        Waning_Gibbous,
+        Third_Quarter,
+        Waning_Crescent
+    }
+}

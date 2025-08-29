@@ -2,14 +2,14 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using Microsoft.Maui.Controls;
-using KesifUygulamasi.Models;
-using KesifUygulamasi.Services;
+using KesifUygulamasiTemplate.Models;
+using KesifUygulamasiTemplate.Services;
 
-namespace KesifUygulamasi.Pages
+namespace KesifUygulamasiTemplate.Pages
 {
     public partial class LocationsPage : ContentPage
     {
-        readonly DatabaseService _databaseService;
+        readonly Services.DatabaseService _databaseService;
         ObservableCollection<LocationModel> _locations = new();
 
         public LocationsPage(DatabaseService databaseService)

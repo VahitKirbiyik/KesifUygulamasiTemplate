@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using KesifUygulamasiTemplate.Services;
 using Microsoft.Maui.Controls;
+using KesifUygulamasiTemplate.ViewModels.Base;
 
 namespace KesifUygulamasiTemplate.ViewModels
 {
@@ -10,10 +11,10 @@ namespace KesifUygulamasiTemplate.ViewModels
     {
         private readonly OllamaService _ollamaService;
 
-        private string _generatedText;
+        private string? _generatedText;
         public string GeneratedText
         {
-            get => _generatedText;
+            get => _generatedText ?? string.Empty;
             set => SetProperty(ref _generatedText, value);
         }
 

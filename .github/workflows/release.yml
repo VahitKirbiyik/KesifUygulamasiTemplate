@@ -22,10 +22,10 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
 
-    - name: 🔐 Encoding Guard
+    - name: Encoding Guard
       shell: pwsh
       run: |
-        Write-Host "🔍 Encoding kontrolü başlatıldı..."
+        Write-Host "Encoding kontrolü başlatıldı..."
 
         $files = Get-ChildItem -Path . -Recurse -File -Filter *.cs
         foreach ($file in $files) {
@@ -33,7 +33,7 @@ jobs:
             $content | Set-Content -Path $file.FullName -Encoding utf8BOM
         }
 
-        Write-Host "✅ Tüm .cs dosyaları UTF-8 with BOM formatına dönüştürüldü."
+        Write-Host "Tüm .cs dosyaları UTF-8 with BOM formatına dönüştürüldü."
 
         $errors = @()
         foreach ($file in $files) {
@@ -58,3 +58,33 @@ jobs:
 
     - name: Run tests
       run: dotnet test --no-build --verbosity normal
+
+    - name: PowerShell ile release-build.ps1 çalıştır
+      shell: pwsh
+      run: |
+        ./tools/release-build.ps1
+
+    - name: Android Artefact Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: Android-Release
+        path: out/Android
+
+    - name: iOS Artefact Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: iOS-Release
+        path: out/iOS
+
+    - name: Log dosyasını yükle
+      uses: actions/upload-artifact@v4
+      with:
+        name: pre-commit-log
+        path: pre-commit.log
+
+    - name: Security Scan
+      run: dotnet list package --vulnerable > artifacts/security-scan.log
+
+    - name: Performance Test
+      run: |
+        locust -f load_test.py --headless -u 50 -r 5 -t 1m --csv=artifacts/performance-test

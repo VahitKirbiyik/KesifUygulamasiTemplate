@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using KesifUygulamasiTemplate.Services.Interfaces;
 
-namespace KesifUygamamasiTemplate.Services
+namespace KesifUygulamasiTemplate.Services
 {
     // Basit in-memory implementasyon; ileride SQLite/MBTiles eklenecek
     public class OfflineRouteService : IOfflineRouteService
@@ -25,6 +26,11 @@ namespace KesifUygamamasiTemplate.Services
         public Task<List<Route>> GetAllSavedRoutesAsync()
         {
             return Task.FromResult(new List<Route>(_store.Values));
+        }
+
+        public Task<bool> HasOfflineRouteAsync(string id)
+        {
+            return Task.FromResult(_store.ContainsKey(id));
         }
     }
 }

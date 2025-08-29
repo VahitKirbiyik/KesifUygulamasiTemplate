@@ -7,60 +7,60 @@ namespace KesifUygulamasiTemplate.Models
     {
         [PrimaryKey, AutoIncrement]
         public int Id { get; set; }
-        
+
         public double Latitude { get; set; }
         public double Longitude { get; set; }
         public DateTime Date { get; set; }
         public DateTime RiseTime { get; set; }
         public DateTime SetTime { get; set; }
-        
+
         /// <summary>
-        /// Ay fazı (0.0 - 1.0 arası, 0 = Yeni Ay, 1 = Dolunay)
+        /// Ay fazÄ± (0.0 - 1.0 arasÄ±, 0 = Yeni Ay, 1 = Dolunay)
         /// </summary>
         public double Phase { get; set; }
-        
+
         /// <summary>
-        /// Ayın azimuth açısı (derece)
+        /// AyÄ±n azimuth aÃ§Ä±sÄ± (derece)
         /// </summary>
         public double Azimuth { get; set; }
-        
+
         /// <summary>
-        /// Ayın yükseklik açısı (derece)
+        /// AyÄ±n yÃ¼kseklik aÃ§Ä±sÄ± (derece)
         /// </summary>
         public double Altitude { get; set; }
-        
+
         /// <summary>
-        /// Ay fazının adı (Türkçe)
+        /// Ay fazÄ±nÄ±n adÄ± (TÃ¼rkÃ§e)
         /// </summary>
         public string PhaseName { get; set; } = string.Empty;
-        
+
         /// <summary>
-        /// Ayın aydınlanma yüzdesi (0.0 - 1.0)
+        /// AyÄ±n aydÄ±nlanma yÃ¼zdesi (0.0 - 1.0)
         /// </summary>
         public double Illumination { get; set; }
-        
+
         /// <summary>
-        /// Ay ile Dünya arasındaki mesafe (km)
+        /// Ay ile DÃ¼nya arasÄ±ndaki mesafe (km)
         /// </summary>
         public double Distance { get; set; }
-        
+
         /// <summary>
-        /// Ayın görünür büyüklüğü
+        /// AyÄ±n gÃ¶rÃ¼nÃ¼r bÃ¼yÃ¼klÃ¼ÄŸÃ¼
         /// </summary>
         public double ApparentMagnitude { get; set; }
-        
+
         /// <summary>
-        /// Ay fazının emoji temsili
+        /// Ay fazÄ±nÄ±n emoji temsili
         /// </summary>
         public string PhaseEmoji => Phase switch
         {
             <= 0.05 => "??", // Yeni Ay
             <= 0.25 => "??", // Hilal
-            <= 0.45 => "??", // İlk Dördün
-            <= 0.55 => "??", // Şişkin
+            <= 0.45 => "??", // Ä°lk DÃ¶rdÃ¼n
+            <= 0.55 => "??", // ÅiÅŸkin
             <= 0.75 => "??", // Dolunay
-            <= 0.95 => "??", // Azalan Şişkin
-            _ => "??"         // Son Dördün / Azalan Hilal
+            <= 0.95 => "??", // Azalan ÅiÅŸkin
+            _ => "??"         // Son DÃ¶rdÃ¼n / Azalan Hilal
         };
     }
 }

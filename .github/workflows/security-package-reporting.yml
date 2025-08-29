@@ -1,0 +1,63 @@
+name: 🔒 Gelişmiş Güvenlik ve Paket Raporlama
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  security-check:
+    name: � Güvenlik ve Paket Analizi
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Kodun Checkout Edilmesi
+        uses: actions/checkout@v4
+
+      - name: �️ Ortam Kurulumu
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq
+
+      - name: � Paket Güncellemelerini Kontrol Et
+        id: packages
+        run: |
+          npm install -g npm-check-updates
+          ncu -j > outdated.json
+          echo "outdated=$(cat outdated.json | jq -r 'keys | join(", ")')" >> $GITHUB_ENV
+
+      - name: � Güvenlik Taraması
+        id: security
+        run: |
+          npm audit --json > audit.json || true
+          issues=$(jq '.metadata.vulnerabilities.total' audit.json)
+          echo "vuln=$issues" >> $GITHUB_ENV
+
+      - name: � Raporları Artifact Olarak Kaydet
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report-${{ github.run_number }}
+          path: |
+            audit.json
+            outdated.json
+
+      - name: � Summary Raporu Oluştur
+        run: |
+          echo "## 🔒 Güvenlik ve Paket Raporu" >> $GITHUB_STEP_SUMMARY
+          echo "<details><summary>📦 Outdated Paketler</summary>" >> $GITHUB_STEP_SUMMARY
+          if [ -s outdated.json ]; then
+            jq -r 'to_entries[] | "- \(.key): \(.value.latest)"' outdated.json >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Tüm paketler güncel" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+
+          echo "<details><summary>🔍 Güvenlik Açıkları</summary>" >> $GITHUB_STEP_SUMMARY
+          vulns=$(jq '.metadata.vulnerabilities' audit.json)
+          if [ "$vulns" != "null" ]; then
+            jq '.metadata.vulnerabilities' audit.json >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Güvenlik açığı bulunamadı" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+
+          echo "💡 İpucu: Ayrıntıları görmek için başlığa tıklayabilirsiniz." >> $GITHUB_STEP_SUMMARY

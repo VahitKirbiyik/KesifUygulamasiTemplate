@@ -12,19 +12,20 @@ namespace KesifUygulamasiTemplate.Views
     {
         private readonly MoonCompassViewModel _viewModel;
         private readonly LocalizationService _localizationService;
-        
+
         public MoonCompassPage(MoonCompassViewModel viewModel)
         {
             InitializeComponent();
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             _localizationService = LocalizationService.Instance;
             BindingContext = _viewModel;
-            
-            // Dil deðiþikliklerini dinle
-            _localizationService.PropertyChanged += (s, e) => {
+
+            // Dil deÄŸiÅŸikliklerini dinle
+            _localizationService.PropertyChanged += (s, e) =>
+            {
                 if (string.IsNullOrEmpty(e.PropertyName) || e.PropertyName == nameof(LocalizationService.CurrentCulture))
                 {
-                    // Sayfadaki tüm çevirileri güncelle
+                    // Sayfadaki tÃ¼m Ã§evirileri gÃ¼ncelle
                     OnPropertyChanged(nameof(Title));
                 }
             };
@@ -33,11 +34,11 @@ namespace KesifUygulamasiTemplate.Views
         protected override async void OnAppearing()
         {
             base.OnAppearing();
-            
+
             try
             {
-                // Gerçek konum almanýn yerine sabit bir konum kullanýlýyor
-                // Gerçek bir uygulamada burada Geolocation servisi kullanýlabilir
+                // GerÃ§ek konum almanÄ±n yerine sabit bir konum kullanÄ±lÄ±yor
+                // GerÃ§ek bir uygulamada burada Geolocation servisi kullanÄ±labilir
                 await _viewModel.LoadMoonDataAsync(40.7128, -74.0060);
             }
             catch (Exception ex)

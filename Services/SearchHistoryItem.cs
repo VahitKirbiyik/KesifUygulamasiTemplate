@@ -7,8 +7,10 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using KesifUygulamasiTemplate.Models;
+using KesifUygulamasiTemplate.Services.Interfaces;
 using Microsoft.Maui.Networking;
 using SQLite;
+using Microsoft.Extensions.Configuration; // IConfiguration iÃ§in gerekli
 
 namespace KesifUygulamasiTemplate.Models
 {
@@ -17,25 +19,24 @@ namespace KesifUygulamasiTemplate.Models
     {
         [PrimaryKey, AutoIncrement]
         public int Id { get; set; }
-        
-        [Required, MaxLength(200)]
-        public string Query { get; set; }
-        
+
+        public string Query { get; set; } = "";
+
         public int SearchCount { get; set; } = 1;
-        
+
         public DateTime LastSearchedAt { get; set; } = DateTime.UtcNow;
-        
+
         public double? Latitude { get; set; }
-        
+
         public double? Longitude { get; set; }
     }
 
     public class SearchResult
     {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public string Category { get; set; }
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Category { get; set; } = "";
         public double Latitude { get; set; }
         public double Longitude { get; set; }
         public string Address { get; set; }
@@ -63,10 +64,10 @@ namespace KesifUygulamasiTemplate.Services
         private readonly string _apiKey;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
         private readonly IFavoritePlacesService _favoritePlacesService;
-        
+
         private const int MAX_HISTORY_ITEMS = 100;
-        
-        public SearchService(SQLiteAsyncConnection database, IConnectivity connectivity, 
+
+        public SearchService(SQLiteAsyncConnection database, IConnectivity connectivity,
                             HttpClient httpClient, IConfiguration config,
                             IFavoritePlacesService favoritePlacesService)
         {
@@ -75,21 +76,21 @@ namespace KesifUygulamasiTemplate.Services
             _httpClient = httpClient;
             _apiKey = config["MapServices:ApiKey"];
             _favoritePlacesService = favoritePlacesService;
-            
-            // Veritabaný tablosunu oluþtur
+
+            // Veritabanï¿½ tablosunu oluï¿½tur
             _database.CreateTableAsync<SearchHistoryItem>().Wait();
         }
-        
+
         public async Task<IEnumerable<SearchResult>> SearchPlacesAsync(string query, double? latitude = null, double? longitude = null)
         {
             if (string.IsNullOrWhiteSpace(query))
                 return Enumerable.Empty<SearchResult>();
-                
+
             var results = new List<SearchResult>();
-            
-            // Önce aramayý geçmiþe ekle
+
+            // ï¿½nce aramayï¿½ geï¿½miï¿½e ekle
             await AddToSearchHistoryAsync(query, latitude, longitude);
-            
+
             // 1. Favori yerlerden ara
             try
             {
@@ -98,21 +99,21 @@ namespace KesifUygulamasiTemplate.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Favorilerde arama hatasý: {ex.Message}");
+                Console.WriteLine($"Favorilerde arama hatasï¿½: {ex.Message}");
             }
-            
-            // 2. Çevrimiçi API ile ara (internet varsa)
+
+            // 2. ï¿½evrimiï¿½i API ile ara (internet varsa)
             if (_connectivity.NetworkAccess == NetworkAccess.Internet)
             {
                 try
                 {
                     var onlineResults = await SearchOnlineAsync(query, latitude, longitude);
-                    
-                    // Favorilerde olmayan sonuçlarý ekle
+
+                    // Favorilerde olmayan sonuï¿½larï¿½ ekle
                     foreach (var result in onlineResults)
                     {
-                        if (!results.Any(r => 
-                            r.Latitude == result.Latitude && 
+                        if (!results.Any(r =>
+                            r.Latitude == result.Latitude &&
                             r.Longitude == result.Longitude &&
                             r.Name == result.Name))
                         {
@@ -122,16 +123,16 @@ namespace KesifUygulamasiTemplate.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Çevrimiçi arama hatasý: {ex.Message}");
+                    Console.WriteLine($"ï¿½evrimiï¿½i arama hatasï¿½: {ex.Message}");
                 }
             }
             else
             {
-                // 3. Çevrimdýþý arama (internet yoksa)
+                // 3. ï¿½evrimdï¿½ï¿½ï¿½ arama (internet yoksa)
                 try
                 {
                     var offlineResults = await SearchOfflineAsync(query, latitude, longitude);
-                    
+
                     foreach (var result in offlineResults)
                     {
                         if (!results.Any(r => r.Id == result.Id))
@@ -142,11 +143,11 @@ namespace KesifUygulamasiTemplate.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Çevrimdýþý arama hatasý: {ex.Message}");
+                    Console.WriteLine($"ï¿½evrimdï¿½ï¿½ï¿½ arama hatasï¿½: {ex.Message}");
                 }
             }
-            
-            // Sonuçlarý mesafeye göre sýrala (konum bilgisi varsa)
+
+            // Sonuï¿½larï¿½ mesafeye gï¿½re sï¿½rala (konum bilgisi varsa)
             if (latitude.HasValue && longitude.HasValue)
             {
                 results = results
@@ -155,15 +156,15 @@ namespace KesifUygulamasiTemplate.Services
             }
             else
             {
-                // Konum yoksa isme göre sýrala
+                // Konum yoksa isme gï¿½re sï¿½rala
                 results = results
                     .OrderBy(r => r.Name)
                     .ToList();
             }
-            
+
             return results;
         }
-        
+
         public async Task<IEnumerable<SearchHistoryItem>> GetSearchHistoryAsync(int limit = 10)
         {
             try
@@ -175,24 +176,24 @@ namespace KesifUygulamasiTemplate.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Arama geçmiþini getirme hatasý: {ex.Message}");
+                Console.WriteLine($"Arama geï¿½miï¿½ini getirme hatasï¿½: {ex.Message}");
                 return Enumerable.Empty<SearchHistoryItem>();
             }
         }
-        
+
         public async Task<IEnumerable<string>> GetSuggestionsAsync(string partialQuery, int limit = 5)
         {
             if (string.IsNullOrWhiteSpace(partialQuery) || partialQuery.Length < 2)
                 return Enumerable.Empty<string>();
-                
+
             try
             {
                 var lowercaseQuery = partialQuery.ToLowerInvariant();
-                
-                // Geçmiþ aramalardan öneriler
+
+                // Geï¿½miï¿½ aramalardan ï¿½neriler
                 var historyItems = await _database.Table<SearchHistoryItem>()
                     .ToListAsync();
-                    
+
                 var suggestions = historyItems
                     .Where(h => h.Query.ToLowerInvariant().Contains(lowercaseQuery))
                     .OrderByDescending(h => h.SearchCount)
@@ -200,8 +201,8 @@ namespace KesifUygulamasiTemplate.Services
                     .Take(limit)
                     .Select(h => h.Query)
                     .ToList();
-                    
-                // Yeteri kadar öneri yoksa, favori yerlerden tamamla
+
+                // Yeteri kadar ï¿½neri yoksa, favori yerlerden tamamla
                 if (suggestions.Count < limit)
                 {
                     try
@@ -212,53 +213,53 @@ namespace KesifUygulamasiTemplate.Services
                             .OrderBy(f => f.Name)
                             .Take(limit - suggestions.Count)
                             .Select(f => f.Name);
-                            
+
                         suggestions.AddRange(favoriteNames.Where(n => !suggestions.Contains(n)));
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Favori yerlerden öneri getirme hatasý: {ex.Message}");
+                        Console.WriteLine($"Favori yerlerden ï¿½neri getirme hatasï¿½: {ex.Message}");
                     }
                 }
-                
+
                 return suggestions.Take(limit);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Öneri getirme hatasý: {ex.Message}");
+                Console.WriteLine($"ï¿½neri getirme hatasï¿½: {ex.Message}");
                 return Enumerable.Empty<string>();
             }
         }
-        
+
         public async Task AddToSearchHistoryAsync(string query, double? latitude = null, double? longitude = null)
         {
             if (string.IsNullOrWhiteSpace(query))
                 return;
-                
+
             await _semaphore.WaitAsync();
             try
             {
-                // Ayný sorgu varsa güncelle
+                // Aynï¿½ sorgu varsa gï¿½ncelle
                 var existingItem = await _database.Table<SearchHistoryItem>()
                     .Where(h => h.Query.ToLower() == query.ToLower())
                     .FirstOrDefaultAsync();
-                    
+
                 if (existingItem != null)
                 {
                     existingItem.SearchCount++;
                     existingItem.LastSearchedAt = DateTime.UtcNow;
-                    
+
                     if (latitude.HasValue && longitude.HasValue)
                     {
                         existingItem.Latitude = latitude;
                         existingItem.Longitude = longitude;
                     }
-                    
+
                     await _database.UpdateAsync(existingItem);
                 }
                 else
                 {
-                    // Yeni arama kaydý ekle
+                    // Yeni arama kaydï¿½ ekle
                     await _database.InsertAsync(new SearchHistoryItem
                     {
                         Query = query,
@@ -267,8 +268,8 @@ namespace KesifUygulamasiTemplate.Services
                         Latitude = latitude,
                         Longitude = longitude
                     });
-                    
-                    // Maksimum kayýt sayýsýný aþmýþsa, en eski kayýtlarý sil
+
+                    // Maksimum kayï¿½t sayï¿½sï¿½nï¿½ aï¿½mï¿½ï¿½sa, en eski kayï¿½tlarï¿½ sil
                     var count = await _database.Table<SearchHistoryItem>().CountAsync();
                     if (count > MAX_HISTORY_ITEMS)
                     {
@@ -276,7 +277,7 @@ namespace KesifUygulamasiTemplate.Services
                             .OrderBy(h => h.LastSearchedAt)
                             .Take(count - MAX_HISTORY_ITEMS)
                             .ToListAsync();
-                            
+
                         foreach (var item in oldestItems)
                         {
                             await _database.DeleteAsync(item);
@@ -286,14 +287,14 @@ namespace KesifUygulamasiTemplate.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Arama geçmiþine ekleme hatasý: {ex.Message}");
+                Console.WriteLine($"Arama geï¿½miï¿½ine ekleme hatasï¿½: {ex.Message}");
             }
             finally
             {
                 _semaphore.Release();
             }
         }
-        
+
         public async Task ClearSearchHistoryAsync()
         {
             await _semaphore.WaitAsync();
@@ -303,29 +304,29 @@ namespace KesifUygulamasiTemplate.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Arama geçmiþini temizleme hatasý: {ex.Message}");
+                Console.WriteLine($"Arama geï¿½miï¿½ini temizleme hatasï¿½: {ex.Message}");
             }
             finally
             {
                 _semaphore.Release();
             }
         }
-        
-        // Yardýmcý metotlar
+
+        // Yardï¿½mcï¿½ metotlar
         private async Task<IEnumerable<SearchResult>> SearchInFavoritesAsync(string query, double? latitude, double? longitude)
         {
             var favorites = await _favoritePlacesService.GetAllFavoritePlacesAsync();
-            
-            // Ýsim, açýklama veya adres içinde arama
+
+            // ï¿½sim, aï¿½ï¿½klama veya adres iï¿½inde arama
             var matchingFavorites = favorites
-                .Where(f => 
+                .Where(f =>
                     f.Name.ToLowerInvariant().Contains(query.ToLowerInvariant()) ||
                     (f.Description != null && f.Description.ToLowerInvariant().Contains(query.ToLowerInvariant())) ||
                     (f.Address != null && f.Address.ToLowerInvariant().Contains(query.ToLowerInvariant())))
                 .ToList();
-                
+
             var results = new List<SearchResult>();
-            
+
             foreach (var favorite in matchingFavorites)
             {
                 var result = new SearchResult
@@ -339,50 +340,50 @@ namespace KesifUygulamasiTemplate.Services
                     Address = favorite.Address,
                     Icon = favorite.IconName
                 };
-                
-                // Mesafe hesapla (eðer konum bilgisi varsa)
+
+                // Mesafe hesapla (eï¿½er konum bilgisi varsa)
                 if (latitude.HasValue && longitude.HasValue)
                 {
                     result.DistanceKm = CalculateDistance(
                         latitude.Value, longitude.Value,
                         favorite.Latitude, favorite.Longitude);
                 }
-                
+
                 results.Add(result);
             }
-            
+
             return results;
         }
-        
+
         private async Task<IEnumerable<SearchResult>> SearchOnlineAsync(string query, double? latitude, double? longitude)
         {
-            // Gerçek uygulamada Google Places API, Bing Places API, vb. kullanýlabilir
-            // Burada Google Places API kullanan bir örnek
-            
+            // Gerï¿½ek uygulamada Google Places API, Bing Places API, vb. kullanï¿½labilir
+            // Burada Google Places API kullanan bir ï¿½rnek
+
             try
             {
                 string url;
                 if (latitude.HasValue && longitude.HasValue)
                 {
-                    // Konuma göre arama
+                    // Konuma gï¿½re arama
                     url = $"https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={latitude},{longitude}&radius=5000&keyword={Uri.EscapeDataString(query)}&key={_apiKey}";
                 }
                 else
                 {
-                    // Metin aramasý
+                    // Metin aramasï¿½
                     url = $"https://maps.googleapis.com/maps/api/place/textsearch/json?query={Uri.EscapeDataString(query)}&key={_apiKey}";
                 }
-                
+
                 var response = await _httpClient.GetAsync(url);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     var placesResponse = await response.Content.ReadFromJsonAsync<GooglePlacesResponse>();
-                    
+
                     if (placesResponse?.Status == "OK" && placesResponse.Results != null)
                     {
                         var results = new List<SearchResult>();
-                        
+
                         foreach (var place in placesResponse.Results)
                         {
                             var result = new SearchResult
@@ -396,53 +397,53 @@ namespace KesifUygulamasiTemplate.Services
                                 Address = place.Vicinity,
                                 Icon = place.Icon
                             };
-                            
-                            // Mesafe hesapla (eðer konum bilgisi varsa)
+
+                            // Mesafe hesapla (eï¿½er konum bilgisi varsa)
                             if (latitude.HasValue && longitude.HasValue)
                             {
                                 result.DistanceKm = CalculateDistance(
                                     latitude.Value, longitude.Value,
                                     result.Latitude, result.Longitude);
                             }
-                            
+
                             results.Add(result);
                         }
-                        
+
                         return results;
                     }
                 }
-                
+
                 return Enumerable.Empty<SearchResult>();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Online arama hatasý: {ex.Message}");
-                
-                // API simülasyonu - gerçek uygulamada kaldýrýlmalý
+                Console.WriteLine($"Online arama hatasï¿½: {ex.Message}");
+
+                // API simï¿½lasyonu - gerï¿½ek uygulamada kaldï¿½rï¿½lmalï¿½
                 await Task.Delay(500);
                 return SimulateSearchResults(query, latitude, longitude);
             }
         }
-        
+
         private async Task<IEnumerable<SearchResult>> SearchOfflineAsync(string query, double? latitude, double? longitude)
         {
-            // Çevrimdýþý olduðumuzda sadece favori yerlerimiz ve daha önce aradýðýmýz yerler var
-            
-            // Arama geçmiþinden koordinatlarý olan sonuçlarý getir
+            // ï¿½evrimdï¿½ï¿½ï¿½ olduï¿½umuzda sadece favori yerlerimiz ve daha ï¿½nce aradï¿½ï¿½ï¿½mï¿½z yerler var
+
+            // Arama geï¿½miï¿½inden koordinatlarï¿½ olan sonuï¿½larï¿½ getir
             var historyResults = new List<SearchResult>();
-            
+
             try
             {
                 var historyItems = await _database.Table<SearchHistoryItem>()
                     .Where(h => h.Latitude != null && h.Longitude != null)
                     .ToListAsync();
-                    
+
                 var matchingHistory = historyItems
                     .Where(h => h.Query.ToLowerInvariant().Contains(query.ToLowerInvariant()))
                     .OrderByDescending(h => h.LastSearchedAt)
                     .Take(10)
                     .ToList();
-                    
+
                 foreach (var item in matchingHistory)
                 {
                     var result = new SearchResult
@@ -454,140 +455,140 @@ namespace KesifUygulamasiTemplate.Services
                         Category = "history",
                         Icon = "history"
                     };
-                    
-                    // Mesafe hesapla (eðer konum bilgisi varsa)
+
+                    // Mesafe hesapla (eï¿½er konum bilgisi varsa)
                     if (latitude.HasValue && longitude.HasValue)
                     {
                         result.DistanceKm = CalculateDistance(
                             latitude.Value, longitude.Value,
                             result.Latitude, result.Longitude);
                     }
-                    
+
                     historyResults.Add(result);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Arama geçmiþinden arama hatasý: {ex.Message}");
+                Console.WriteLine($"Arama geï¿½miï¿½inden arama hatasï¿½: {ex.Message}");
             }
-            
-            // Favori yerlerden sonuçlarý ekle
+
+            // Favori yerlerden sonuï¿½larï¿½ ekle
             var favoriteResults = await SearchInFavoritesAsync(query, latitude, longitude);
-            
+
             return historyResults.Concat(favoriteResults);
         }
-        
+
         private List<SearchResult> SimulateSearchResults(string query, double? latitude, double? longitude)
         {
-            // Gerçek API olmadýðýnda test için simüle edilmiþ sonuçlar
+            // Gerï¿½ek API olmadï¿½ï¿½ï¿½nda test iï¿½in simï¿½le edilmiï¿½ sonuï¿½lar
             var rand = new Random();
             var results = new List<SearchResult>();
-            
+
             if (!latitude.HasValue || !longitude.HasValue)
             {
-                // Konum yoksa basit sonuçlar döndür
+                // Konum yoksa basit sonuï¿½lar dï¿½ndï¿½r
                 results.Add(new SearchResult
                 {
                     Id = $"sim_1",
                     Name = $"{query} Cafe",
-                    Description = "Simüle edilmiþ cafe",
+                    Description = "Simï¿½le edilmiï¿½ cafe",
                     Category = "cafe",
                     Latitude = 41.0082,
                     Longitude = 28.9784,
-                    Address = "Örnek Caddesi No:1",
+                    Address = "ï¿½rnek Caddesi No:1",
                     Icon = "coffee"
                 });
-                
+
                 results.Add(new SearchResult
                 {
                     Id = $"sim_2",
                     Name = $"{query} Restaurant",
-                    Description = "Simüle edilmiþ restoran",
+                    Description = "Simï¿½le edilmiï¿½ restoran",
                     Category = "restaurant",
                     Latitude = 41.0082,
                     Longitude = 28.9784,
-                    Address = "Örnek Sokak No:2",
+                    Address = "ï¿½rnek Sokak No:2",
                     Icon = "food"
                 });
-                
+
                 return results;
             }
-            
-            // Konum varsa, o konumun etrafýnda rastgele noktalar oluþtur
+
+            // Konum varsa, o konumun etrafï¿½nda rastgele noktalar oluï¿½tur
             for (int i = 0; i < 3; i++)
             {
-                // Rastgele noktalar oluþtur (5 km yarýçap içinde)
+                // Rastgele noktalar oluï¿½tur (5 km yarï¿½ï¿½ap iï¿½inde)
                 double offset = (rand.NextDouble() * 0.05) - 0.025; // ~2.5 km'ye kadar
                 double lat = latitude.Value + offset;
                 double lng = longitude.Value + offset;
-                
+
                 string[] categories = { "cafe", "restaurant", "shop", "hotel", "attraction" };
                 string category = categories[rand.Next(categories.Length)];
-                
+
                 string[] icons = { "coffee", "food", "cart", "bed", "monument" };
                 string icon = icons[rand.Next(icons.Length)];
-                
+
                 var distance = CalculateDistance(latitude.Value, longitude.Value, lat, lng);
-                
+
                 results.Add(new SearchResult
                 {
                     Id = $"sim_{i}",
-                    Name = $"{query} {category.ToUpperInvariant()} {i+1}",
-                    Description = $"Simüle edilmiþ {category}",
+                    Name = $"{query} {category.ToUpperInvariant()} {i + 1}",
+                    Description = $"Simï¿½le edilmiï¿½ {category}",
                     Category = category,
                     Latitude = lat,
                     Longitude = lng,
-                    Address = $"Örnek Mahallesi, {rand.Next(1, 50)}. Sokak No:{rand.Next(1, 100)}",
+                    Address = $"ï¿½rnek Mahallesi, {rand.Next(1, 50)}. Sokak No:{rand.Next(1, 100)}",
                     DistanceKm = distance,
                     Icon = icon
                 });
             }
-            
+
             return results;
         }
-        
+
         private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
         {
-            const double R = 6371; // Dünya yarýçapý (km)
+            const double R = 6371; // Dï¿½nya yarï¿½ï¿½apï¿½ (km)
             var dLat = ToRadians(lat2 - lat1);
             var dLon = ToRadians(lon2 - lon1);
-            
+
             var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
                     Math.Cos(ToRadians(lat1)) * Math.Cos(ToRadians(lat2)) *
                     Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-                    
+
             var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
             return R * c;
         }
-        
+
         private double ToRadians(double degrees)
         {
             return degrees * Math.PI / 180;
         }
     }
-    
-    // Google Places API yanýt modelleri
+
+    // Google Places API yanï¿½t modelleri
     public class GooglePlacesResponse
     {
-        public string Status { get; set; }
-        public List<GooglePlace> Results { get; set; }
+        public string Status { get; set; } = "";
+        public List<GooglePlace> Results { get; set; } = new();
     }
-    
+
     public class GooglePlace
     {
-        public string PlaceId { get; set; }
-        public string Name { get; set; }
-        public string Vicinity { get; set; }
-        public string Icon { get; set; }
-        public List<string> Types { get; set; }
-        public GoogleGeometry Geometry { get; set; }
+        public string PlaceId { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Vicinity { get; set; } = "";
+        public string Icon { get; set; } = "";
+        public List<string> Types { get; set; } = new();
+        public GoogleGeometry Geometry { get; set; } = null!;
     }
-    
+
     public class GoogleGeometry
     {
-        public GoogleLocation Location { get; set; }
+        public GoogleLocation Location { get; set; } = null!;
     }
-    
+
     public class GoogleLocation
     {
         public double Lat { get; set; }

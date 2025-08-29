@@ -1,18 +1,3 @@
-  <data name="POIShow" xml:space="preserve">
-    <value>POI tonen (NL)</value>
-  </data>
-  <data name="TransportationMode" xml:space="preserve">
-    <value>Vervoersmodus (NL)</value>
-  </data>
-  <data name="RealTimeTraffic" xml:space="preserve">
-    <value>Verkeer in realtime (NL)</value>
-  </data>
-  <data name="SupportDeveloper" xml:space="preserve">
-    <value>Ondersteun ontwikkelaar (NL)</value>
-  </data>
-  <data name="Donate" xml:space="preserve">
-    <value>Doneren (NL)</value>
-  </data>
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype">
@@ -27,49 +12,30 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
   </resheader>
-  <data name="Hello" xml:space="preserve">
-    <value>Hallo (NL)</value>
-  </data>
-  <data name="Exit" xml:space="preserve">
-    <value>Afsluiten (NL)</value>
-  </data>
-  <data name="Settings" xml:space="preserve">
-    <value>Instellingen (NL)</value>
-  </data>
-  <data name="Navigation" xml:space="preserve">
-    <value>Navigatie (NL)</value>
-  </data>
-  <data name="CompassHeading" xml:space="preserve">
-    <value>Kompasrichting (NL)</value>
-  </data>
-  <data name="VoiceNavigation" xml:space="preserve">
-    <value>Spraaknavigatie (NL)</value>
-  </data>
-  <data name="ARNavigation" xml:space="preserve">
-    <value>AR-navigatie (NL)</value>
-  </data>
-  <data name="OfflineMap" xml:space="preserve">
-    <value>Offline kaart (NL)</value>
-  </data>
-  <data name="RouteSelection" xml:space="preserve">
-    <value>Routekeuze (NL)</value>
-  </data>
-  <data name="DestinationInput" xml:space="preserve">
-    <value>Bestemmingsinvoer (NL)</value>
-  </data>
-  <data name="MoonCompass" xml:space="preserve">
-    <value>Maancompas (NL)</value>
-  </data>
-  <data name="QiblaDirection" xml:space="preserve">
-    <value>Qibla-richting (NL)</value>
-  </data>
   <data name="POIShow" xml:space="preserve">
     <value>POI tonen (NL)</value>
   </data>
-  <data name="TransportMode" xml:space="preserve">
+  <data name="TransportationMode" xml:space="preserve">
     <value>Vervoersmodus (NL)</value>
   </data>
   <data name="RealTimeTraffic" xml:space="preserve">
     <value>Verkeer in realtime (NL)</value>
   </data>
+  <data name="Donate" xml:space="preserve">
+    <value>Doneren (NL)</value>
+  </data>
+  <data name="AR" xml:space="preserve">
+    <value>Augmented reality (NL)</value>
+  </data>
+  <data name="Offline Map" xml:space="preserve">
+    <value>Offline kaart (NL)</value>
+  </data>
+  <data name="Voice Navigation" xml:space="preserve">
+    <value>Spraaknavigatie (NL)</value>
+  </data>
+  <data name="TestKey" xml:space="preserve">
+    <value>Test sleutel (NL)</value>
+  </data>
 </root>
+
+

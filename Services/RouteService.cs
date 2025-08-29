@@ -1,46 +1,205 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.Maui.Devices.Sensors;
+using System.Net.Http;
+using System.Text.Json;
+using KesifUygulamasiTemplate.Models;
 using KesifUygulamasiTemplate.Services;
+using KesifUygulamasiTemplate.Services.Interfaces;
+using Microsoft.Extensions.Configuration;
 
 namespace KesifUygulamasiTemplate.Services
 {
     /// <summary>
-    /// Ýki konum arasý rota bilgisini saðlayan servis implementasyonu
+    /// Ä°ki konum arasÄ± rota bilgisini saÄŸlayan servis implementasyonu
+    /// Google Maps Directions API ve Mapbox Directions API desteÄŸi
     /// </summary>
     public class RouteService : IRouteService
     {
-        /// <summary>
-        /// Gets route points between two locations
-        /// </summary>
-        /// <param name="start">Starting location</param>
-        /// <param name="end">Ending location</param>
-        /// <returns>List of location points that make up the route</returns>
-        public async Task<List<Location>> GetRouteAsync(Location start, Location end)
+        private readonly HttpClient _httpClient;
+        private readonly ConnectivityService _connectivityService;
+        private readonly string _googleMapsApiKey;
+        private readonly string _mapboxApiKey;
+        private const string GOOGLE_MAPS_API_URL = "https://maps.googleapis.com/maps/api/directions/json";
+        private const string MAPBOX_API_URL = "https://api.mapbox.com/directions/v5/mapbox/driving";
+
+        public RouteService(HttpClient httpClient, ConnectivityService connectivityService)
         {
-            // Gerçek bir uygulamada burada bir rota API'si kullanýlabilir
-            // Bu örnek için basit bir düz çizgi rotasý oluþturuyoruz
-            await Task.Delay(100); // Simüle edilmiþ að gecikmesi
-            
-            var route = new List<Location>();
-            
-            // Baþlangýç noktasýný ekleyin
+            _httpClient = httpClient;
+            _connectivityService = connectivityService;
+
+            // API anahtarlarÄ± - gerÃ§ek uygulamada secure storage'dan alÄ±nmalÄ±
+            _googleMapsApiKey = "YOUR_GOOGLE_MAPS_API_KEY"; // Environment variable'dan alÄ±nmalÄ±
+            _mapboxApiKey = "YOUR_MAPBOX_API_KEY"; // Environment variable'dan alÄ±nmalÄ±
+        }
+
+        /// <summary>
+        /// GerÃ§ek rota API'leri kullanarak rota hesaplar
+        /// </summary>
+        public async Task<List<LocationModel>> GetRouteAsync(LocationModel start, LocationModel end)
+        {
+            // Offline kontrolÃ¼
+            if (!_connectivityService.IsConnected)
+            {
+                return await GetOfflineRouteAsync(start, end);
+            }
+
+            try
+            {
+                // Ã–nce Google Maps API dene
+                var route = await GetGoogleMapsRouteAsync(start, end);
+                if (route != null && route.Count > 0)
+                    return route;
+
+                // Google Maps baÅŸarÄ±sÄ±z olursa Mapbox dene
+                route = await GetMapboxRouteAsync(start, end);
+                if (route != null && route.Count > 0)
+                    return route;
+
+                // Her iki API de baÅŸarÄ±sÄ±z olursa basit rota dÃ¶ndÃ¼r
+                return await GetSimpleRouteAsync(start, end);
+            }
+            catch (Exception ex)
+            {
+                // Hata durumunda basit rota
+                System.Diagnostics.Debug.WriteLine($"Rota hesaplanÄ±rken hata: {ex.Message}");
+                return await GetSimpleRouteAsync(start, end);
+            }
+        }
+
+        /// <summary>
+        /// Google Maps Directions API ile rota hesaplar
+        /// </summary>
+        private async Task<List<LocationModel>> GetGoogleMapsRouteAsync(LocationModel start, LocationModel end)
+        {
+            if (string.IsNullOrEmpty(_googleMapsApiKey) || _googleMapsApiKey.Contains("YOUR_"))
+                return null;
+
+            var url = $"{GOOGLE_MAPS_API_URL}?origin={start.Latitude},{start.Longitude}&destination={end.Latitude},{end.Longitude}&key={_googleMapsApiKey}&mode=driving";
+
+            var response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var content = await response.Content.ReadAsStringAsync();
+            var googleResponse = JsonSerializer.Deserialize<GoogleMapsResponse>(content);
+
+            if (googleResponse?.Status != "OK" || googleResponse.Routes.Length == 0)
+                return null;
+
+            var route = new List<LocationModel>();
+            var overviewPath = googleResponse.Routes[0].OverviewPolyline.Points;
+
+            // Polyline decode iÅŸlemi burada yapÄ±lmalÄ±
+            // Åžimdilik basit noktalar dÃ¶ndÃ¼rÃ¼yoruz
             route.Add(start);
-            
-            // Ýki nokta arasýnda birkaç ara nokta oluþturun (bu basit bir doðrusal interpolasyon)
-            int steps = 5;
+            route.Add(end);
+
+            return route;
+        }
+
+        /// <summary>
+        /// Mapbox Directions API ile rota hesaplar
+        /// </summary>
+        private async Task<List<LocationModel>> GetMapboxRouteAsync(LocationModel start, LocationModel end)
+        {
+            if (string.IsNullOrEmpty(_mapboxApiKey) || _mapboxApiKey.Contains("YOUR_"))
+                return null;
+
+            var url = $"{MAPBOX_API_URL}/{start.Longitude},{start.Latitude};{end.Longitude},{end.Latitude}?access_token={_mapboxApiKey}&geometries=geojson";
+
+            var response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var content = await response.Content.ReadAsStringAsync();
+            var mapboxResponse = JsonSerializer.Deserialize<MapboxResponse>(content);
+
+            if (mapboxResponse?.Routes.Length == 0)
+                return null;
+
+            var route = new List<LocationModel>();
+            var coordinates = mapboxResponse.Routes[0].Geometry.Coordinates;
+
+            foreach (var coord in coordinates)
+            {
+                route.Add(new LocationModel
+                {
+                    Latitude = coord[1],
+                    Longitude = coord[0]
+                });
+            }
+
+            return route;
+        }
+
+        /// <summary>
+        /// Offline durumda basit rota hesaplar
+        /// </summary>
+        private async Task<List<LocationModel>> GetOfflineRouteAsync(LocationModel start, LocationModel end)
+        {
+            // Offline Ã¶nbellekten rota kontrolÃ¼
+            // GerÃ§ek implementasyonda veritabanÄ±ndan rota Ã§ekilmeli
+            return await GetSimpleRouteAsync(start, end);
+        }
+
+        /// <summary>
+        /// Basit doÄŸrusal rota hesaplar (fallback)
+        /// </summary>
+        private async Task<List<LocationModel>> GetSimpleRouteAsync(LocationModel start, LocationModel end)
+        {
+            await Task.Delay(100); // SimÃ¼le edilmiÅŸ aÄŸ gecikmesi
+
+            var route = new List<LocationModel>();
+
+            // BaÅŸlangÄ±Ã§ noktasÄ±nÄ± ekleyin
+            route.Add(start);
+
+            // Ä°ki nokta arasÄ±nda birkaÃ§ ara nokta oluÅŸturun
+            int steps = 10;
             for (int i = 1; i < steps; i++)
             {
                 double factor = (double)i / steps;
                 double latitude = start.Latitude + (end.Latitude - start.Latitude) * factor;
                 double longitude = start.Longitude + (end.Longitude - start.Longitude) * factor;
-                route.Add(new Location(latitude, longitude));
+                route.Add(new LocationModel { Latitude = latitude, Longitude = longitude });
             }
-            
-            // Varýþ noktasýný ekleyin
+
+            // VarÄ±ÅŸ noktasÄ±nÄ± ekleyin
             route.Add(end);
-            
+
             return route;
         }
+    }
+
+    // API Response modelleri
+    public class GoogleMapsResponse
+    {
+        public string Status { get; set; }
+        public GoogleRoute[] Routes { get; set; }
+    }
+
+    public class GoogleRoute
+    {
+        public GooglePolyline OverviewPolyline { get; set; }
+    }
+
+    public class GooglePolyline
+    {
+        public string Points { get; set; }
+    }
+
+    public class MapboxResponse
+    {
+        public MapboxRoute[] Routes { get; set; }
+    }
+
+    public class MapboxRoute
+    {
+        public MapboxGeometry Geometry { get; set; }
+    }
+
+    public class MapboxGeometry
+    {
+        public double[][] Coordinates { get; set; }
     }
 }

@@ -1,6 +1,7 @@
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Maps;
 using Microsoft.Maui.Devices.Sensors;
+using Microsoft.Maui.Maps;
 using KesifUygulamasiTemplate.ViewModels;
 using KesifUygulamasiTemplate.Services.Interfaces;
 
@@ -10,7 +11,7 @@ namespace KesifUygulamasiTemplate.Pages
     {
         private readonly RouteViewModel _viewModel;
         private Polyline _routeLine;
-        
+
         public RoutePage(IRouteService routeService)
         {
             InitializeComponent();
@@ -22,15 +23,15 @@ namespace KesifUygulamasiTemplate.Pages
         protected override void OnAppearing()
         {
             base.OnAppearing();
-            // Varsayýlan baþlangýç/varýþ deðerleri
+            // Varsayï¿½lan baï¿½langï¿½ï¿½/varï¿½ï¿½ deï¿½erleri
             StartEntry.Text = "39.9,32.8";
             EndEntry.Text = "41.0,29.0";
         }
-        
+
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
-            // Temizleme iþlemleri
+            // Temizleme iï¿½lemleri
             _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
         }
 
@@ -46,25 +47,25 @@ namespace KesifUygulamasiTemplate.Pages
         {
             if (_routeLine != null)
                 RouteMap.MapElements.Remove(_routeLine);
-                
+
             if (_viewModel.RoutePoints.Count < 2)
                 return;
-                
+
             _routeLine = new Polyline
             {
                 StrokeColor = Colors.Blue,
                 StrokeWidth = 4
             };
-            
+
             foreach (var loc in _viewModel.RoutePoints)
                 _routeLine.Geopath.Add(new Location(loc.Latitude, loc.Longitude));
-                
+
             RouteMap.MapElements.Add(_routeLine);
-            
-            // Haritayý rotanýn ortasýna odakla
+
+            // Haritayï¿½ rotanï¿½n ortasï¿½na odakla
             var center = _viewModel.RoutePoints[_viewModel.RoutePoints.Count / 2];
             RouteMap.MoveToRegion(MapSpan.FromCenterAndRadius(
-                new Location(center.Latitude, center.Longitude), 
+                new Location(center.Latitude, center.Longitude),
                 Distance.FromKilometers(20)));
         }
     }

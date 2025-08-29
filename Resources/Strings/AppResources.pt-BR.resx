@@ -1,18 +1,3 @@
-  <data name="POIShow" xml:space="preserve">
-    <value>Exibir POI (PT-BR)</value>
-  </data>
-  <data name="TransportationMode" xml:space="preserve">
-    <value>Modo de transporte (PT-BR)</value>
-  </data>
-  <data name="RealTimeTraffic" xml:space="preserve">
-    <value>Tráfego em tempo real (PT-BR)</value>
-  </data>
-  <data name="SupportDeveloper" xml:space="preserve">
-    <value>Apoiar o desenvolvedor (PT-BR)</value>
-  </data>
-  <data name="Donate" xml:space="preserve">
-    <value>Doar (PT-BR)</value>
-  </data>
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype">
@@ -27,6 +12,21 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
   </resheader>
+  <data name="POIShow" xml:space="preserve">
+    <value>Mostrar POI (PT-BR)</value>
+  </data>
+  <data name="TransportationMode" xml:space="preserve">
+    <value>Modo de transporte (PT-BR)</value>
+  </data>
+  <data name="RealTimeTraffic" xml:space="preserve">
+    <value>Tráfego em tempo real (PT-BR)</value>
+  </data>
+  <data name="SupportDeveloper" xml:space="preserve">
+    <value>Apoiar o desenvolvedor (PT-BR)</value>
+  </data>
+  <data name="Donate" xml:space="preserve">
+    <value>Doar (PT-BR)</value>
+  </data>
   <!-- Portekizce (Brezilya) çeviriler buraya eklenecek -->
   <data name="VoiceNavigation" xml:space="preserve">
     <value>Navegação por voz (PT-BR)</value>
@@ -49,13 +49,9 @@
   <data name="QiblaDirection" xml:space="preserve">
     <value>Direção da Qibla (PT-BR)</value>
   </data>
-  <data name="POIShow" xml:space="preserve">
-    <value>Mostrar POI (PT-BR)</value>
-  </data>
-  <data name="TransportMode" xml:space="preserve">
-    <value>Modo de transporte (PT-BR)</value>
-  </data>
-  <data name="RealTimeTraffic" xml:space="preserve">
-    <value>Tráfego em tempo real (PT-BR)</value>
+  <data name="AR" xml:space="preserve">
+    <value>Realidade aumentada (PT-BR)</value>
   </data>
 </root>
+
+

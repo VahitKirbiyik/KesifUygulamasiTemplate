@@ -1,18 +1,3 @@
-  <data name="POIShow" xml:space="preserve">
-    <value>POI 표시 (KO)</value>
-  </data>
-  <data name="TransportationMode" xml:space="preserve">
-    <value>교통 모드 (KO)</value>
-  </data>
-  <data name="RealTimeTraffic" xml:space="preserve">
-    <value>실시간 교통 (KO)</value>
-  </data>
-  <data name="SupportDeveloper" xml:space="preserve">
-    <value>개발자 지원 (KO)</value>
-  </data>
-  <data name="Donate" xml:space="preserve">
-    <value>기부하기 (KO)</value>
-  </data>
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype">
@@ -27,49 +12,30 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
   </resheader>
-  <data name="Hello" xml:space="preserve">
-    <value>안녕하세요 (KO)</value>
-  </data>
-  <data name="Exit" xml:space="preserve">
-    <value>종료 (KO)</value>
-  </data>
-  <data name="Settings" xml:space="preserve">
-    <value>설정 (KO)</value>
-  </data>
-  <data name="Navigation" xml:space="preserve">
-    <value>내비게이션 (KO)</value>
-  </data>
-  <data name="CompassHeading" xml:space="preserve">
-    <value>나침반 방향 (KO)</value>
-  </data>
-  <data name="VoiceNavigation" xml:space="preserve">
-    <value>음성 내비게이션 (KO)</value>
-  </data>
-  <data name="ARNavigation" xml:space="preserve">
-    <value>AR 내비게이션 (KO)</value>
-  </data>
-  <data name="OfflineMap" xml:space="preserve">
-    <value>오프라인 지도 (KO)</value>
-  </data>
-  <data name="RouteSelection" xml:space="preserve">
-    <value>경로 선택 (KO)</value>
-  </data>
-  <data name="DestinationInput" xml:space="preserve">
-    <value>목적지 입력 (KO)</value>
-  </data>
-  <data name="MoonCompass" xml:space="preserve">
-    <value>달 나침반 (KO)</value>
-  </data>
-  <data name="QiblaDirection" xml:space="preserve">
-    <value>키블라 방향 (KO)</value>
-  </data>
   <data name="POIShow" xml:space="preserve">
-    <value>POI 표시 (KO)</value>
+    <value>POI  (KO)</value>
   </data>
-  <data name="TransportMode" xml:space="preserve">
-    <value>교통 모드 (KO)</value>
+  <data name="TransportationMode" xml:space="preserve">
+    <value>  (KO)</value>
   </data>
   <data name="RealTimeTraffic" xml:space="preserve">
-    <value>실시간 교통 (KO)</value>
+    <value>  (KO)</value>
+  </data>
+  <data name="Donate" xml:space="preserve">
+    <value> (KO)</value>
+  </data>
+  <data name="AR" xml:space="preserve">
+    <value>  (KO)</value>
+  </data>
+  <data name="Offline Map" xml:space="preserve">
+    <value>  (KO)</value>
+  </data>
+  <data name="Voice Navigation" xml:space="preserve">
+    <value>  (KO)</value>
+  </data>
+  <data name="TestKey" xml:space="preserve">
+    <value>  (KO)</value>
   </data>
 </root>
+
+

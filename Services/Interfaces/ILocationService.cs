@@ -4,12 +4,12 @@ using Microsoft.Maui.Devices.Sensors;
 namespace KesifUygulamasiTemplate.Services.Interfaces
 {
     /// <summary>
-    /// Konum servisleri için interface
+    /// Konum servisleri iÃ§in interface
     /// </summary>
     public interface ILocationService
     {
         /// <summary>
-        /// Mevcut konumu alýr
+        /// Mevcut konumu alÄ±r
         /// </summary>
         Task<Location?> GetCurrentLocationAsync();
 
@@ -19,12 +19,12 @@ namespace KesifUygulamasiTemplate.Services.Interfaces
         Location? CurrentLocation { get; }
 
         /// <summary>
-        /// Konum servisinin mevcut olup olmadýðý
+        /// Konum servisinin mevcut olup olmadÄ±ÄŸÄ±
         /// </summary>
         bool IsAvailable { get; }
 
         /// <summary>
-        /// Sürekli konum takibi baþlatýr
+        /// SÃ¼rekli konum takibi baÅŸlatÄ±r
         /// </summary>
         Task StartLocationUpdatesAsync();
 
@@ -34,7 +34,7 @@ namespace KesifUygulamasiTemplate.Services.Interfaces
         Task StopLocationUpdatesAsync();
 
         /// <summary>
-        /// Konum deðiþikliði eventi
+        /// Konum deÄŸiÅŸikliÄŸi eventi
         /// </summary>
         event System.EventHandler<Location> LocationChanged;
     }

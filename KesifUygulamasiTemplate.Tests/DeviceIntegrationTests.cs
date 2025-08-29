@@ -12,8 +12,8 @@ namespace KesifUygulamasiTemplate.Tests
         [Trait("Category", "Integration")]
         public async Task LocationService_ShouldGetDeviceLocation()
         {
-            // Bu test gerçek cihaz veya emulator gerektirir
-            // Mock servis yerine gerçek LocationService test edilir
+            // Bu test gerÃ§ek cihaz veya emulator gerektirir
+            // Mock servis yerine gerÃ§ek LocationService test edilir
             await Task.CompletedTask;
         }
 
@@ -21,7 +21,7 @@ namespace KesifUygulamasiTemplate.Tests
         [Trait("Category", "Integration")]
         public async Task CompassService_ShouldGetDeviceHeading()
         {
-            // Bu test gerçek pusula sensörü gerektirir
+            // Bu test gerÃ§ek pusula sensÃ¶rÃ¼ gerektirir
             await Task.CompletedTask;
         }
 
@@ -29,7 +29,7 @@ namespace KesifUygulamasiTemplate.Tests
         [Trait("Category", "Integration")]
         public async Task CameraService_ShouldAccessDeviceCamera()
         {
-            // Bu test gerçek kamera eriþimi gerektirir
+            // Bu test gerÃ§ek kamera eriÅŸimi gerektirir
             await Task.CompletedTask;
         }
     }
@@ -43,7 +43,7 @@ namespace KesifUygulamasiTemplate.Tests
         [Trait("Category", "Unit")]
         public void MoonCalculation_ShouldReturnCorrectPhase()
         {
-            // Bu test hiçbir cihaz gerektirmez
+            // Bu test hiÃ§bir cihaz gerektirmez
             Assert.True(true);
         }
     }

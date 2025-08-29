@@ -1,18 +1,3 @@
-  <data name="POIShow" xml:space="preserve">
-    <value>显示POI (ZH-HANS)</value>
-  </data>
-  <data name="TransportationMode" xml:space="preserve">
-    <value>交通方式 (ZH-HANS)</value>
-  </data>
-  <data name="RealTimeTraffic" xml:space="preserve">
-    <value>实时交通 (ZH-HANS)</value>
-  </data>
-  <data name="SupportDeveloper" xml:space="preserve">
-    <value>支持开发者 (ZH-HANS)</value>
-  </data>
-  <data name="Donate" xml:space="preserve">
-    <value>捐赠 (ZH-HANS)</value>
-  </data>
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype">
@@ -27,49 +12,30 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
   </resheader>
-  <data name="Hello" xml:space="preserve">
-    <value>你好 (ZH-HANS)</value>
-  </data>
-  <data name="Exit" xml:space="preserve">
-    <value>退出 (ZH-HANS)</value>
-  </data>
-  <data name="Settings" xml:space="preserve">
-    <value>设置 (ZH-HANS)</value>
-  </data>
-  <data name="Navigation" xml:space="preserve">
-    <value>导航 (ZH-HANS)</value>
-  </data>
-  <data name="CompassHeading" xml:space="preserve">
-    <value>指南针方向 (ZH-HANS)</value>
-  </data>
-  <data name="VoiceNavigation" xml:space="preserve">
-    <value>语音导航 (ZH-HANS)</value>
-  </data>
-  <data name="ARNavigation" xml:space="preserve">
-    <value>AR导航 (ZH-HANS)</value>
-  </data>
-  <data name="OfflineMap" xml:space="preserve">
-    <value>离线地图 (ZH-HANS)</value>
-  </data>
-  <data name="RouteSelection" xml:space="preserve">
-    <value>路线选择 (ZH-HANS)</value>
-  </data>
-  <data name="DestinationInput" xml:space="preserve">
-    <value>目的地输入 (ZH-HANS)</value>
-  </data>
-  <data name="MoonCompass" xml:space="preserve">
-    <value>月亮指南针 (ZH-HANS)</value>
-  </data>
-  <data name="QiblaDirection" xml:space="preserve">
-    <value>朝向 (ZH-HANS)</value>
-  </data>
   <data name="POIShow" xml:space="preserve">
-    <value>显示POI (ZH-HANS)</value>
+    <value>POI (ZH-HANS)</value>
   </data>
-  <data name="TransportMode" xml:space="preserve">
-    <value>交通方式 (ZH-HANS)</value>
+  <data name="TransportationMode" xml:space="preserve">
+    <value> (ZH-HANS)</value>
   </data>
   <data name="RealTimeTraffic" xml:space="preserve">
-    <value>实时交通 (ZH-HANS)</value>
+    <value> (ZH-HANS)</value>
+  </data>
+  <data name="Donate" xml:space="preserve">
+    <value> (ZH-HANS)</value>
+  </data>
+  <data name="AR" xml:space="preserve">
+    <value> (ZH-HANS)</value>
+  </data>
+  <data name="Offline Map" xml:space="preserve">
+    <value> (ZH-HANS)</value>
+  </data>
+  <data name="Voice Navigation" xml:space="preserve">
+    <value> (ZH-HANS)</value>
+  </data>
+  <data name="TestKey" xml:space="preserve">
+    <value> (ZH-HANS)</value>
   </data>
 </root>
+
+

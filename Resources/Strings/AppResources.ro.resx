@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, ...</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
+  </resheader>
+  <data name="POIShow" xml:space="preserve">
+    <value>Afieaz POI (RO)</value>
+  </data>
+  <data name="TransportationMode" xml:space="preserve">
+    <value>Mod de transport (RO)</value>
+  </data>
+  <data name="RealTimeTraffic" xml:space="preserve">
+    <value>Trafic în timp real (RO)</value>
+  </data>
+  <data name="Donate" xml:space="preserve">
+    <value>Doneaz (RO)</value>
+  </data>
+  <data name="AR" xml:space="preserve">
+    <value>Realitate augmentat (RO)</value>
+  </data>
+  <data name="Offline Map" xml:space="preserve">
+    <value>Hart offline (RO)</value>
+  </data>
+  <data name="Voice Navigation" xml:space="preserve">
+    <value>Navigare vocal (RO)</value>
+  </data>
+  <data name="TestKey" xml:space="preserve">
+    <value>Cheie de test (RO)</value>
+  </data>
+</root>
+
+

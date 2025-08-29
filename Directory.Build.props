@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!-- Proje genelinde SDK sürümünü ayarla -->
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+  <!-- RuntimeIdentifier removed to let SDK resolve appropriate RID -->
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseMaui>true</UseMaui>
+  </PropertyGroup>
+</Project>

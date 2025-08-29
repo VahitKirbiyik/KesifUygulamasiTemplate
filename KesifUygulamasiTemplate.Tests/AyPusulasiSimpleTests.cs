@@ -3,15 +3,15 @@ using Xunit;
 namespace KesifUygulamasiTemplate.Tests
 {
     /// <summary>
-    /// Basitleþtirilmiþ Ay Pusulasý testleri - MAUI baðýmlýlýklarý olmadan
+    /// BasitleÅŸtirilmiÅŸ Ay PusulasÄ± testleri - MAUI baÄŸÄ±mlÄ±lÄ±klarÄ± olmadan
     /// Bu testler core business logic'i test eder
     /// </summary>
     public class AyPusulasiSimpleTests
     {
         #region Test Data Classes
-        
+
         /// <summary>
-        /// Test için basitleþtirilmiþ ay verisi sýnýfý
+        /// Test iÃ§in basitleÅŸtirilmiÅŸ ay verisi sÄ±nÄ±fÄ±
         /// </summary>
         public class TestMoonData
         {
@@ -26,13 +26,13 @@ namespace KesifUygulamasiTemplate.Tests
         }
 
         /// <summary>
-        /// Test için basitleþtirilmiþ konum sýnýfý
+        /// Test iÃ§in basitleÅŸtirilmiÅŸ konum sÄ±nÄ±fÄ±
         /// </summary>
         public class TestLocation
         {
             public double Latitude { get; set; }
             public double Longitude { get; set; }
-            
+
             public TestLocation(double latitude, double longitude)
             {
                 Latitude = latitude;
@@ -41,14 +41,14 @@ namespace KesifUygulamasiTemplate.Tests
         }
 
         /// <summary>
-        /// Test için ay pusulasý hesaplama sýnýfý
-        /// Gerçek MoonCompassService'in temel iþlevlerini simüle eder
+        /// Test iÃ§in ay pusulasÄ± hesaplama sÄ±nÄ±fÄ±
+        /// GerÃ§ek MoonCompassService'in temel iÅŸlevlerini simÃ¼le eder
         /// </summary>
         public class TestAyPusulasiCalculator
         {
             public TestMoonData HesaplaVeGuncelle(double latitude, double longitude)
             {
-                // Ýstanbul koordinatlarý için test verisi
+                // Ä°stanbul koordinatlarÄ± iÃ§in test verisi
                 if (Math.Abs(latitude - 41.0082) < 0.01 && Math.Abs(longitude - 28.9784) < 0.01)
                 {
                     return new TestMoonData
@@ -57,21 +57,21 @@ namespace KesifUygulamasiTemplate.Tests
                         RiseTime = DateTime.Today.AddHours(19).AddMinutes(30),
                         SetTime = DateTime.Today.AddHours(7).AddMinutes(15),
                         Illumination = 0.75,
-                        PhaseName = "Þiþkin Ay",
+                        PhaseName = "ÅžiÅŸkin Ay",
                         Azimuth = 120.5,
                         Altitude = 45.2,
                         Distance = 384400
                     };
                 }
 
-                // Diðer koordinatlar için genel test verisi
+                // DiÄŸer koordinatlar iÃ§in genel test verisi
                 return new TestMoonData
                 {
                     Phase = 0.5,
                     RiseTime = DateTime.Today.AddHours(20),
                     SetTime = DateTime.Today.AddHours(8),
                     Illumination = 0.5,
-                    PhaseName = "Yarým Ay",
+                    PhaseName = "YarÄ±m Ay",
                     Azimuth = 90,
                     Altitude = 30,
                     Distance = 380000
@@ -90,7 +90,7 @@ namespace KesifUygulamasiTemplate.Tests
 
             public string FormatAngle(double angle)
             {
-                return $"{angle:F1}°";
+                return $"{angle:F1}Â°";
             }
 
             public string FormatDistance(double distance)
@@ -115,7 +115,7 @@ namespace KesifUygulamasiTemplate.Tests
         #region Test Methods
 
         /// <summary>
-        /// Test: AyPusulasiCalculator instance'ýnýn oluþturulmasý
+        /// Test: AyPusulasiCalculator instance'Ä±nÄ±n oluÅŸturulmasÄ±
         /// </summary>
         [Fact]
         public void AyPusulasiCalculator_ShouldBeCreatedSuccessfully()
@@ -128,8 +128,8 @@ namespace KesifUygulamasiTemplate.Tests
         }
 
         /// <summary>
-        /// Test: HesaplaVeGuncelle metodunun Ýstanbul koordinatlarý için çalýþmasý
-        /// Bu test gerçek "HesaplaVeGuncelle" fonksiyonunu simüle eder
+        /// Test: HesaplaVeGuncelle metodunun Ä°stanbul koordinatlarÄ± iÃ§in Ã§alÄ±ÅŸmasÄ±
+        /// Bu test gerÃ§ek "HesaplaVeGuncelle" fonksiyonunu simÃ¼le eder
         /// </summary>
         [Fact]
         public void HesaplaVeGuncelle_IstanbulCoordinates_ShouldReturnValidData()
@@ -138,47 +138,47 @@ namespace KesifUygulamasiTemplate.Tests
             double istanbulLat = 41.0082;
             double istanbulLon = 28.9784;
 
-            // Act - "Hesapla ve Güncelle" iþlevini çaðýr
+            // Act - "Hesapla ve GÃ¼ncelle" iÅŸlevini Ã§aÄŸÄ±r
             var moonData = _calculator.HesaplaVeGuncelle(istanbulLat, istanbulLon);
 
-            // Assert - Tüm label deðerlerinin güncellenmesi kontrolü
-            
-            // 1. Ay Fazý (ayFazLabel) kontrolü
+            // Assert - TÃ¼m label deÄŸerlerinin gÃ¼ncellenmesi kontrolÃ¼
+
+            // 1. Ay FazÄ± (ayFazLabel) kontrolÃ¼
             Assert.True(moonData.Phase > 0);
             Assert.True(moonData.Phase <= 1);
-            Assert.Equal(0.75, moonData.Phase); // Ýstanbul için beklenen test deðeri
+            Assert.Equal(0.75, moonData.Phase); // Ä°stanbul iÃ§in beklenen test deÄŸeri
 
-            // 2. Ay Doðuþ (ayDogusLabel) kontrolü
+            // 2. Ay DoÄŸuÅŸ (ayDogusLabel) kontrolÃ¼
             Assert.True(moonData.RiseTime > DateTime.MinValue);
             Assert.Equal(19, moonData.RiseTime.Hour);
             Assert.Equal(30, moonData.RiseTime.Minute);
 
-            // 3. Ay Batýþ (ayBatisLabel) kontrolü
+            // 3. Ay BatÄ±ÅŸ (ayBatisLabel) kontrolÃ¼
             Assert.True(moonData.SetTime > DateTime.MinValue);
             Assert.Equal(7, moonData.SetTime.Hour);
             Assert.Equal(15, moonData.SetTime.Minute);
 
-            // 4. Aydýnlanma (aydinlanmaLabel) kontrolü
+            // 4. AydÄ±nlanma (aydinlanmaLabel) kontrolÃ¼
             Assert.True(moonData.Illumination > 0);
             Assert.True(moonData.Illumination <= 1);
             Assert.Equal(0.75, moonData.Illumination);
 
-            // 5. Faz ismi kontrolü
+            // 5. Faz ismi kontrolÃ¼
             Assert.NotEmpty(moonData.PhaseName);
-            Assert.Equal("Þiþkin Ay", moonData.PhaseName);
+            Assert.Equal("ÅžiÅŸkin Ay", moonData.PhaseName);
 
-            // 6. Açý deðerleri kontrolü
+            // 6. AÃ§Ä± deÄŸerleri kontrolÃ¼
             Assert.True(moonData.Azimuth >= 0 && moonData.Azimuth <= 360);
             Assert.True(moonData.Altitude >= -90 && moonData.Altitude <= 90);
 
-            // 7. Mesafe kontrolü
+            // 7. Mesafe kontrolÃ¼
             Assert.True(moonData.Distance > 350000); // Minimum ay mesafesi
             Assert.True(moonData.Distance < 410000); // Maksimum ay mesafesi
         }
 
         /// <summary>
-        /// Test: Formatlanmýþ verilerin doðru format ile gösterilmesi
-        /// ayFazLabel, ayDogusLabel, ayBatisLabel, aydinlanmaLabel için format kontrolleri
+        /// Test: FormatlanmÄ±ÅŸ verilerin doÄŸru format ile gÃ¶sterilmesi
+        /// ayFazLabel, ayDogusLabel, ayBatisLabel, aydinlanmaLabel iÃ§in format kontrolleri
         /// </summary>
         [Fact]
         public void FormattedLabels_ShouldDisplayCorrectFormats()
@@ -186,30 +186,30 @@ namespace KesifUygulamasiTemplate.Tests
             // Arrange
             var moonData = _calculator.HesaplaVeGuncelle(41.0082, 28.9784);
 
-            // Act - Format metodlarýný çaðýr (label'larda gösterilecek veriler)
-            string ayFazLabel = _calculator.FormatPhase(moonData.Phase);           // Ay fazý %
-            string ayDogusLabel = _calculator.FormatTime(moonData.RiseTime);       // Doðuþ saati
-            string ayBatisLabel = _calculator.FormatTime(moonData.SetTime);        // Batýþ saati
-            string aydinlanmaLabel = _calculator.FormatPhase(moonData.Illumination); // Aydýnlanma %
+            // Act - Format metodlarÄ±nÄ± Ã§aÄŸÄ±r (label'larda gÃ¶sterilecek veriler)
+            string ayFazLabel = _calculator.FormatPhase(moonData.Phase);           // Ay fazÄ± %
+            string ayDogusLabel = _calculator.FormatTime(moonData.RiseTime);       // DoÄŸuÅŸ saati
+            string ayBatisLabel = _calculator.FormatTime(moonData.SetTime);        // BatÄ±ÅŸ saati
+            string aydinlanmaLabel = _calculator.FormatPhase(moonData.Illumination); // AydÄ±nlanma %
 
-            // Assert - Tüm label'larýn boþ olmadýðýný ve doðru format içerdiðini kontrol et
+            // Assert - TÃ¼m label'larÄ±n boÅŸ olmadÄ±ÄŸÄ±nÄ± ve doÄŸru format iÃ§erdiÄŸini kontrol et
 
-            // 1. ayFazLabel kontrolü
+            // 1. ayFazLabel kontrolÃ¼
             Assert.NotEmpty(ayFazLabel);
             Assert.Contains("%", ayFazLabel);
             Assert.Equal("75,0%", ayFazLabel);
 
-            // 2. ayDogusLabel kontrolü
+            // 2. ayDogusLabel kontrolÃ¼
             Assert.NotEmpty(ayDogusLabel);
-            Assert.Matches(@"^\d{2}:\d{2}$", ayDogusLabel); // HH:mm formatý
+            Assert.Matches(@"^\d{2}:\d{2}$", ayDogusLabel); // HH:mm formatÄ±
             Assert.Equal("19:30", ayDogusLabel);
 
-            // 3. ayBatisLabel kontrolü
+            // 3. ayBatisLabel kontrolÃ¼
             Assert.NotEmpty(ayBatisLabel);
-            Assert.Matches(@"^\d{2}:\d{2}$", ayBatisLabel); // HH:mm formatý
+            Assert.Matches(@"^\d{2}:\d{2}$", ayBatisLabel); // HH:mm formatÄ±
             Assert.Equal("07:15", ayBatisLabel);
 
-            // 4. aydinlanmaLabel kontrolü
+            // 4. aydinlanmaLabel kontrolÃ¼
             Assert.NotEmpty(aydinlanmaLabel);
             Assert.Contains("%", aydinlanmaLabel);
             Assert.Equal("75,0%", aydinlanmaLabel);

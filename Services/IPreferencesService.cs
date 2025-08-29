@@ -1,6 +1,6 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 
-namespace KesifUygamamasiTemplate.Services
+namespace KesifUygulamasiTemplate.Services
 {
     public interface IPreferencesService
     {
@@ -8,5 +8,9 @@ namespace KesifUygamamasiTemplate.Services
         Task<string> GetThemeAsync();
         Task SetLanguageAsync(string langCode);
         Task<string> GetLanguageAsync();
+        void Set(string key, string value);
+        string? Get(string key);
+        void Set(string key, bool value);
+        bool Get(string key, bool defaultValue);
     }
 }

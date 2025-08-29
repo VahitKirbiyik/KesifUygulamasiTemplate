@@ -1,0 +1,5 @@
+<Project>
+  <ItemGroup>
+    <PackageVersion Update="System.ComponentModel.Annotations" Version="6.0.0" />
+  </ItemGroup>
+</Project>

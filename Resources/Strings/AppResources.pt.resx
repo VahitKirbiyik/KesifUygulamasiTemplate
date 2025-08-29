@@ -12,6 +12,30 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
   </resheader>
+  <data name="POIShow" xml:space="preserve">
+    <value>Mostrar POI (PT)</value>
+  </data>
+  <data name="TransportationMode" xml:space="preserve">
+    <value>Modo de transporte (PT)</value>
+  </data>
+  <data name="RealTimeTraffic" xml:space="preserve">
+    <value>Tráfego em tempo real (PT)</value>
+  </data>
+  <data name="Donate" xml:space="preserve">
+    <value>Doar (PT)</value>
+  </data>
+  <data name="AR" xml:space="preserve">
+    <value>Realidade aumentada (PT)</value>
+  </data>
+  <data name="Offline Map" xml:space="preserve">
+    <value>Mapa offline (PT)</value>
+  </data>
+  <data name="Voice Navigation" xml:space="preserve">
+    <value>Navegação por voz (PT)</value>
+  </data>
+  <data name="TestKey" xml:space="preserve">
+    <value>Chave de teste (PT)</value>
+  </data>
   <data name="Hello" xml:space="preserve">
     <value>Olá (PT)</value>
   </data>
@@ -28,3 +52,5 @@
     <value>Rumo da bússola (PT)</value>
   </data>
 </root>
+
+

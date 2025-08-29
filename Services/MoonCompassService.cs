@@ -19,8 +19,8 @@ namespace KesifUygulamasiTemplate.Services
         public async Task<MoonData> GetMoonDataAsync(double latitude, double longitude)
         {
             var today = DateTime.Now.Date;
-            
-            // Offline öncelik: Önbellekten kontrol et
+
+            // Offline Ã¶ncelik: Ã¶nbellekten kontrol et
             if (!_connectivityService.IsConnected)
             {
                 var cached = await _databaseService.GetMoonDataAsync(latitude, longitude, today);
@@ -30,7 +30,7 @@ namespace KesifUygulamasiTemplate.Services
 
             // CoordinateSharp ile hesaplama yap
             var coordinate = new Coordinate(latitude, longitude, DateTime.Now);
-            
+
             var moonData = new MoonData
             {
                 Id = 0,
@@ -42,36 +42,36 @@ namespace KesifUygulamasiTemplate.Services
                 Phase = coordinate.CelestialInfo.MoonIllum.Fraction,
                 Azimuth = coordinate.CelestialInfo.MoonAzimuth,
                 Altitude = coordinate.CelestialInfo.MoonAltitude,
-                PhaseName = GetMoonPhaseName(coordinate.CelestialInfo.MoonIllum.PhaseName),
+                PhaseName = GetMoonPhaseName(coordinate.CelestialInfo.MoonIllum.PhaseName.ToString()),
                 Illumination = coordinate.CelestialInfo.MoonIllum.Fraction,
                 Distance = coordinate.CelestialInfo.MoonDistance.Kilometers
             };
 
-            // Önbelleðe kaydet
+            // Ã–nbelleÄŸe kaydet
             try
             {
                 await _databaseService.InsertMoonDataAsync(moonData);
             }
             catch
             {
-                // Önbellek hatasý kritik deðil
+                // Ã–nbellek hatasÄ± kritik deÄŸil
             }
 
             return moonData;
         }
 
-        private string GetMoonPhaseName(MoonName phaseName)
+        private string GetMoonPhaseName(string phaseName)
         {
             return phaseName switch
             {
-                MoonName.New_Moon => "Yeni Ay",
-                MoonName.Waxing_Crescent => "Hilal",
-                MoonName.First_Quarter => "Ýlk Dördün",
-                MoonName.Waxing_Gibbous => "Þiþkin Ay",
-                MoonName.Full_Moon => "Dolunay",
-                MoonName.Waning_Gibbous => "Azalan Þiþkin",
-                MoonName.Third_Quarter => "Son Dördün",
-                MoonName.Waning_Crescent => "Azalan Hilal",
+                "New Moon" => "Yeni Ay",
+                "Waxing Crescent" => "Hilal",
+                "First Quarter" => "Ä°lk DÃ¶rdÃ¼n",
+                "Waxing Gibbous" => "ÅžiÅŸkin Ay",
+                "Full Moon" => "Dolunay",
+                "Waning Gibbous" => "Azalan ÅžiÅŸkin",
+                "Third Quarter" => "Son DÃ¶rdÃ¼n",
+                "Waning Crescent" => "Azalan Hilal",
                 _ => "Bilinmeyen"
             };
         }

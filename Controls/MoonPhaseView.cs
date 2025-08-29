@@ -57,7 +57,7 @@ namespace KesifUygulamasiTemplate.Controls
             var center = new SKPoint(info.Width / 2, info.Height / 2);
             var radius = size / 2 - 10;
 
-            // Ay dairesi çiz
+            // Ay dairesi Ã§iz
             var moonPaint = new SKPaint
             {
                 Color = MoonColor.ToSKColor(),
@@ -67,7 +67,7 @@ namespace KesifUygulamasiTemplate.Controls
 
             canvas.DrawCircle(center, radius, moonPaint);
 
-            // Gölge kýsmýný çiz (ay fazýna göre)
+            // GÃ¶lge kÄ±smÄ±nÄ± Ã§iz (ay fazÄ±na gÃ¶re)
             if (Illumination < 1.0)
             {
                 var shadowPaint = new SKPaint
@@ -77,27 +77,27 @@ namespace KesifUygulamasiTemplate.Controls
                     Style = SKPaintStyle.Fill
                 };
 
-                // Fazý hesapla (0-1 arasý)
-                var phaseOffset = (float)(1.0 - Illumination) * 2 - 1; // -1 ile 1 arasý
+                // FazÄ± hesapla (0-1 arasÄ±)
+                var phaseOffset = (float)(1.0 - Illumination) * 2 - 1; // -1 ile 1 arasÄ±
 
                 var shadowPath = new SKPath();
                 var rect = new SKRect(center.X - radius, center.Y - radius, center.X + radius, center.Y + radius);
-                
+
                 shadowPath.AddArc(rect, -90, 180);
-                
+
                 if (phaseOffset < 0)
                 {
-                    // Sol yarým (Waning)
+                    // Sol yarÄ±m (Waning)
                     var ellipseWidth = radius * 2 * Math.Abs(phaseOffset);
-                    var ellipseRect = new SKRect(center.X - (float)ellipseWidth / 2, center.Y - radius, 
+                    var ellipseRect = new SKRect(center.X - (float)ellipseWidth / 2, center.Y - radius,
                                                center.X + (float)ellipseWidth / 2, center.Y + radius);
                     shadowPath.AddOval(ellipseRect);
                 }
                 else
                 {
-                    // Sað yarým (Waxing)
+                    // SaÄŸ yarÄ±m (Waxing)
                     var ellipseWidth = radius * 2 * phaseOffset;
-                    var ellipseRect = new SKRect(center.X - (float)ellipseWidth / 2, center.Y - radius, 
+                    var ellipseRect = new SKRect(center.X - (float)ellipseWidth / 2, center.Y - radius,
                                                center.X + (float)ellipseWidth / 2, center.Y + radius);
                     shadowPath.AddOval(ellipseRect);
                 }
@@ -105,7 +105,7 @@ namespace KesifUygulamasiTemplate.Controls
                 canvas.DrawPath(shadowPath, shadowPaint);
             }
 
-            // Çerçeve çiz
+            // Ã‡erÃ§eve Ã§iz
             var borderPaint = new SKPaint
             {
                 Color = SKColors.Gray,
@@ -116,7 +116,7 @@ namespace KesifUygulamasiTemplate.Controls
 
             canvas.DrawCircle(center, radius, borderPaint);
 
-            // Aydýnlanma yüzdesi metni
+            // AydÄ±nlanma yÃ¼zdesi metni
             var textPaint = new SKPaint
             {
                 Color = SKColors.Black,

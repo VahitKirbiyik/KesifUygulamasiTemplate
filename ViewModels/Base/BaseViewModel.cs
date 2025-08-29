@@ -3,18 +3,28 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using KesifUygulamasiTemplate.Services;
 
-namespace KesifUygulamasi.ViewModels.Base
+namespace KesifUygulamasiTemplate.ViewModels.Base
 {
     /// <summary>
-    /// T�m ViewModels i�in temel s�n�f
+    /// Tüm ViewModels için temel sınıf
     /// </summary>
     public abstract class BaseViewModel : INotifyPropertyChanged
     {
         private bool _isBusy;
-        private string _errorMessage;
+        private string _errorMessage = string.Empty;
+        private string _title = string.Empty;
 
         /// <summary>
-        /// Me�gul durumu, genellikle i�lem devam ederken true olarak ayarlan�r
+        /// Sayfa başlığı
+        /// </summary>
+        public string Title
+        {
+            get => _title;
+            set => SetProperty(ref _title, value);
+        }
+
+        /// <summary>
+        /// Meşgul durumu, genellikle işlem devam ederken true olarak ayarlanır
         /// </summary>
         public bool IsBusy
         {
@@ -23,7 +33,12 @@ namespace KesifUygulamasi.ViewModels.Base
         }
 
         /// <summary>
-        /// Hata mesaj�, i�lem ba�ar�s�z oldu�unda ayarlan�r
+        /// Meşgul değil durumu (IsBusy'nin tersi)
+        /// </summary>
+        public bool IsNotBusy => !IsBusy;
+
+        /// <summary>
+        /// Hata mesajı, işlem başarısız olduğunda ayarlanır
         /// </summary>
         public string ErrorMessage
         {
@@ -32,28 +47,28 @@ namespace KesifUygulamasi.ViewModels.Base
         }
 
         /// <summary>
-        /// Property de�i�ikli�i olay�
+        /// Property değişikliği olayı
         /// </summary>
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         /// <summary>
-        /// PropertyChanged olay�n� tetikler
+        /// PropertyChanged olayını tetikler
         /// </summary>
-        /// <param name="propertyName">De�i�en property ad�</param>
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        /// <param name="propertyName">Değişen property adı</param>
+        public virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         /// <summary>
-        /// Property'yi ayarlar ve de�i�iklik oldu�unda PropertyChanged olay�n� tetikler
+        /// Property'yi ayarlar ve değişiklik olduğunda PropertyChanged olayını tetikler
         /// </summary>
         /// <typeparam name="T">Property tipi</typeparam>
-        /// <param name="storage">Referans olarak depolama alan�</param>
-        /// <param name="value">Ayarlanacak yeni de�er</param>
-        /// <param name="propertyName">Property ad�</param>
-        /// <returns>De�er de�i�tiyse true, aksi halde false</returns>
-        protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
+        /// <param name="storage">Referans olarak depolama alanı</param>
+        /// <param name="value">Ayarlanacak yeni değer</param>
+        /// <param name="propertyName">Property adı</param>
+        /// <returns>Değer değiştiyse true, aksi halde false</returns>
+        protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)
         {
             if (Equals(storage, value))
                 return false;
@@ -63,7 +78,7 @@ namespace KesifUygulamasi.ViewModels.Base
             return true;
         }
 
-        protected NavigationService NavigationService { get; }
+        protected NavigationService? NavigationService { get; }
 
         public BaseViewModel()
         {
@@ -71,12 +86,97 @@ namespace KesifUygulamasi.ViewModels.Base
         }
 
         /// <summary>
-        /// ViewModel'den animasyonlu sayfa ge�i�i i�in yard�mc� metot.
+        /// ViewModel'den animasyonlu sayfa geçişi için yardımcı metot.
         /// </summary>
         protected async Task NavigateToAsync(Page page, bool animated = true)
         {
             if (NavigationService != null)
                 await NavigationService.PushAsync(page, animated);
+        }
+
+        /// <summary>
+        /// Async komut çalıştırma yardımcı metodu
+        /// </summary>
+        public async Task ExecuteAsync(Func<Task> action)
+        {
+            if (IsBusy)
+                return;
+
+            try
+            {
+                IsBusy = true;
+                ErrorMessage = string.Empty;
+                await action();
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = ex.Message;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        /// <summary>
+        /// Async komut çalıştırma yardımcı metodu (mesaj ile)
+        /// </summary>
+        public async Task ExecuteAsync(Func<Task> action, string loadingMessage)
+        {
+            if (IsBusy)
+                return;
+
+            try
+            {
+                IsBusy = true;
+                ErrorMessage = string.Empty;
+                // Burada loadingMessage kullanılabilir (örneğin bir loading indicator göstermek için)
+                await action();
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = ex.Message;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        /// <summary>
+        /// Başarı mesajı gösterme yardımcı metodu
+        /// </summary>
+        public async Task ShowSuccessAsync(string message)
+        {
+            // Implementation would depend on your UI framework
+            await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Bilgi mesajı gösterme yardımcı metodu
+        /// </summary>
+        public async Task ShowInfoAsync(string message)
+        {
+            // Implementation would depend on your UI framework
+            await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Uyarı mesajı gösterme yardımcı metodu
+        /// </summary>
+        public async Task ShowWarningAsync(string message)
+        {
+            // Implementation would depend on your UI framework
+            await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Hata mesajı gösterme yardımcı metodu
+        /// </summary>
+        public async Task ShowErrorAsync(string message)
+        {
+            // Implementation would depend on your UI framework
+            await Task.CompletedTask;
         }
     }
 }

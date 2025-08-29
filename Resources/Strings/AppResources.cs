@@ -6,7 +6,7 @@ using KesifUygulamasiTemplate.Services;
 
 namespace KesifUygulamasiTemplate.Resources.Strings
 {
-    // Dinamik indexer ile string kaynaklarýna eriþim saðlayan sýnýf
+    // Dinamik indexer ile string kaynaklarï¿½na eriï¿½im saï¿½layan sï¿½nï¿½f
     public class AppResources : INotifyPropertyChanged
     {
         public static string AppName => LocalizationService.Instance.GetString(nameof(AppName));
@@ -35,39 +35,45 @@ namespace KesifUygulamasiTemplate.Resources.Strings
         public static string LocationNotAvailable => LocalizationService.Instance.GetString(nameof(LocationNotAvailable));
         public static string PermissionGranted => LocalizationService.Instance.GetString(nameof(PermissionGranted));
         public static string PermissionDenied => LocalizationService.Instance.GetString(nameof(PermissionDenied));
+        public static string MoonInformation => LocalizationService.Instance.GetString(nameof(MoonInformation));
+        public static string LocationUpdated => LocalizationService.Instance.GetString(nameof(LocationUpdated));
+        public static string ShareMoonData => LocalizationService.Instance.GetString(nameof(ShareMoonData));
+        public static string ShareSuccessful => LocalizationService.Instance.GetString(nameof(ShareSuccessful));
+        public static string InternetConnected => LocalizationService.Instance.GetString(nameof(InternetConnected));
+        public static string InternetDisconnected => LocalizationService.Instance.GetString(nameof(InternetDisconnected));
 
-        // INotifyPropertyChanged implementasyonu dil deðiþikliðinde UI güncellemesi için
-        public event PropertyChangedEventHandler PropertyChanged;
+        // INotifyPropertyChanged implementasyonu dil deï¿½iï¿½ikliï¿½inde UI gï¿½ncellemesi iï¿½in
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         // StringFormat ile kaynak metnini formatla
         public static string FormatString(string resourceKey, params object[] args)
         {
             return LocalizationService.Instance.GetString(resourceKey, args);
         }
-        
-        // Tarih, saat ve sayý formatlarý için yardýmcý metotlar
+
+        // Tarih, saat ve sayï¿½ formatlarï¿½ iï¿½in yardï¿½mcï¿½ metotlar
         public static string FormatDate(DateTime date)
         {
-            return LocalizationService.Instance.FormatDate(date);
+            return LocalizationService.FormatDate(date);
         }
-        
+
         public static string FormatTime(DateTime time)
         {
-            return LocalizationService.Instance.FormatTime(time);
+            return LocalizationService.FormatTime(time);
         }
-        
+
         public static string FormatNumber(double number)
         {
-            return LocalizationService.Instance.FormatNumber(number);
+            return LocalizationService.FormatNumber(number);
         }
-        
+
         public static string FormatCurrency(decimal amount)
         {
-            return LocalizationService.Instance.FormatCurrency(amount);
+            return LocalizationService.FormatCurrency(amount);
         }
-        
-        // ResourceManager için gerekli
-        private static System.Resources.ResourceManager resourceManager;
+
+        // ResourceManager iï¿½in gerekli
+        private static System.Resources.ResourceManager? resourceManager;
         public static System.Resources.ResourceManager ResourceManager => resourceManager ?? (resourceManager = new System.Resources.ResourceManager(typeof(AppResources)));
     }
 }

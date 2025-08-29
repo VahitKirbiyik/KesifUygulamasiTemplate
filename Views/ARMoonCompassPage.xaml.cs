@@ -1,6 +1,5 @@
 using KesifUygulamasiTemplate.ViewModels;
 using Microsoft.Maui.Controls;
-using Microsoft.Maui.ApplicationModel.Media;
 using System;
 using System.Threading.Tasks;
 
@@ -14,18 +13,21 @@ namespace KesifUygulamasiTemplate.Views
             BindingContext = viewModel;
         }
 
-        protected override async void OnAppearing()
+        protected override void OnAppearing()
         {
             base.OnAppearing();
-            await StartCameraPreviewAsync();
+            // Kamera kodu geçici olarak devre dışı
+            // await StartCameraPreviewAsync();
         }
 
-        protected override async void OnDisappearing()
+        protected override void OnDisappearing()
         {
             base.OnDisappearing();
-            await StopCameraPreviewAsync();
+            // await StopCameraPreviewAsync();
         }
 
+        // Kamera metodu geçici olarak comment out
+        /*
         private async Task StartCameraPreviewAsync()
         {
             try
@@ -39,7 +41,7 @@ namespace KesifUygulamasiTemplate.Views
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Kamera Hatas�", ex.Message, "Tamam");
+                await DisplayAlert("Kamera Hatas�", ex.Message, "Tamam");
             }
         }
 
@@ -48,5 +50,6 @@ namespace KesifUygulamasiTemplate.Views
             CameraPreview.Source = null;
             await Task.CompletedTask;
         }
+        */
     }
 }

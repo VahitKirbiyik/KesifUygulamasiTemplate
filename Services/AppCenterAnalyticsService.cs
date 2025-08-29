@@ -19,7 +19,7 @@ namespace KesifUygulamasiTemplate.Services
         {
             if (_isInitialized) return;
 
-            // AppCenter portalından alınan anahtarlarınızı buraya ekleyin
+            // AppCenter portalÄ±ndan alÄ±nan anahtarlarÄ±nÄ±zÄ± buraya ekleyin
             string androidKey = "android-appcenter-key";
             string iosKey = "ios-appcenter-key";
 

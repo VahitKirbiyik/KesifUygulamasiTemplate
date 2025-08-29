@@ -4,21 +4,22 @@ using System.Globalization;
 using System.Windows.Input;
 using KesifUygulamasiTemplate.Services;
 using Microsoft.Maui.Controls;
+using KesifUygulamasiTemplate.ViewModels.Base;
 
 namespace KesifUygulamasiTemplate.ViewModels
 {
     public class LanguageSettingsViewModel : BaseViewModel
     {
-        private List<LanguageModel> _availableLanguages;
-        private LanguageModel _selectedLanguage;
+        private List<LanguageModel>? _availableLanguages;
+        private LanguageModel? _selectedLanguage;
 
-        public List<LanguageModel> AvailableLanguages
+        public List<LanguageModel>? AvailableLanguages
         {
             get => _availableLanguages;
             set => SetProperty(ref _availableLanguages, value);
         }
 
-        public LanguageModel SelectedLanguage
+        public LanguageModel? SelectedLanguage
         {
             get => _selectedLanguage;
             set
@@ -61,7 +62,7 @@ namespace KesifUygulamasiTemplate.ViewModels
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Dil deðiþtirme sýrasýnda hata oluþtu: {ex.Message}";
+                ErrorMessage = $"Dil deï¿½iï¿½tirme sï¿½rasï¿½nda hata oluï¿½tu: {ex.Message}";
             }
         }
     }

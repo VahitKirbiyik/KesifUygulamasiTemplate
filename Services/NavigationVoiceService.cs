@@ -1,27 +1,28 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Maui.Media;
+using KesifUygulamasiTemplate.Services.Interfaces;
 
-namespace KesifUygamamasiTemplate.Services
+namespace KesifUygulamasiTemplate.Services
 {
     public class NavigationVoiceService : INavigationVoiceService
     {
-        public Task<string[]> GetAvailableLocalesAsync()
+        public async Task SpeakAsync(string text)
         {
-            // Gerçek TTS engine sorgusu ileride eklenecek
-            return Task.FromResult(new[] { "tr-TR", "en-US" });
+            await TextToSpeech.Default.SpeakAsync(text);
         }
 
-        public async Task SpeakAsync(string text, string locale = "tr-TR")
+        public async Task<string[]> GetAvailableLocalesAsync()
         {
-            var options = new SpeechOptions
-            {
-                Locale = new Locale(locale),
-                Volume = 1.0f,
-                Pitch = 1.0f
-            };
+            var locales = await TextToSpeech.Default.GetLocalesAsync();
+            return locales.Select(l => l.Language).ToArray();
+        }
 
-            await TextToSpeech.Default.SpeakAsync(text, options);
+        public async Task SetPreferredLocaleAsync(string localeIdentifier)
+        {
+            // Bu basit implementasyonda sadece tercih edilen locale'ı saklarız
+            // Gerçek implementasyonda bu ayarı Preferences'e kaydedebiliriz
+            await Task.CompletedTask;
         }
     }
 }

@@ -1,18 +1,3 @@
-  <data name="POIShow" xml:space="preserve">
-    <value>Ipakita ang POI (FIL)</value>
-  </data>
-  <data name="TransportationMode" xml:space="preserve">
-    <value>Paraan ng Transportasyon (FIL)</value>
-  </data>
-  <data name="RealTimeTraffic" xml:space="preserve">
-    <value>Trapiko sa Real-Time (FIL)</value>
-  </data>
-  <data name="SupportDeveloper" xml:space="preserve">
-    <value>Suportahan ang Developer (FIL)</value>
-  </data>
-  <data name="Donate" xml:space="preserve">
-    <value>Mag-donate (FIL)</value>
-  </data>
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype">
@@ -72,4 +57,15 @@
   <data name="RealTimeTraffic" xml:space="preserve">
     <value>Trapiko sa Real-Time (FIL)</value>
   </data>
+  <data name="Donate" xml:space="preserve">
+    <value>Mag-donate (FIL)</value>
+  </data>
+  <data name="AR" xml:space="preserve">
+    <value>Pinalawak na realidad (FIL)</value>
+  </data>
+  <data name="TestKey" xml:space="preserve">
+    <value>Susing pagsubok (FIL)</value>
+  </data>
 </root>
+
+

@@ -5,17 +5,17 @@ using System.Threading.Tasks;
 namespace KesifUygulamasiTemplate.Tests
 {
     /// <summary>
-    /// AyPusulasiPage için birim testleri
-    /// Bu test sýnýfý ay pusulasý sayfasýnýn temel iþlevlerini test eder
-    /// MAUI baðýmlýlýklarý olmadan core business logic'i test eder
+    /// AyPusulasiPage iÃ§in birim testleri
+    /// Bu test sÄ±nÄ±fÄ± ay pusulasÄ± sayfasÄ±nÄ±n temel iÅŸlevlerini test eder
+    /// MAUI baÄŸÄ±mlÄ±lÄ±klarÄ± olmadan core business logic'i test eder
     /// </summary>
     public class AyPusulasiPageTests
     {
         #region Test Data Classes
-        
+
         /// <summary>
-        /// AyPusulasiPage'de kullanýlan ay verisi için test sýnýfý
-        /// Gerçek MoonData sýnýfýný simüle eder
+        /// AyPusulasiPage'de kullanÄ±lan ay verisi iÃ§in test sÄ±nÄ±fÄ±
+        /// GerÃ§ek MoonData sÄ±nÄ±fÄ±nÄ± simÃ¼le eder
         /// </summary>
         public class TestAyPusulasiData
         {
@@ -28,9 +28,9 @@ namespace KesifUygulamasiTemplate.Tests
             public double Azimuth { get; set; }
             public double Altitude { get; set; }
             public double Distance { get; set; }
-            
+
             /// <summary>
-            /// Label formatlarý için property'ler (UI'daki label'lara karþýlýk gelir)
+            /// Label formatlarÄ± iÃ§in property'ler (UI'daki label'lara karÅŸÄ±lÄ±k gelir)
             /// </summary>
             public string AyFazLabel => $"{Phase * 100:F1}%";           // ayFazLabel
             public string AyDogusLabel => RiseTime.ToString("HH:mm");    // ayDogusLabel  
@@ -39,8 +39,8 @@ namespace KesifUygulamasiTemplate.Tests
         }
 
         /// <summary>
-        /// AyPusulasiPage'in core iþlevlerini simüle eden test sýnýfý
-        /// Gerçek MoonCompassPage ve ViewModel'in temel mantýðýný test eder
+        /// AyPusulasiPage'in core iÅŸlevlerini simÃ¼le eden test sÄ±nÄ±fÄ±
+        /// GerÃ§ek MoonCompassPage ve ViewModel'in temel mantÄ±ÄŸÄ±nÄ± test eder
         /// </summary>
         public class TestAyPusulasiPage
         {
@@ -48,7 +48,7 @@ namespace KesifUygulamasiTemplate.Tests
             private bool _isInitialized;
 
             /// <summary>
-            /// Sayfa verilerinin yüklenip yüklenmediðini kontrol eder
+            /// Sayfa verilerinin yÃ¼klenip yÃ¼klenmediÄŸini kontrol eder
             /// </summary>
             public bool IsDataLoaded => _moonData != null;
 
@@ -58,13 +58,13 @@ namespace KesifUygulamasiTemplate.Tests
             public TestAyPusulasiData? MoonData => _moonData;
 
             /// <summary>
-            /// Sayfa baþlatýldý mý?
+            /// Sayfa baÅŸlatÄ±ldÄ± mÄ±?
             /// </summary>
             public bool IsInitialized => _isInitialized;
 
             /// <summary>
-            /// AyPusulasiPage instance'ýný oluþturur
-            /// Gerçek MoonCompassPage constructor'ýný simüle eder
+            /// AyPusulasiPage instance'Ä±nÄ± oluÅŸturur
+            /// GerÃ§ek MoonCompassPage constructor'Ä±nÄ± simÃ¼le eder
             /// </summary>
             public TestAyPusulasiPage()
             {
@@ -72,25 +72,25 @@ namespace KesifUygulamasiTemplate.Tests
             }
 
             /// <summary>
-            /// HesaplaVeGuncelle metodunu simüle eder
-            /// Gerçek LoadMoonDataAsync metodunun eþdeðeri
-            /// ayFazLabel, ayDogusLabel, ayBatisLabel, aydinlanmaLabel deðerlerini günceller
+            /// HesaplaVeGuncelle metodunu simÃ¼le eder
+            /// GerÃ§ek LoadMoonDataAsync metodunun eÅŸdeÄŸeri
+            /// ayFazLabel, ayDogusLabel, ayBatisLabel, aydinlanmaLabel deÄŸerlerini gÃ¼nceller
             /// </summary>
             public async Task HesaplaVeGuncelle(double latitude, double longitude)
             {
-                // Async iþlem simülasyonu
+                // Async iÅŸlem simÃ¼lasyonu
                 await Task.Delay(50);
 
-                // Ýstanbul koordinatlarý için özel test verisi
+                // Ä°stanbul koordinatlarÄ± iÃ§in Ã¶zel test verisi
                 if (Math.Abs(latitude - 41.0082) < 0.01 && Math.Abs(longitude - 28.9784) < 0.01)
                 {
                     _moonData = new TestAyPusulasiData
                     {
-                        Phase = 0.75,  // %75 Þiþkin Ay
+                        Phase = 0.75,  // %75 ÅžiÅŸkin Ay
                         RiseTime = DateTime.Today.AddHours(19).AddMinutes(30), // 19:30
                         SetTime = DateTime.Today.AddHours(7).AddMinutes(15),   // 07:15
-                        Illumination = 0.75, // %75 aydýnlanma
-                        PhaseName = "Þiþkin Ay",
+                        Illumination = 0.75, // %75 aydÄ±nlanma
+                        PhaseName = "ÅžiÅŸkin Ay",
                         PhaseEmoji = "??",
                         Azimuth = 120.5,
                         Altitude = 45.2,
@@ -99,14 +99,14 @@ namespace KesifUygulamasiTemplate.Tests
                 }
                 else
                 {
-                    // Diðer koordinatlar için genel test verisi
+                    // DiÄŸer koordinatlar iÃ§in genel test verisi
                     _moonData = new TestAyPusulasiData
                     {
-                        Phase = 0.5,   // %50 Yarým Ay
+                        Phase = 0.5,   // %50 YarÄ±m Ay
                         RiseTime = DateTime.Today.AddHours(20),  // 20:00
                         SetTime = DateTime.Today.AddHours(8),    // 08:00
-                        Illumination = 0.5, // %50 aydýnlanma
-                        PhaseName = "Yarým Ay",
+                        Illumination = 0.5, // %50 aydÄ±nlanma
+                        PhaseName = "YarÄ±m Ay",
                         PhaseEmoji = "??",
                         Azimuth = 90,
                         Altitude = 30,
@@ -116,7 +116,7 @@ namespace KesifUygulamasiTemplate.Tests
             }
 
             /// <summary>
-            /// Tüm label'larýn deðerlerini döndürür
+            /// TÃ¼m label'larÄ±n deÄŸerlerini dÃ¶ndÃ¼rÃ¼r
             /// </summary>
             public (string ayFaz, string ayDogus, string ayBatis, string aydinlanma) GetAllLabels()
             {
@@ -125,7 +125,7 @@ namespace KesifUygulamasiTemplate.Tests
 
                 return (
                     _moonData.AyFazLabel,
-                    _moonData.AyDogusLabel, 
+                    _moonData.AyDogusLabel,
                     _moonData.AyBatisLabel,
                     _moonData.AydinlanmaLabel
                 );
@@ -140,7 +140,7 @@ namespace KesifUygulamasiTemplate.Tests
 
         #region Constructor
         /// <summary>
-        /// Test sýnýfý constructor'ý - her test çalýþmadan önce çaðrýlýr
+        /// Test sÄ±nÄ±fÄ± constructor'Ä± - her test Ã§alÄ±ÅŸmadan Ã¶nce Ã§aÄŸrÄ±lÄ±r
         /// </summary>
         public AyPusulasiPageTests()
         {
@@ -151,8 +151,8 @@ namespace KesifUygulamasiTemplate.Tests
         #region Basic Instance Tests
 
         /// <summary>
-        /// Test: AyPusulasiPage instance'ýnýn baþarýyla oluþturulmasý
-        /// Bu test, sayfanýn düzgün þekilde initialize edildiðini doðrular
+        /// Test: AyPusulasiPage instance'Ä±nÄ±n baÅŸarÄ±yla oluÅŸturulmasÄ±
+        /// Bu test, sayfanÄ±n dÃ¼zgÃ¼n ÅŸekilde initialize edildiÄŸini doÄŸrular
         /// </summary>
         [Fact]
         public void AyPusulasiPage_ShouldBeCreatedSuccessfully()
@@ -163,7 +163,7 @@ namespace KesifUygulamasiTemplate.Tests
             // Assert
             Assert.NotNull(page);
             Assert.True(page.IsInitialized);
-            Assert.False(page.IsDataLoaded); // Baþlangýçta veri yüklü olmamalý
+            Assert.False(page.IsDataLoaded); // BaÅŸlangÄ±Ã§ta veri yÃ¼klÃ¼ olmamalÄ±
         }
 
         #endregion
@@ -171,52 +171,52 @@ namespace KesifUygulamasiTemplate.Tests
         #region HesaplaVeGuncelle Tests
 
         /// <summary>
-        /// Test: HesaplaVeGuncelle metodunun çaðrýlmasý ve 
-        /// ayFazLabel, ayDogusLabel, ayBatisLabel, aydinlanmaLabel deðerlerinin güncellenmesi
-        /// Bu ana test metodu, istenen tüm label'larýn doðru þekilde güncellenmesini test eder
+        /// Test: HesaplaVeGuncelle metodunun Ã§aÄŸrÄ±lmasÄ± ve 
+        /// ayFazLabel, ayDogusLabel, ayBatisLabel, aydinlanmaLabel deÄŸerlerinin gÃ¼ncellenmesi
+        /// Bu ana test metodu, istenen tÃ¼m label'larÄ±n doÄŸru ÅŸekilde gÃ¼ncellenmesini test eder
         /// </summary>
         [Fact]
         public async Task HesaplaVeGuncelle_ShouldUpdateAllLabelsAndNotBeEmpty()
         {
             // Arrange
-            double istanbulLat = 41.0082;  // Ýstanbul enlem
-            double istanbulLon = 28.9784;  // Ýstanbul boylam
+            double istanbulLat = 41.0082;  // Ä°stanbul enlem
+            double istanbulLon = 28.9784;  // Ä°stanbul boylam
 
-            // Act - HesaplaVeGuncelle metodunu çaðýr
+            // Act - HesaplaVeGuncelle metodunu Ã§aÄŸÄ±r
             await _ayPusulasiPage.HesaplaVeGuncelle(istanbulLat, istanbulLon);
 
-            // Assert - Veri yüklendiðini doðrula
+            // Assert - Veri yÃ¼klendiÄŸini doÄŸrula
             Assert.True(_ayPusulasiPage.IsDataLoaded);
             Assert.NotNull(_ayPusulasiPage.MoonData);
 
-            // Tüm label deðerlerini al
+            // TÃ¼m label deÄŸerlerini al
             var (ayFazLabel, ayDogusLabel, ayBatisLabel, aydinlanmaLabel) = _ayPusulasiPage.GetAllLabels();
 
-            // 1. ayFazLabel kontrolü (Ay Fazý)
+            // 1. ayFazLabel kontrolÃ¼ (Ay FazÄ±)
             Assert.NotNull(ayFazLabel);
             Assert.NotEmpty(ayFazLabel);
             Assert.Contains("%", ayFazLabel);
             Assert.Contains("75", ayFazLabel); // %75 bekleniyor
 
-            // 2. ayDogusLabel kontrolü (Ay Doðuþu)  
+            // 2. ayDogusLabel kontrolÃ¼ (Ay DoÄŸuÅŸu)  
             Assert.NotNull(ayDogusLabel);
             Assert.NotEmpty(ayDogusLabel);
             Assert.Contains("19", ayDogusLabel); // 19:30 bekleniyor
             Assert.Contains("30", ayDogusLabel);
 
-            // 3. ayBatisLabel kontrolü (Ay Batýþý)
+            // 3. ayBatisLabel kontrolÃ¼ (Ay BatÄ±ÅŸÄ±)
             Assert.NotNull(ayBatisLabel);
             Assert.NotEmpty(ayBatisLabel);
             Assert.Contains("07", ayBatisLabel); // 07:15 bekleniyor
             Assert.Contains("15", ayBatisLabel);
 
-            // 4. aydinlanmaLabel kontrolü (Aydýnlanma)
+            // 4. aydinlanmaLabel kontrolÃ¼ (AydÄ±nlanma)
             Assert.NotNull(aydinlanmaLabel);
             Assert.NotEmpty(aydinlanmaLabel);
             Assert.Contains("%", aydinlanmaLabel);
             Assert.Contains("75", aydinlanmaLabel); // %75 bekleniyor
 
-            // 5. Ek detaylý kontroller
+            // 5. Ek detaylÄ± kontroller
             Assert.Equal("75,0%", ayFazLabel);
             Assert.Equal("19:30", ayDogusLabel);
             Assert.Equal("07:15", ayBatisLabel);
@@ -224,7 +224,7 @@ namespace KesifUygulamasiTemplate.Tests
         }
 
         /// <summary>
-        /// Test: HesaplaVeGuncelle metodunun farklý koordinatlar ile çalýþmasý
+        /// Test: HesaplaVeGuncelle metodunun farklÄ± koordinatlar ile Ã§alÄ±ÅŸmasÄ±
         /// </summary>
         [Fact]
         public async Task HesaplaVeGuncelle_WithDifferentCoordinates_ShouldUpdateLabels()
@@ -238,16 +238,16 @@ namespace KesifUygulamasiTemplate.Tests
 
             // Assert
             Assert.True(_ayPusulasiPage.IsDataLoaded);
-            
+
             var (ayFazLabel, ayDogusLabel, ayBatisLabel, aydinlanmaLabel) = _ayPusulasiPage.GetAllLabels();
 
-            // Tüm label'lar boþ olmamalý
+            // TÃ¼m label'lar boÅŸ olmamalÄ±
             Assert.NotEmpty(ayFazLabel);
             Assert.NotEmpty(ayDogusLabel);
             Assert.NotEmpty(ayBatisLabel);
             Assert.NotEmpty(aydinlanmaLabel);
 
-            // New York için farklý deðerler bekleniyor
+            // New York iÃ§in farklÄ± deÄŸerler bekleniyor
             Assert.Contains("50", ayFazLabel);  // %50
             Assert.Contains("20", ayDogusLabel); // 20:00
             Assert.Contains("08", ayBatisLabel); // 08:00
@@ -259,8 +259,8 @@ namespace KesifUygulamasiTemplate.Tests
         #region Label Format Tests
 
         /// <summary>
-        /// Test: ayFazLabel formatýnýn doðru olmasý
-        /// Ay fazý yüzde formatýnda olmalý
+        /// Test: ayFazLabel formatÄ±nÄ±n doÄŸru olmasÄ±
+        /// Ay fazÄ± yÃ¼zde formatÄ±nda olmalÄ±
         /// </summary>
         [Fact]
         public async Task AyFazLabel_ShouldHaveCorrectPercentageFormat()
@@ -270,15 +270,15 @@ namespace KesifUygulamasiTemplate.Tests
 
             // Assert
             var (ayFazLabel, _, _, _) = _ayPusulasiPage.GetAllLabels();
-            
+
             Assert.NotEmpty(ayFazLabel);
             Assert.Contains("%", ayFazLabel);
-            Assert.Matches(@"\d+(\,\d+)?%", ayFazLabel); // Sayý + % formatý
+            Assert.Matches(@"\d+(\,\d+)?%", ayFazLabel); // SayÄ± + % formatÄ±
         }
 
         /// <summary>
-        /// Test: ayDogusLabel ve ayBatisLabel saat formatýnýn doðru olmasý
-        /// Saat formatý HH:mm olmalý
+        /// Test: ayDogusLabel ve ayBatisLabel saat formatÄ±nÄ±n doÄŸru olmasÄ±
+        /// Saat formatÄ± HH:mm olmalÄ±
         /// </summary>
         [Fact]
         public async Task AyDogusAndBatisLabels_ShouldHaveCorrectTimeFormat()
@@ -289,18 +289,18 @@ namespace KesifUygulamasiTemplate.Tests
             // Assert
             var (_, ayDogusLabel, ayBatisLabel, _) = _ayPusulasiPage.GetAllLabels();
 
-            // Doðuþ saati formatý kontrolü
+            // DoÄŸuÅŸ saati formatÄ± kontrolÃ¼
             Assert.NotEmpty(ayDogusLabel);
-            Assert.Matches(@"\d{2}:\d{2}", ayDogusLabel); // HH:mm formatý
+            Assert.Matches(@"\d{2}:\d{2}", ayDogusLabel); // HH:mm formatÄ±
 
-            // Batýþ saati formatý kontrolü  
+            // BatÄ±ÅŸ saati formatÄ± kontrolÃ¼  
             Assert.NotEmpty(ayBatisLabel);
-            Assert.Matches(@"\d{2}:\d{2}", ayBatisLabel); // HH:mm formatý
+            Assert.Matches(@"\d{2}:\d{2}", ayBatisLabel); // HH:mm formatÄ±
         }
 
         /// <summary>
-        /// Test: aydinlanmaLabel formatýnýn doðru olmasý
-        /// Aydýnlanma yüzde formatýnda olmalý
+        /// Test: aydinlanmaLabel formatÄ±nÄ±n doÄŸru olmasÄ±
+        /// AydÄ±nlanma yÃ¼zde formatÄ±nda olmalÄ±
         /// </summary>
         [Fact]
         public async Task AydinlanmaLabel_ShouldHaveCorrectPercentageFormat()
@@ -310,10 +310,10 @@ namespace KesifUygulamasiTemplate.Tests
 
             // Assert
             var (_, _, _, aydinlanmaLabel) = _ayPusulasiPage.GetAllLabels();
-            
+
             Assert.NotEmpty(aydinlanmaLabel);
             Assert.Contains("%", aydinlanmaLabel);
-            Assert.Matches(@"\d+(\,\d+)?%", aydinlanmaLabel); // Sayý + % formatý
+            Assert.Matches(@"\d+(\,\d+)?%", aydinlanmaLabel); // SayÄ± + % formatÄ±
         }
 
         #endregion
@@ -321,7 +321,7 @@ namespace KesifUygulamasiTemplate.Tests
         #region Integration Tests
 
         /// <summary>
-        /// Test: Sayfa baþlatýldýðýnda instance'ýn doðru durumda olmasý
+        /// Test: Sayfa baÅŸlatÄ±ldÄ±ÄŸÄ±nda instance'Ä±n doÄŸru durumda olmasÄ±
         /// </summary>
         [Fact]
         public void AyPusulasiPage_OnInstantiation_ShouldHaveCorrectInitialState()
@@ -333,8 +333,8 @@ namespace KesifUygulamasiTemplate.Tests
             Assert.True(page.IsInitialized);
             Assert.False(page.IsDataLoaded);
             Assert.Null(page.MoonData);
-            
-            // Label'lar baþlangýçta boþ olmalý
+
+            // Label'lar baÅŸlangÄ±Ã§ta boÅŸ olmalÄ±
             var (ayFazLabel, ayDogusLabel, ayBatisLabel, aydinlanmaLabel) = page.GetAllLabels();
             Assert.Empty(ayFazLabel);
             Assert.Empty(ayDogusLabel);
@@ -348,7 +348,7 @@ namespace KesifUygulamasiTemplate.Tests
 
         /// <summary>
         /// Test: HesaplaVeGuncelle metodunun performans testi
-        /// Metodun makul sürede tamamlanmasý
+        /// Metodun makul sÃ¼rede tamamlanmasÄ±
         /// </summary>
         [Fact]
         public async Task HesaplaVeGuncelle_ShouldCompleteInReasonableTime()
@@ -362,10 +362,10 @@ namespace KesifUygulamasiTemplate.Tests
             // Assert
             var endTime = DateTime.Now;
             var duration = endTime - startTime;
-            
-            // 1 saniyeden az sürmeli
-            Assert.True(duration.TotalSeconds < 1, 
-                $"HesaplaVeGuncelle çok yavaþ çalýþýyor: {duration.TotalSeconds} saniye");
+
+            // 1 saniyeden az sÃ¼rmeli
+            Assert.True(duration.TotalSeconds < 1,
+                $"HesaplaVeGuncelle Ã§ok yavaÅŸ Ã§alÄ±ÅŸÄ±yor: {duration.TotalSeconds} saniye");
         }
 
         #endregion
@@ -373,7 +373,7 @@ namespace KesifUygulamasiTemplate.Tests
         #region Data Validation Tests
 
         /// <summary>
-        /// Test: Ay verilerinin geçerli aralýklarda olmasý
+        /// Test: Ay verilerinin geÃ§erli aralÄ±klarda olmasÄ±
         /// </summary>
         [Fact]
         public async Task MoonData_ShouldHaveValidRanges()
@@ -384,23 +384,23 @@ namespace KesifUygulamasiTemplate.Tests
             // Assert
             var moonData = _ayPusulasiPage.MoonData;
             Assert.NotNull(moonData);
-            
-            // Ay fazý 0-1 arasýnda olmalý
+
+            // Ay fazÄ± 0-1 arasÄ±nda olmalÄ±
             Assert.True(moonData.Phase >= 0 && moonData.Phase <= 1);
-            
-            // Aydýnlanma 0-1 arasýnda olmalý
+
+            // AydÄ±nlanma 0-1 arasÄ±nda olmalÄ±
             Assert.True(moonData.Illumination >= 0 && moonData.Illumination <= 1);
-            
-            // Azimuth 0-360 arasýnda olmalý
+
+            // Azimuth 0-360 arasÄ±nda olmalÄ±
             Assert.True(moonData.Azimuth >= 0 && moonData.Azimuth <= 360);
-            
-            // Altitude -90 ile +90 arasýnda olmalý
+
+            // Altitude -90 ile +90 arasÄ±nda olmalÄ±
             Assert.True(moonData.Altitude >= -90 && moonData.Altitude <= 90);
-            
-            // Ay mesafesi makul aralýkta olmalý (350,000 - 410,000 km)
+
+            // Ay mesafesi makul aralÄ±kta olmalÄ± (350,000 - 410,000 km)
             Assert.True(moonData.Distance >= 350000 && moonData.Distance <= 410000);
 
-            // Saat deðerleri geçerli olmalý
+            // Saat deÄŸerleri geÃ§erli olmalÄ±
             Assert.True(moonData.RiseTime.Hour >= 0 && moonData.RiseTime.Hour <= 23);
             Assert.True(moonData.SetTime.Hour >= 0 && moonData.SetTime.Hour <= 23);
         }
@@ -410,26 +410,26 @@ namespace KesifUygulamasiTemplate.Tests
         #region Multiple Coordinates Tests
 
         /// <summary>
-        /// Test: Birden fazla koordinat ile art arda HesaplaVeGuncelle çaðrýlmasý
+        /// Test: Birden fazla koordinat ile art arda HesaplaVeGuncelle Ã§aÄŸrÄ±lmasÄ±
         /// </summary>
         [Fact]
         public async Task HesaplaVeGuncelle_MultipleCoordinates_ShouldUpdateCorrectly()
         {
-            // Test 1: Ýstanbul
+            // Test 1: Ä°stanbul
             await _ayPusulasiPage.HesaplaVeGuncelle(41.0082, 28.9784);
             var (faz1, dogus1, batis1, aydinlanma1) = _ayPusulasiPage.GetAllLabels();
-            
+
             Assert.Contains("75", faz1);
             Assert.Contains("19", dogus1);
-            
+
             // Test 2: New York
             await _ayPusulasiPage.HesaplaVeGuncelle(40.7128, -74.0060);
             var (faz2, dogus2, batis2, aydinlanma2) = _ayPusulasiPage.GetAllLabels();
-            
+
             Assert.Contains("50", faz2);
             Assert.Contains("20", dogus2);
-            
-            // Veriler güncellenmiþ olmalý (Ýstanbul verisi New York ile deðiþmiþ olmalý)
+
+            // Veriler gÃ¼ncellenmiÅŸ olmalÄ± (Ä°stanbul verisi New York ile deÄŸiÅŸmiÅŸ olmalÄ±)
             Assert.NotEqual(faz1, faz2);
             Assert.NotEqual(dogus1, dogus2);
         }

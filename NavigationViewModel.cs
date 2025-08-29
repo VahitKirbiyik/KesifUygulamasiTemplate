@@ -10,21 +10,31 @@ namespace KesifUygulamasiTemplate.ViewModels
     {
         private readonly ICompassService _compassService;
         private readonly ILocationService _locationService;
-        
+
         public Location? CurrentLocation { get; private set; }
         public Location? TargetLocation { get; set; }
-        public double BearingToTarget { get; private set; } // Hedefe olan yön
-        
+        public double BearingToTarget { get; private set; } // Hedefe olan yÃ¶n
+        public double CurrentHeading { get; private set; } // CihazÄ±n mevcut yÃ¶nÃ¼
+
         public NavigationViewModel(ICompassService compassService, ILocationService locationService)
         {
             _compassService = compassService;
             _locationService = locationService;
+
+            // Compass deÄŸiÅŸikliklerini dinle
+            _compassService.HeadingChanged += OnCompassHeadingChanged;
         }
-        
-        // Ýki nokta arasýndaki yön hesaplama
-        private double CalculateBearing(Location start, Location end) 
+
+        private void OnCompassHeadingChanged(double heading)
         {
-            // Haversine formülü hesaplamasý
+            CurrentHeading = heading;
+            OnPropertyChanged(nameof(CurrentHeading));
+        }
+
+        // Ä°ki nokta arasÄ±ndaki yÃ¶n hesaplama
+        private double CalculateBearing(Location start, Location end)
+        {
+            // Haversine formÃ¼lÃ¼ hesaplamasÄ±
             var lat1 = start.Latitude * Math.PI / 180;
             var lat2 = end.Latitude * Math.PI / 180;
             var deltaLon = (end.Longitude - start.Longitude) * Math.PI / 180;
@@ -34,6 +44,12 @@ namespace KesifUygulamasiTemplate.ViewModels
 
             var bearing = Math.Atan2(y, x) * 180 / Math.PI;
             return (bearing + 360) % 360;
+        }
+
+        public async Task UpdateCurrentLocationAsync()
+        {
+            CurrentLocation = await _locationService.GetCurrentLocationAsync();
+            OnPropertyChanged(nameof(CurrentLocation));
         }
     }
 }

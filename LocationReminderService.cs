@@ -3,7 +3,7 @@ public class LocationReminderService
 {
     public async Task SetReminderAsync(Location location, string message, DateTime triggerTime)
     {
-        // Belirli bir konuma yaklaşıldığında veya zamanı geldiğinde 
-        // kullanıcıya hatırlatma göster
+        // Belirli bir konuma yaklaÅŸÄ±ldÄ±ÄŸÄ±nda veya zamanÄ± geldiÄŸinde 
+        // kullanÄ±cÄ±ya hatÄ±rlatma gÃ¶ster
     }
 }

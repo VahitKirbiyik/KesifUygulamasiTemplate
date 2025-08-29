@@ -1,56 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
-    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
-    <xsd:element name="root" msdata:IsDataSet="true">
-      <xsd:complexType>
-        <xsd:choice maxOccurs="unbounded">
-          <xsd:element name="metadata">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" />
-              </xsd:sequence>
-              <xsd:attribute name="name" use="required" type="xsd:string" />
-              <xsd:attribute name="type" type="xsd:string" />
-              <xsd:attribute name="mimetype" type="xsd:string" />
-              <xsd:attribute ref="xml:space" />
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="assembly">
-            <xsd:complexType>
-              <xsd:attribute name="alias" type="xsd:string" />
-              <xsd:attribute name="name" type="xsd:string" />
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="data">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
-                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
-              </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
-              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
-              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
-              <xsd:attribute ref="xml:space" />
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="resheader">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
-              </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required" />
-            </xsd:complexType>
-          </xsd:element>
-        </xsd:choice>
-      </xsd:complexType>
-    </xsd:element>
-  </xsd:schema>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
   <resheader name="version">
-    <value>2.0</value>
   </resheader>
   <resheader name="reader">
     <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
@@ -59,7 +12,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="AppName" xml:space="preserve">
-    <value>Keşif Uygulaması</value>
+    <value>Keif Uygulaması</value>
   </data>
   <data name="Calibrating" xml:space="preserve">
     <value>Kalibre ediliyor...</value>
@@ -83,19 +36,16 @@
     <value>Yükleniyor...</value>
   </data>
   <data name="LocationAccessRequired" xml:space="preserve">
-    <value>Bu özellik için konum erişimi gereklidir</value>
-  </data>
-  <data name="MoonCompass" xml:space="preserve">
-    <value>Ay Pusulası</value>
+    <value>Bu özellik için konum eriimi gereklidir</value>
   </data>
   <data name="MoonPhase" xml:space="preserve">
     <value>Ay Fazı</value>
   </data>
   <data name="MoonRise" xml:space="preserve">
-    <value>Ay Doğuşu</value>
+    <value>Ay Douu</value>
   </data>
   <data name="MoonSet" xml:space="preserve">
-    <value>Ay Batışı</value>
+    <value>Ay Batıı</value>
   </data>
   <data name="OK" xml:space="preserve">
     <value>Tamam</value>
@@ -107,7 +57,7 @@
     <value>Ayarlar</value>
   </data>
   <data name="Start" xml:space="preserve">
-    <value>Başlat</value>
+    <value>Balat</value>
   </data>
   <data name="Stop" xml:space="preserve">
     <value>Durdur</value>
@@ -122,7 +72,7 @@
     <value>Türkçe</value>
   </data>
   <data name="ChangeLanguage" xml:space="preserve">
-    <value>Dil Değiştir</value>
+    <value>Dil Deitir</value>
   </data>
   <data name="DefaultLocation" xml:space="preserve">
     <value>Varsayılan konum kullanılıyor</value>
@@ -155,7 +105,7 @@
     <value>Sürüm</value>
   </data>
   <data name="OfflineMode" xml:space="preserve">
-    <value>Çevrimdışı Mod</value>
+    <value>Çevrimdıı Mod</value>
   </data>
   <data name="PermissionGranted" xml:space="preserve">
     <value>İzin verildi</value>
@@ -164,7 +114,7 @@
     <value>İzin reddedildi</value>
   </data>
   <data name="Share" xml:space="preserve">
-    <value>Paylaş</value>
+    <value>Payla</value>
   </data>
   <data name="GetLocation" xml:space="preserve">
     <value>Konum Al</value>
@@ -173,7 +123,7 @@
     <value>Mevcut konumu al</value>
   </data>
   <data name="ShareMoonData" xml:space="preserve">
-    <value>Ay verilerini paylaş</value>
+    <value>Ay verilerini payla</value>
   </data>
   <data name="NoMoonData" xml:space="preserve">
     <value>Ay verisi bulunamadı</value>
@@ -185,10 +135,10 @@
     <value>Ay Bilgileri</value>
   </data>
   <data name="MoonRiseTime" xml:space="preserve">
-    <value>Ay doğuş saati</value>
+    <value>Ay dou saati</value>
   </data>
   <data name="MoonSetTime" xml:space="preserve">
-    <value>Ay batış saati</value>
+    <value>Ay batı saati</value>
   </data>
   <data name="MoonPhasePercentage" xml:space="preserve">
     <value>Ay fazı yüzdesi</value>
@@ -197,22 +147,22 @@
     <value>Konum güncellendi</value>
   </data>
   <data name="ShareSuccessful" xml:space="preserve">
-    <value>Paylaşım başarılı!</value>
+    <value>Paylaım baarılı!</value>
   </data>
   <data name="PushNotifications" xml:space="preserve">
     <value>Push Bildirimleri</value>
   </data>
   <data name="InternetConnected" xml:space="preserve">
-    <value>İnternet bağlantısı tekrar sağlandı. Son veriler güncellenecek.</value>
+    <value>İnternet balantısı tekrar salandı. Son veriler güncellenecek.</value>
   </data>
   <data name="InternetDisconnected" xml:space="preserve">
-    <value>İnternet bağlantısı yok. Veriler önbellekten yüklenecek.</value>
+    <value>İnternet balantısı yok. Veriler önbellekten yüklenecek.</value>
   </data>
   <data name="IlluminationPercentage" xml:space="preserve">
     <value>Aydınlanma Yüzdesi</value>
   </data>
   <data name="MoonPhaseVisualization" xml:space="preserve">
-    <value>Ay fazı görselleştirmesi</value>
+    <value>Ay fazı görselletirmesi</value>
   </data>
   <data name="Azimuth" xml:space="preserve">
     <value>Azimuth</value>
@@ -224,3 +174,4 @@
     <value>Mesafe</value>
   </data>
 </root>
+

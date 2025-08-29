@@ -41,7 +41,7 @@ namespace KesifUygulamasiTemplate.Services
                         return (T)(object)new DateTime(ticks);
                     }
                 }
-                
+
                 return defaultValue;
             }
             catch (Exception)

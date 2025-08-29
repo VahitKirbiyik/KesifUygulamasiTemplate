@@ -1,35 +1,47 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.Maui.Devices.Sensors;
+using KesifUygulamasiTemplate.Services.Interfaces;
+using KesifUygulamasiTemplate.Models;
 
-namespace KesifUygamamasiTemplate.Services
+namespace KesifUygulamasiTemplate.Services
 {
-    // Basit in-memory / provider-agnostic stub
     public class RoutingService : IRoutingService
     {
+        public Task<DirectionsRoute?> GetRouteAsync(LatLng from, LatLng to)
+        {
+            // Stub implementation
+            return Task.FromResult<DirectionsRoute?>(new DirectionsRoute
+            {
+                Points = new List<LatLng> { from, to },
+                Distance = 0,
+                Duration = TimeSpan.Zero
+            });
+        }
+
         public Task<Route> CalculateRouteAsync(Location start, Location end, TransportMode mode = TransportMode.Driving)
         {
-            var r = new Route
+            // Stub implementation
+            return Task.FromResult(new Route
             {
+                Points = new List<Location> { start, end },
+                Distance = 0,
+                Duration = TimeSpan.Zero,
                 Start = start,
                 End = end,
-                DistanceKm = 1.0, // stub değer
-                Duration = TimeSpan.FromMinutes(5)
-            };
-            r.Path.Add(start);
-            r.Path.Add(end);
-            return Task.FromResult(r);
+                Steps = new List<RouteStep>()
+            });
         }
 
         public Task<List<Route>> GetAlternativeRoutesAsync(Location start, Location end, TransportMode mode = TransportMode.Driving)
         {
-            var list = new List<Route> { new Route { Start = start, End = end, DistanceKm = 1.0, Duration = TimeSpan.FromMinutes(5) } };
-            return Task.FromResult(list);
+            // Stub implementation
+            return Task.FromResult(new List<Route>());
         }
 
         public Task<TimeSpan> EstimateTimeAsync(Route route, bool considerTraffic = true)
         {
+            // Stub implementation
             return Task.FromResult(route.Duration);
         }
     }
