@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/your-username/KesifUygulamasiTemplate/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/KesifUygulamasiTemplate/actions/workflows/ci.yml)
 [![Code Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen)](https://github.com/your-username/KesifUygulamasiTemplate/actions/workflows/ci.yml/badge.svg)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://kesifapp.com/legal.html)
 [![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)](https://dotnet.microsoft.com/)
 [![Platforms](https://img.shields.io/badge/Platforms-iOS%20%7C%20Android%20%7C%20Windows-lightgrey.svg)](https://dotnet.microsoft.com/en-us/apps/maui)
 
