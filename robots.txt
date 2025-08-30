@@ -1,16 +1,1 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://kesifapp.com/sitemap.xml
-
-# Block access to sensitive files
-Disallow: /.github/
-Disallow: /.vscode/
-Disallow: /bin/
-Disallow: /obj/
-Disallow: /*.cs
-Disallow: /*.xaml
-Disallow: /*.config
-Disallow: /*.json
-Disallow: /*.log
-Disallow: /*.tmp
+User-agent: *\nAllow: /\n\nSitemap: https://kesifapp.com/sitemap.xml\n\n# Block access to sensitive files\nDisallow: /.github/\nDisallow: /.vscode/\nDisallow: /bin/\nDisallow: /obj/\nDisallow: /*.cs\nDisallow: /*.xaml\nDisallow: /*.config\nDisallow: /*.json\nDisallow: /*.log\nDisallow: /*.tmp\n

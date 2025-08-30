@@ -1,0 +1,93 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Moq;
+using Xunit;
+using KesifUygulamasiTemplate.Models;
+using KesifUygulamasiTemplate.Services;
+using KesifUygulamasiTemplate.Services.Interfaces;
+
+namespace KesifUygulamasiTemplate.Tests.Services
+{
+    public class RouteServiceOptimizationTests
+    {
+        private readonly Mock<HttpClient> _mockHttpClient;
+        private readonly Mock<ConnectivityService> _mockConnectivityService;
+        private readonly Mock<ILogger<RouteService>> _mockLogger;
+        private readonly Mock<LocalizationService> _mockLocalizationService;
+        private readonly Mock<MonitoringService> _mockMonitoringService;
+        private readonly RouteService _routeService;
+
+        public RouteServiceOptimizationTests()
+        {
+            _mockHttpClient = new Mock<HttpClient>();
+            _mockConnectivityService = new Mock<ConnectivityService>();
+            _mockLogger = new Mock<ILogger<RouteService>>();
+            _mockLocalizationService = new Mock<LocalizationService>();
+            _mockMonitoringService = new Mock<MonitoringService>();
+
+            _routeService = new RouteService(
+                _mockHttpClient.Object,
+                _mockConnectivityService.Object,
+                _mockLogger.Object,
+                _mockLocalizationService.Object,
+                _mockMonitoringService.Object);
+        }
+
+        [Theory]
+        [InlineData(RouteOptimizationType.Fastest)]
+        [InlineData(RouteOptimizationType.Shortest)]
+        [InlineData(RouteOptimizationType.Eco)]
+        [InlineData(RouteOptimizationType.Safe)]
+        public async Task GetRouteAsync_WithDifferentOptimizationTypes_LogsCorrectly(RouteOptimizationType optimizationType)
+        {
+            // Arrange
+            var start = new LocationModel { Latitude = 39.9, Longitude = 32.8 };
+            var end = new LocationModel { Latitude = 41.0, Longitude = 29.0 };
+
+            _mockConnectivityService.Setup(c => c.IsConnected).Returns(true);
+
+            // Act
+            await _routeService.GetRouteAsync(start, end, optimizationType);
+
+            // Assert
+            _mockMonitoringService.Verify(m => m.LogRouteTypeUsage(optimizationType.ToString()), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetRouteAsync_OfflineMode_ReturnsOfflineRoute()
+        {
+            // Arrange
+            var start = new LocationModel { Latitude = 39.9, Longitude = 32.8 };
+            var end = new LocationModel { Latitude = 41.0, Longitude = 29.0 };
+
+            _mockConnectivityService.Setup(c => c.IsConnected).Returns(false);
+            _mockLocalizationService.Setup(l => l.GetString(It.IsAny<string>(), It.IsAny<object>()))
+                .Returns("Offline ETA: 30 minutes");
+
+            // Act
+            var result = await _routeService.GetRouteAsync(start, end, RouteOptimizationType.Fastest);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.True(result.Count > 0);
+            _mockMonitoringService.Verify(m => m.LogRouteTypeUsage("Fastest"), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetRouteAsync_OnlineMode_LogsProviderUsage()
+        {
+            // Arrange
+            var start = new LocationModel { Latitude = 39.9, Longitude = 32.8 };
+            var end = new LocationModel { Latitude = 41.0, Longitude = 29.0 };
+
+            _mockConnectivityService.Setup(c => c.IsConnected).Returns(true);
+
+            // Act
+            await _routeService.GetRouteAsync(start, end, RouteOptimizationType.Fastest);
+
+            // Assert
+            _mockMonitoringService.Verify(m => m.LogProviderUsage(It.IsAny<string>()), Times.Once);
+        }
+    }
+}

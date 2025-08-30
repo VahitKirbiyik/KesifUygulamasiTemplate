@@ -1,0 +1,1021 @@
+# KesifUygulamasiTemplate
+
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Active-brightgreen)](https://kesifapp.com/)
+[![CI](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/ci.yml/badge.svg)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/ci.yml)
+[![Code Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://kesifapp.com/legal.html)
+[![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)](https://dotnet.microsoft.com/)
+[![Platforms](https://img.shields.io/badge/Platforms-iOS%20%7C%20Android%20%7C%20Windows-lightgrey.svg)](https://dotnet.microsoft.com/en-us/apps/maui)
+[![GitHub stars](https://img.shields.io/github/stars/VahitKirbiyik/KesifUygulamasiTemplate)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/VahitKirbiyik/KesifUygulamasiTemplate)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/issues)
+[![GitHub last commit](https://img.shields.io/github/last-commit/VahitKirbiyik/KesifUygulamasiTemplate)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/commits/main)
+
+.NET MAUI tabanlÄ± geliÅŸmiÅŸ keÅŸif uygulamasÄ± template projesi. Modern navigasyon, pusula Ã¶zellikleri ve kapsamlÄ± harita desteÄŸi ile donatÄ±lmÄ±ÅŸtÄ±r.
+
+## 🚀 Özellikler
+
+### 🗺️ Navigasyon & Harita
+- **Çoklu Rota API Desteği**: Google Maps & Mapbox Directions API
+- **Offline Harita**: 500MB önbellek ile çevrimdışı harita desteği
+- **Gerçek Zamanlı Trafik**: Trafik durumu ve alternatif rotalar
+- **Sesli Yönlendirme**: Text-to-Speech ile navigasyon talimatları
+- **POI Yönetimi**: İlgi çekici noktalar ve favori yerler
+
+### 🧭 Pusula Özellikleri
+- **Ay Pusulası**: Ay'ın konumunu ve fazını gerçek zamanlı hesaplama
+- **Kıble Pusulası**: İslam'ın kutsal yönü için hassas pusula
+- **Pusula Kalibrasyonu**: Otomatik kalibrasyon sistemi
+- **Astronomik Hesaplamalar**: Güneş, ay ve yıldız pozisyonları
+
+### 🌐 Çoklu Dil Desteği
+- **40+ Dil**: Arapça, Almanca, Fransızca, İspanyolca, Çince, Japonca vb.
+- **RTL Desteği**: Arapça ve İbranice için sağdan sola yazım
+- **Dinamik Dil Değişimi**: Çalışma zamanında dil değiştirme
+- **Kültürel Yerelleştirme**: Tarih, sayı ve para birimi formatları
+
+### 📢 Akıllı Bildirimler
+- **Navigasyon Bildirimleri**: Varış noktası hatırlatmaları
+- **Hava Durumu Uyarıları**: Hava durumu değişiklikleri
+- **Acil Durum Noktaları**: Yakındaki hastane, polis merkezi bildirimleri
+- **Favori Yer Hatırlatmaları**: Kaydedilmiş yerler için hatırlatmalar
+- **Ay Pusulası Bildirimleri**: Ay olayları ve faz değişiklikleri
+
+### 💳 Bağış Sistemi
+- **PayPal Entegrasyonu**: Güvenli PayPal bağış sistemi
+- **Stripe Entegrasyonu**: Kredi kartı ile bağış desteği
+- **Çoklu Ödeme Yöntemi**: Alternatif bağış seçenekleri
+- **Teşekkür Bildirimleri**: Bağış sonrası kullanıcı geri bildirimi
+
+### 🔧 Teknik Özellikler
+- **MVVM Mimarisi**: Temiz ve test edilebilir kod yapısı
+- **Dependency Injection**: Service locator pattern
+- **Global Exception Handling**: Merkezi hata yÃ¶netimi
+- **SQLite VeritabanÄ±**: Yerel veri depolama
+- **Offline Senkronizasyon**: Ã‡evrimdÄ±ÅŸÄ± veri senkronizasyonu
+
+## ğŸ› ï¸ Teknoloji Stack
+
+- **Framework**: .NET 8, .NET MAUI
+- **UI**: XAML, CommunityToolkit.Maui
+- **Architecture**: MVVM Pattern
+- **Database**: SQLite
+- **Maps**: Google Maps API, Mapbox API
+- **Weather**: OpenWeatherMap API
+- **Analytics**: Microsoft App Center
+- **Testing**: xUnit, Moq, Coverlet
+- **CI/CD**: GitHub Actions
+- **Dependency Injection**: Microsoft.Extensions.DependencyInjection
+
+## ğŸ“Š Kalite Metrikleri
+
+- âœ… **Test Coverage**: %85+ hedef (RouteService, PushNotificationService, MapDataService testleri mevcut)
+- âœ… **Code Quality**: StyleCop, Roslyn analizÃ¶rleri
+- âœ… **Build Status**: TÃ¼m platformlarda baÅŸarÄ±lÄ±
+- âœ… **Exception Handling**: Global hata yakalama
+- âœ… **API Configuration**: YapÄ±landÄ±rÄ±labilir API anahtarlarÄ±
+- âœ… **Documentation**: KapsamlÄ± README ve kod yorumlarÄ±
+
+## ğŸƒâ€â™‚ï¸ Kurulum ve Ã‡alÄ±ÅŸtÄ±rma
+
+### Ã–n Gereksinimler
+- .NET 8 SDK
+- Visual Studio 2022 (17.4+)
+- Android SDK (Android geliÅŸtirme iÃ§in)
+- Xcode (iOS geliÅŸtirme iÃ§in)
+
+### HÄ±zlÄ± BaÅŸlangÄ±Ã§
+
+```bash
+# Projeyi klonlayÄ±n
+git clone https://github.com/your-username/KesifUygulamasiTemplate.git
+cd KesifUygulamasiTemplate
+
+# BaÄŸÄ±mlÄ±lÄ±klarÄ± yÃ¼kleyin
+dotnet restore
+
+# API anahtarlarÄ±nÄ± yapÄ±landÄ±rÄ±n
+cp appsettings.json appsettings.local.json
+# appsettings.local.json dosyasÄ±nÄ± dÃ¼zenleyin ve API anahtarlarÄ±nÄ±zÄ± ekleyin
+
+# UygulamayÄ± Ã§alÄ±ÅŸtÄ±rÄ±n
+dotnet build
+dotnet run
+```
+
+### API AnahtarlarÄ± YapÄ±landÄ±rmasÄ±
+
+`appsettings.json` dosyasÄ±nda aÅŸaÄŸÄ±daki API anahtarlarÄ±nÄ± yapÄ±landÄ±rÄ±n:
+
+```json
+{
+  "ApiKeys": {
+    "GoogleMaps": {
+      "ApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+    },
+    "Mapbox": {
+      "ApiKey": "YOUR_MAPBOX_API_KEY"
+    },
+    "OpenWeatherMap": {
+      "ApiKey": "YOUR_OPENWEATHER_API_KEY"
+    }
+  }
+}
+```
+
+## ğŸ§ª Test Ã‡alÄ±ÅŸtÄ±rma
+
+```bash
+# TÃ¼m unit testleri Ã§alÄ±ÅŸtÄ±rÄ±n
+dotnet test
+
+# Code coverage ile test Ã§alÄ±ÅŸtÄ±rÄ±n
+dotnet test --collect:"XPlat Code Coverage"
+
+# Belirli bir test projesi Ã§alÄ±ÅŸtÄ±rÄ±n
+dotnet test KesifUygulamasiTemplate.Tests/KesifUygulamasiTemplate.Tests.csproj
+```
+
+### Test KapsamÄ±
+- **Services**: RouteService, PushNotificationService, MapDataService
+- **ViewModels**: SettingsViewModel, MoonCompassViewModel
+- **Coverage Hedef**: %85+
+
+## ğŸ“± Platform Ã–zellikleri
+
+### Android
+- Google Play Services entegrasyonu
+- Android Auto desteÄŸi
+- Wear OS companion app
+- Background location services
+
+### iOS
+- Apple Maps entegrasyonu
+- CarPlay desteÄŸi
+- iOS Widget desteÄŸi
+- Background location services
+
+### Windows
+- WinUI 3 desteÄŸi
+- Windows Maps entegrasyonu
+- Live tiles
+- Background tasks
+
+## ğŸ”§ GeliÅŸmiÅŸ YapÄ±landÄ±rma
+
+### Harita AyarlarÄ±
+```json
+{
+  "MapSettings": {
+    "DefaultZoomLevel": 15,
+    "MaxZoomLevel": 20,
+    "MinZoomLevel": 3,
+    "CacheSizeMB": 500,
+    "CacheExpiryDays": 30
+  }
+}
+```
+
+### Bildirim AyarlarÄ±
+```json
+{
+  "NotificationSettings": {
+    "NavigationEnabled": true,
+    "WeatherAlertsEnabled": true,
+    "EmergencyPointsEnabled": true,
+    "MoonCompassEnabled": true
+  }
+}
+```
+
+## ğŸ“ˆ CI/CD Pipeline
+
+Proje aÅŸaÄŸÄ±daki otomatik sÃ¼reÃ§leri iÃ§erir:
+
+1. **Build & Test**: TÃ¼m platformlarda paralel build
+2. **Code Analysis**: Stil ve kalite kontrolÃ¼
+3. **Test Coverage**: Kapsam raporu oluÅŸturma (%85 hedef)
+4. **Security Scan**: GÃ¼venlik aÃ§Ä±ÄŸÄ± taramasÄ±
+5. **Artifact Upload**: Build Ã§Ä±ktÄ±larÄ± ve raporlar
+6. **Release Build**: Android .aab ve iOS .ipa oluÅŸturma
+
+## ğŸ›¡ï¸ GÃ¼venlik ve Gizlilik
+
+- **API Key Security**: GÃ¼venli anahtar yÃ¶netimi
+- **Location Privacy**: Konum izni yÃ¶netimi
+- **Data Encryption**: Hassas veri ÅŸifreleme
+- **Crash Reporting**: GÃ¼venli crash log'larÄ±
+- **Privacy Controls**: KullanÄ±cÄ± gizlilik ayarlarÄ±
+
+## ğŸ¤ KatkÄ±da Bulunma
+
+1. Fork edin
+2. Feature branch oluÅŸturun (`git checkout -b feature/AmazingFeature`)
+3. Commit edin (`git commit -m 'Add some AmazingFeature'`)
+4. Push edin (`git push origin feature/AmazingFeature`)
+5. Pull Request aÃ§Ä±n
+
+### GeliÅŸtirme StandartlarÄ±
+- MVVM pattern kullanÄ±mÄ±
+- Unit test yazÄ±mÄ±
+- Code documentation
+- StyleCop kurallarÄ±na uyum
+- TÃ¼rkÃ§e dil hassasiyeti
+
+## ğŸ“ Lisans
+
+Bu proje MIT lisansÄ± altÄ±nda lisanslanmÄ±ÅŸtÄ±r. Detaylar iÃ§in [LICENSE](LICENSE) dosyasÄ±na bakÄ±n.
+
+## ğŸ™ TeÅŸekkÃ¼rler
+
+## ğŸ§ª PWA Test Scripti
+
+Proje, kapsamlÄ± PWA (Progressive Web App) testleri iÃ§in geliÅŸmiÅŸ bir PowerShell scripti iÃ§erir.
+
+### ğŸš€ KullanÄ±m
+
+```powershell
+# Temel test Ã§alÄ±ÅŸtÄ±rma
+.\Test-PWA.ps1
+
+# Ã–zel URL ile test
+.\Test-PWA.ps1 https://kesifapp.com
+
+# AyrÄ±ntÄ±lÄ± mod
+.\Test-PWA.ps1 -Verbose
+
+# AÄŸ testlerini atla
+.\Test-PWA.ps1 -SkipNetworkTests
+
+# JSON export ile
+.\Test-PWA.ps1 -ExportJson
+
+# TÃ¼m seÃ§enekler birlikte
+.\Test-PWA.ps1 https://kesifapp.com -Verbose -ExportJson
+```
+
+### ğŸ“Š Test KapsamÄ±
+
+- âœ… **Manifest.json KontrolÃ¼**: PWA manifest dosyasÄ± validasyonu
+- âœ… **Service Worker Testi**: Service worker kaydÄ± ve iÅŸlevselliÄŸi
+- âœ… **HTML PWA Entegrasyonu**: TÃ¼m sayfalarda PWA meta etiketleri
+- âœ… **Offline Capability**: Ã‡evrimdÄ±ÅŸÄ± Ã§alÄ±ÅŸma yetenekleri
+- âœ… **404 Sayfa Testi**: Ã–zel 404 sayfasÄ±nÄ±n PWA uyumluluÄŸu
+
+### ğŸ“„ JSON Export
+
+`-ExportJson` parametresi ile test sonuÃ§larÄ± yapÄ±landÄ±rÄ±lmÄ±ÅŸ JSON formatÄ±nda dÄ±ÅŸa aktarÄ±lÄ±r:
+
+```json
+{
+  "metadata": {
+    "timestamp": "2025-01-01T12:00:00Z",
+    "script_version": "2.0.0",
+    "test_duration_seconds": 1.23
+  },
+  "test_results": {
+    "total_tests": 7,
+    "passed_tests": 5,
+    "failed_tests": 1,
+    "skipped_tests": 1,
+    "success_rate": 71.4
+  },
+  "performance_metrics": {
+    "test_duration": "00:00:01.2300000",
+    "average_response_time": 0.18,
+    "tests_per_second": 5.69
+  },
+  "recommendations": [
+    "BaÅŸarÄ±sÄ±z testleri dÃ¼zeltmek iÃ§in manifest.json dosyasÄ±nÄ± kontrol edin"
+  ]
+}
+```
+
+### ğŸ”§ CI/CD Entegrasyonu
+
+GitHub Actions workflow'u ile otomatik PWA testleri:
+
+```yaml
+# .github/workflows/pwa-test.yml
+name: PWA Tests & Audit
+on: [push, pull_request]
+jobs:
+  pwa-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run PWA Tests
+        run: .\Test-PWA.ps1 -Verbose -ExportJson
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pwa-test-results
+          path: pwa-test-results.json
+```
+
+---
+
+Bu projeye katkÄ±da bulunan tÃ¼m geliÅŸtiricilere teÅŸekkÃ¼r ederiz. Ã–zellikle:
+
+- .NET MAUI topluluÄŸu
+- OpenStreetMap contributors
+- Google Maps Platform
+- Mapbox
+- OpenWeatherMap
+
+---
+
+**â­ Bu proje faydalÄ± olduysa yÄ±ldÄ±z vermeyi unutmayÄ±n!**
+
+## 🚨 Son Test Başarısızlıkları
+
+**Son Güncelleme:** 2025-08-30 02:40:23
+**Başarısız Test Sayısı:** 7
+
+### Kritik Sorunlar
+- PWA manifest dosyası bulunamadı veya geçersiz
+- Service Worker dosyası bulunamadı veya eksik işlevsellik
+- Ana sayfa PWA entegrasyonu eksik veya hatalı
+
+### Uyarılar
+- Offline fallback sayfası bulunamadı
+- Gizlilik sayfası bulunamadı veya PWA entegrasyonu eksik
+- Yasal sayfa bulunamadı veya PWA entegrasyonu eksik
+
+### Bilgilendirme
+- 404 sayfası bulunamadı veya PWA entegrasyonu eksik
+
+### Önerilen İlk Adımlar
+1. PWA manifest dosyasını kontrol edin ve gerekli alanları ekleyin
+2. Service Worker dosyasını oluşturun ve temel event handler'ları ekleyin
+3. HTML sayfalarına PWA meta etiketlerini ekleyin
+4. HTTPS protokolünü kullanın
+5. Tarayıcı geliştirici araçlarında PWA bölümünü kontrol edin
+
+### Detaylı Analiz
+Daha detaylı hata analizi için pwa-test-results.json dosyasındaki suggestions alanını inceleyin.
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+# 🔍 PWA Test Sistemi Dokümantasyonu
+
+Bu dokümantasyon, `Test-PWA.ps1` script'inin kapsamlı kullanım kılavuzunu içerir. Sistem, Progressive Web App (PWA) projelerinin otomatik test edilmesi, izlenmesi ve raporlanması için tasarlanmıştır.
+
+## 📦 Kurulum
+
+### Sistem Gereksinimleri
+- **PowerShell**: 5.1 veya üzeri
+- **Windows/Linux/macOS**: Tüm platformlarda çalışır
+- **İnternet Bağlantısı**: Testler için gerekli
+- **Git**: Repository işlemleri için
+
+### Hızlı Kurulum
+
+```bash
+# 1. Repository'yi klonlayın
+git clone https://github.com/VahitKirbiyik/KesifUygulamasiTemplate.git
+cd KesifUygulamasiTemplate
+
+# 2. Script'i çalıştırılabilir yapın (Linux/macOS)
+chmod +x Test-PWA.ps1
+
+# 3. İlk testi çalıştırın
+.\Test-PWA.ps1
+```
+
+### Gerekli İzinler
+```powershell
+# PowerShell execution policy ayarlayın
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+## 🚀 Kullanım
+
+### Temel Kullanım
+
+```bash
+# Basit PWA testi
+.\Test-PWA.ps1
+
+# Özel URL ile test
+.\Test-PWA.ps1 https://kesifapp.com
+
+# Verbose mod ile detaylı çıktı
+.\Test-PWA.ps1 -Verbose
+
+# JSON export ile sonuçları kaydet
+.\Test-PWA.ps1 -ExportJson
+
+# Dashboard oluştur
+.\Test-PWA.ps1 -GenerateDashboard
+```
+
+### Gelişmiş Kullanım Örnekleri
+
+```bash
+# Tam özellikli test (tüm modüller)
+.\Test-PWA.ps1 -Verbose -ExportJson -GenerateDashboard -IncludeLegalTests -IncludeSEOTests
+
+# Hızlı test modu
+.\Test-PWA.ps1 --fast-mode
+
+# Ağ testlerini atla
+.\Test-PWA.ps1 -SkipNetworkTests
+
+# Sadece belirli test kategorilerini çalıştır
+.\Test-PWA.ps1 -IncludeLegalTests -IncludeSEOTests
+```
+
+## ⚙️ Parametreler
+
+### Temel Parametreler
+
+| Parametre | Açıklama | Örnek |
+|-----------|----------|-------|
+| `URL` | Test edilecek PWA URL'i | `.\Test-PWA.ps1 https://example.com` |
+| `-Verbose` | Detaylı çıktı modu | `.\Test-PWA.ps1 -Verbose` |
+| `-ExportJson` | JSON formatında export | `.\Test-PWA.ps1 -ExportJson` |
+| `-GenerateDashboard` | HTML dashboard oluştur | `.\Test-PWA.ps1 -GenerateDashboard` |
+
+### İleri Düzey Parametreler
+
+| Parametre | Açıklama | Örnek |
+|-----------|----------|-------|
+| `--fast-mode` | Hızlı test modu | `.\Test-PWA.ps1 --fast-mode` |
+| `-SkipNetworkTests` | Ağ testlerini atla | `.\Test-PWA.ps1 -SkipNetworkTests` |
+| `-IncludeLegalTests` | Yasal uygunluk testleri | `.\Test-PWA.ps1 -IncludeLegalTests` |
+| `-IncludeSEOTests` | SEO testleri dahil et | `.\Test-PWA.ps1 -IncludeSEOTests` |
+| `--slack-webhook` | Slack webhook URL | `.\Test-PWA.ps1 --slack-webhook="https://hooks.slack.com/..."` |
+| `--discord-webhook` | Discord webhook URL | `.\Test-PWA.ps1 --discord-webhook="https://discord.com/api/..."` |
+
+### Environment Variables
+
+```bash
+# Slack Webhook (otomatik kullanım için)
+PWA_SLACK_WEBHOOK="https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+
+# Discord Webhook (otomatik kullanım için)
+PWA_DISCORD_WEBHOOK="https://discord.com/api/webhooks/YOUR/DISCORD/WEBHOOK"
+```
+
+## 🔄 Otomatik Workflow
+
+### GitHub Actions Kurulumu
+
+1. **Repository'nize gidin**: Settings → Secrets and variables → Actions
+2. **Secret'ları ekleyin**:
+   - `PWA_SLACK_WEBHOOK`: Slack webhook URL'iniz
+   - `PWA_DISCORD_WEBHOOK`: Discord webhook URL'iniz
+
+3. **Workflow dosyasını kontrol edin**: `.github/workflows/pwa-test.yml`
+
+### Otomatik Tetikleyiciler
+
+| Tetikleyici | Açıklama | Sıklık |
+|-------------|----------|--------|
+| **Haftalık Cron** | Pazartesi sabah 9'da | Her hafta |
+| **Push Events** | Ana branch'e push | Her push |
+| **PR Events** | Pull request'ler | Her PR |
+| **Manuel** | workflow_dispatch | İsteğe bağlı |
+
+### Workflow Özellikleri
+
+```yaml
+# .github/workflows/pwa-test.yml
+name: PWA Test Automation
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Pazartesi 09:00
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+    inputs:
+      slack_webhook:
+        description: 'Slack Webhook URL'
+      discord_webhook:
+        description: 'Discord Webhook URL'
+```
+
+### Otomatik İşlemler
+
+1. **Test Çalıştırma**: PWA testlerini otomatik çalıştırır
+2. **Sonuç Analizi**: Trend analizi ve başarısızlık tespiti
+3. **Badge Güncelleme**: Otomatik badge rengi güncellemesi
+4. **README Güncelleme**: Trend raporu ile otomatik güncelleme
+5. **Webhook Bildirimleri**: Slack/Discord'a otomatik bildirim
+6. **Commit İşlemleri**: Test sonuçlarını otomatik kaydetme
+
+## 📊 Trend Analizi
+
+### Trend Hesaplama Mantığı
+
+Sistem, son 5 test sonucunu analiz ederek performans trendini belirler:
+
+```powershell
+# Trend hesaplama algoritması
+$trendAnalysis = @{
+    direction = "improving|declining|stable"
+    change_percent = 15.5  # Yüzde değişim
+    average_last_5 = 78.3  # Son 5 test ortalaması
+    confidence = "high|medium|low"  # Güvenilirlik seviyesi
+    last_5_rates = @(85, 82, 88, 90, 87)  # Son 5 başarı oranı
+}
+```
+
+### Trend Göstergeleri
+
+| Gösterge | Anlam | Açıklama |
+|----------|-------|----------|
+| 📈 **İyileşen** | Performance artıyor | Son testler önceki testlerden daha başarılı |
+| 📉 **Düşen** | Performance düşüyor | Son testler önceki testlerden daha başarısız |
+| ➡️ **Stabil** | Değişim yok | Performance stabil, önemli değişim yok |
+
+### Trend Görselleştirme
+
+```
+Son 5 Test Başarı Oranları:
+85% → 82% → 88% → 90% → 87%
+        📈 İyileşen Trend (+5.2%)
+```
+
+### Güvenilirlik Seviyeleri
+
+- **High**: 5+ test verisi, tutarlı trend
+- **Medium**: 3-4 test verisi, orta güvenilirlik
+- **Low**: 1-2 test verisi, düşük güvenilirlik
+
+## 🏷️ Badge Sistemi
+
+### Otomatik Badge Güncellemeleri
+
+Sistem aşağıdaki badge'leri otomatik olarak günceller:
+
+```markdown
+<!-- Temel Badge'ler -->
+[![PWA Tests](https://img.shields.io/badge/PWA_Tests-85%25-brightgreen)](.)
+[![PWA Score](https://img.shields.io/badge/PWA_Score-85%25-brightgreen)](.)
+[![Tests Passed](https://img.shields.io/badge/Tests_Passed-17/20-brightgreen)](.)
+[![Tests Failed](https://img.shields.io/badge/Tests_Failed-3-red)](.)
+[![Trend](https://img.shields.io/badge/Trend-İyileşen-brightgreen)](.)
+
+<!-- Stilize Badge'ler -->
+![PWA](https://img.shields.io/badge/PWA-Ready-brightgreen?style=for-the-badge&logo=pwa)
+![Test Status](https://img.shields.io/badge/Test_Status-Passing-brightgreen?style=for-the-badge&logo=github-actions)
+```
+
+### Badge Renk Algoritması
+
+```powershell
+# Renk belirleme mantığı
+$badgeColor = switch ($successRate) {
+    { $_ -ge 90 } {
+        if ($trendDirection -eq "improving") { "brightgreen" }
+        else { "green" }
+    }
+    { $_ -ge 70 } {
+        if ($trendDirection -eq "improving") { "yellowgreen" }
+        elseif ($trendDirection -eq "declining") { "orange" }
+        else { "yellow" }
+    }
+    { $_ -ge 50 } {
+        if ($trendDirection -eq "improving") { "yellow" }
+        else { "orange" }
+    }
+    default { "red" }
+}
+```
+
+### Renk Açıklamaları
+
+| Renk | Başarı Oranı | Anlam |
+|------|-------------|-------|
+| 🟢 **Yeşil** | 90%+ | Mükemmel performans |
+| 🟡 **Sarı** | 70-89% | İyi performans |
+| 🟠 **Turuncu** | 50-69% | Orta performans |
+| 🔴 **Kırmızı** | <50% | Düşük performans |
+
+## 📢 Webhook Bildirimleri
+
+### Slack Entegrasyonu
+
+```json
+{
+  "text": "🚨 PWA Test Başarısız!\n📊 Detaylar: https://github.com/user/repo/actions/runs/123\n🕐 Zaman: 2025-08-30 09:00",
+  "attachments": [
+    {
+      "color": "danger",
+      "fields": [
+        {
+          "title": "Başarı Oranı",
+          "value": "65%",
+          "short": true
+        },
+        {
+          "title": "Trend",
+          "value": "📉 Düşen",
+          "short": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Discord Entegrasyonu
+
+```json
+{
+  "content": "🚨 PWA Test Başarısız!",
+  "embeds": [
+    {
+      "title": "PWA Test Sonuçları",
+      "color": 15158332,
+      "fields": [
+        {
+          "name": "Başarı Oranı",
+          "value": "65%",
+          "inline": true
+        },
+        {
+          "name": "Trend",
+          "value": "📉 Düşen",
+          "inline": true
+        },
+        {
+          "name": "Detaylar",
+          "value": "[GitHub Actions](https://github.com/user/repo/actions/runs/123)"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Webhook Kurulumu
+
+```bash
+# Slack webhook URL'ini alın
+# https://api.slack.com/apps → Create App → Incoming Webhooks
+
+# Discord webhook URL'ini alın
+# Server Settings → Integrations → Webhooks → New Webhook
+
+# Environment variable olarak ayarlayın
+PWA_SLACK_WEBHOOK="https://hooks.slack.com/services/YOUR/WEBHOOK"
+PWA_DISCORD_WEBHOOK="https://discord.com/api/webhooks/YOUR/WEBHOOK"
+```
+
+## 🧪 Test Kategorileri
+
+### 1. Temel PWA Testleri
+
+| Test | Açıklama | Kritiklik | Beklenen Sonuç |
+|------|----------|-----------|----------------|
+| **Manifest.json** | PWA manifest dosyasının varlığı ve geçerliliği | Yüksek | ✅ Geçerli JSON, tüm gerekli alanlar |
+| **Service Worker** | Service worker kaydı ve temel işlevsellik | Yüksek | ✅ SW kayıtlı, fetch/cache event'leri |
+| **HTTPS** | Güvenli bağlantı kontrolü | Kritik | ✅ HTTPS protokolü kullanılıyor |
+| **Offline Fallback** | Çevrimdışı sayfa kontrolü | Orta | ✅ Offline.html dosyası mevcut |
+| **Start URL** | Başlangıç URL kontrolü | Yüksek | ✅ Geçerli URL, manifest'de tanımlı |
+
+### 2. Performans Testleri
+
+| Test | Açıklama | Ölçüt | Kritiklik |
+|------|----------|-------|-----------|
+| **Load Time** | Sayfa yükleme süresi | <3 saniye | Yüksek |
+| **First Paint** | İlk görüntülenme | <2 saniye | Orta |
+| **Core Web Vitals** | LCP, FID, CLS skorları | >75 puan | Yüksek |
+| **Bundle Size** | JavaScript bundle boyutu | <500KB | Orta |
+| **Cache Strategy** | Önbellekleme stratejisi | Optimal | Orta |
+
+### 3. Güvenlik Testleri
+
+| Test | Açıklama | Standart | Kritiklik |
+|------|----------|----------|-----------|
+| **Content Security Policy** | CSP başlıkları | W3C Standartları | Yüksek |
+| **X-Frame-Options** | Clickjacking koruması | DENY/SAMEORIGIN | Yüksek |
+| **X-Content-Type-Options** | MIME sniffing koruması | nosniff | Orta |
+| **Referrer-Policy** | Referrer bilgisi kontrolü | strict-origin-when-cross-origin | Orta |
+| **HTTPS Redirect** | HTTP'den HTTPS'ye yönlendirme | 301/302 | Kritik |
+
+### 4. SEO Testleri
+
+| Test | Açıklama | Önem | Kritiklik |
+|------|----------|------|-----------|
+| **Meta Tags** | Title, description, keywords | Yüksek | Yüksek |
+| **Open Graph** | Sosyal medya meta etiketleri | Orta | Orta |
+| **Structured Data** | JSON-LD schema markup | Orta | Orta |
+| **Sitemap** | Site haritası kontrolü | Düşük | Düşük |
+| **Robots.txt** | Arama motoru yönergeleri | Orta | Orta |
+
+### 5. Yasal Uygunluk Testleri
+
+| Test | Açıklama | Mevzuat | Kritiklik |
+|------|----------|---------|-----------|
+| **Privacy Policy** | Gizlilik politikası | GDPR, KVKK | Kritik |
+| **Terms of Service** | Kullanım koşulları | Genel | Yüksek |
+| **Cookie Consent** | Çerez onay mekanizması | GDPR | Kritik |
+| **Accessibility** | Erişilebilirlik standartları | WCAG 2.1 | Yüksek |
+| **Data Protection** | Veri koruma önlemleri | GDPR | Kritik |
+
+## 📋 Çıktı Dosyaları
+
+### pwa-test-results.json
+En son test çalıştırmasının detaylı sonuçlarını içerir.
+
+```json
+{
+  "metadata": {
+    "timestamp": "2025-08-30T09:00:00Z",
+    "script_version": "4.0",
+    "test_duration_seconds": 45.2,
+    "hostname": "DESKTOP-F8M2K05",
+    "username": "VAHIT",
+    "powershell_version": "5.1.26100.4768",
+    "os_version": "Microsoft Windows NT 10.0.26100.0"
+  },
+  "summary": {
+    "success_rate": 85,
+    "passed_tests": 17,
+    "failed_tests": 3,
+    "skipped_tests": 0,
+    "total_tests": 20,
+    "test_duration": "00:00:45.2000000",
+    "average_response_time": 0.18,
+    "tests_per_second": 5.69
+  },
+  "detailed_results": {
+    "manifest_test": {
+      "status": "passed",
+      "score": 95,
+      "details": "Manifest.json valid and complete",
+      "category": "basic",
+      "criticality": "high"
+    }
+  },
+  "categories": {
+    "basic": { "passed": 4, "failed": 1, "total": 5 },
+    "performance": { "passed": 3, "failed": 0, "total": 3 },
+    "security": { "passed": 5, "failed": 1, "total": 6 },
+    "seo": { "passed": 3, "failed": 1, "total": 4 },
+    "legal": { "passed": 2, "failed": 0, "total": 2 }
+  },
+  "recommendations": [
+    "Manifest.json dosyasını kontrol edin",
+    "Service Worker'ı test edin",
+    "HTTPS'yi etkinleştirin"
+  ]
+}
+```
+
+### test-history.json
+Test geçmişini ve trend analizini içerir.
+
+```json
+{
+  "test_runs": [
+    {
+      "timestamp": "2025-08-30T09:00:00Z",
+      "success_rate": 85,
+      "passed_tests": 17,
+      "failed_tests": 3,
+      "duration_seconds": 45.2,
+      "script_version": "4.0"
+    }
+  ],
+  "trend_analysis": {
+    "direction": "improving",
+    "change_percent": 5.2,
+    "average_last_5": 82.4,
+    "confidence": "high",
+    "last_5_rates": [80, 82, 85, 87, 85]
+  }
+}
+```
+
+### pwa-dashboard.html
+İnteraktif HTML dashboard ile görsel raporlama.
+
+**Özellikler:**
+- Gerçek zamanlı veri yükleme (JSON'dan)
+- İnteraktif Chart.js grafikleri
+- Responsive Bootstrap tasarımı
+- Detaylı test sonuçları tablosu
+- Trend analizi görselleştirmesi
+- Tooltip destekli yardım metinleri
+
+### pwa-badges.md
+Otomatik güncellenen badge'ler için markdown formatı.
+
+```markdown
+<!-- Temel Badge'ler -->
+[![PWA Tests](https://img.shields.io/badge/PWA_Tests-85%25-brightgreen)](.)
+[![PWA Score](https://img.shields.io/badge/PWA_Score-85%25-brightgreen)](.)
+[![Tests Passed](https://img.shields.io/badge/Tests_Passed-17/20-brightgreen)](.)
+[![Tests Failed](https://img.shields.io/badge/Tests_Failed-3-red)](.)
+[![Trend](https://img.shields.io/badge/Trend-İyileşen-brightgreen)](.)
+```
+
+## 🔧 Sorun Giderme
+
+### Yaygın Hatalar ve Çözümleri
+
+#### 1. Manifest.json Bulunamadı Hatası
+```powershell
+# Hata: "Manifest.json file not found"
+# Çözüm: Proje kök dizininize manifest.json ekleyin
+```
+
+**Doğru manifest.json örneği:**
+```json
+{
+  "name": "Uygulama Adı",
+  "short_name": "Kısa Ad",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
+```
+
+#### 2. Service Worker Hatası
+```powershell
+# Hata: "Service Worker registration failed"
+# Çözüm: service-worker.js dosyasını oluşturun
+```
+
+**Temel service-worker.js örneği:**
+```javascript
+// Service Worker kaydı
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js')
+    .then(registration => console.log('SW registered'))
+    .catch(error => console.log('SW registration failed'));
+}
+
+// Cache ve fetch event'leri
+self.addEventListener('install', event => {
+  // Kurulum işlemleri
+});
+
+self.addEventListener('fetch', event => {
+  // Fetch işlemleri
+});
+```
+
+#### 3. HTTPS Hatası
+```powershell
+# Hata: "HTTPS required for PWA"
+# Çözüm: Siteyi HTTPS üzerinden yayınlayın
+```
+
+**Yönlendirme örneği (.htaccess):**
+```apache
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+```
+
+### Debug Modu Kullanımı
+
+#### Detaylı Hata Ayıklama
+```bash
+# Verbose mod ile detaylı çıktı
+.\Test-PWA.ps1 -Verbose
+
+# Ağ testlerini atla (debug için)
+.\Test-PWA.ps1 -SkipNetworkTests
+
+# Sadece belirli kategoriyi test et
+.\Test-PWA.ps1 -IncludeLegalTests
+```
+
+#### Browser Developer Tools
+1. **Application Tab**: Service Worker ve Cache durumunu kontrol edin
+2. **Network Tab**: Ağ isteklerini inceleyin
+3. **Console Tab**: JavaScript hatalarını görün
+4. **Lighthouse Tab**: PWA skorunu kontrol edin
+
+#### Manuel Test Komutları
+```powershell
+# Manifest validasyonu
+Test-Json -Path "manifest.json"
+
+# Service Worker testi
+# Browser console'da: navigator.serviceWorker.getRegistrations()
+
+# HTTPS kontrolü
+# Browser'da adres çubuğunda kilit ikonu olmalı
+```
+
+## 📞 Destek
+
+### Sorularınız için:
+- **GitHub Issues**: https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/issues
+- **Discussions**: https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/discussions
+- **Wiki**: https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/wiki
+
+### Katkıda Bulunma:
+1. Fork edin
+2. Feature branch oluşturun
+3. Değişikliklerinizi commit edin
+4. Pull request gönderin
+
+---
+
+*Bu dokümantasyon son güncelleme: 2025-08-30*
+*Test Script Versiyonu: 4.0*
+
+
+
+
+
+## 🧪 PWA Test Sonuçları
+
+### Son Test Özeti
+- **Tarih:** 2025-08-30 03:07:58
+- **Başarı Oranı:** 0%
+- **Geçen Testler:** 0
+- **Başarısız Testler:** 0
+- **Atlanan Testler:** 0
+- **Toplam Testler:** 0
+- **Test Süresi:** 0 saniye
+- **Script Versiyonu:** N/A
+
+### Test Kategorileri
+| Kategori | Geçen | Başarısız | Toplam |
+|----------|-------|-----------|--------|
+| Temel PWA | 0 | 0 | 0 |
+| Performans | 0 | 0 | 0 |
+| Güvenlik | 0 | 0 | 0 |
+| SEO | 0 | 0 | 0 |
+| Yasal | 0 | 0 | 0 |
+
+
+## � Trend Raporu
+
+### Son 5 Test Analizi
+| Metrik | Değer | Trend |
+|--------|-------|-------|
+| Ortalama Başarı Oranı | N/A% | stable |
+| Değişim Oranı | 0% | stable |
+| Trend Güvenilirliği | N/A | - |
+| Test Sayısı | 0 | - |
+
+### Trend Görselleştirme
+`
+Son 5 Test Başarı Oranları:
+%
+`
+
+**Trend Yönü:** stable
+**Son Test:** 0%
+**Trend Göstergesi:** ➡️ Stabil
+
+---
+
+### Detaylı Test Sonuçları
+`json
+
+`
+
+### Sistem Bilgileri
+- **Test Ortamı:** DESKTOP-F8M2K05
+- **Kullanıcı:** VAHİT
+- **PowerShell Versiyonu:** 5.1.26100.4768
+- **OS:** Microsoft Windows NT 10.0.26100.0
+
+---
+*Bu rapor otomatik olarak oluşturulmuştur - 2025-08-30 03:07:58*
+*Sonraki otomatik test: 08/30/2025 03:07:58.AddDays(7).ToString("yyyy-MM-dd 09:00"))*
+*Test Script Versiyonu: 4.0*
+

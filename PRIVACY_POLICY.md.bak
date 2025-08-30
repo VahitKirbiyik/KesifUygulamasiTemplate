@@ -1,0 +1,132 @@
+# 🔒 KesifApp Gizlilik Politikası
+
+**Son Güncelleme: 30 Ağustos 2025**
+
+## 📋 Genel Bakış
+
+KesifApp ("biz", "bizim" veya "uygulama"), kullanıcı gizliliğini ve kişisel verilerin korunmasını ön planda tutar. Bu Gizlilik Politikası, KesifApp mobil uygulamasını kullandığınızda toplanan, kullanılan ve korunan bilgiler hakkında sizi bilgilendirir.
+
+## 📱 Toplanan Bilgiler
+
+### 🔍 Otomatik Olarak Toplanan Bilgiler
+- **Cihaz Bilgileri**: Cihaz modeli, işletim sistemi sürümü, uygulama sürümü
+- **Kullanım Verileri**: Uygulama kullanım istatistikleri, çökme raporları
+- **Konum Verileri**: GPS koordinatları (sadece açık izin verildiğinde)
+- **Ağ Bilgileri**: IP adresi, ağ sağlayıcısı bilgileri
+
+### 👤 Kullanıcı Tarafından Sağlanan Bilgiler
+- **Hesap Bilgileri**: E-posta adresi, kullanıcı adı (varsa)
+- **İçerik Verileri**: Kaydedilen yerler, notlar, fotoğraflar
+- **Tercihler**: Uygulama ayarları, bildirim tercihleri
+
+## 🎯 Bilgilerin Kullanımı
+
+Toplanan bilgiler aşağıdaki amaçlar için kullanılır:
+
+### 📊 Uygulama İyileştirme
+- Uygulama performansının analizi
+- Hata tespiti ve düzeltme
+- Kullanıcı deneyimi iyileştirme
+
+### 🔔 Kişiselleştirme
+- Konum tabanlı özellikler
+- Kişiselleştirilmiş öneriler
+- Yerel hava durumu bilgileri
+
+### 🔧 Teknik Destek
+- Sorun giderme
+- Kullanıcı desteği
+- Güvenlik güncellemeleri
+
+## 📤 Bilgi Paylaşımı
+
+### 🚫 Paylaşılmayan Veriler
+- Kişisel bilgiler üçüncü taraflarla paylaşılmaz
+- Konum verileri reklam amaçlı kullanılmaz
+- Kullanım verileri satılmaz veya kiralanmaz
+
+### 🔗 Teknik Ortaklar
+- **Microsoft App Center**: Çökme raporları ve analitik veriler
+- **Google Play Services**: Uygulama güncellemeleri ve güvenlik
+- **Harita Servisleri**: Konum tabanlı özellikler (kullanıcı izni ile)
+
+## 🗂️ Veri Saklama
+
+- **Yerel Veri**: Cihazınızda saklanır, uygulama kaldırma ile silinir
+- **Bulut Yedekleme**: İsteğe bağlı, şifrelenmiş olarak saklanır
+- **Saklama Süresi**: Hesap aktif olduğu sürece veya yasal gereklilikler kadar
+
+## 🔐 Güvenlik Önlemleri
+
+### 🛡️ Veri Koruma
+- **Şifreleme**: Hassas veriler AES-256 ile şifrelenir
+- **Erişim Kontrolü**: Sadece yetkili personel erişebilir
+- **Düzenli Denetim**: Güvenlik açıkları düzenli olarak kontrol edilir
+
+### 📱 Cihaz Güvenliği
+- **Biyometrik Kimlik Doğrulama**: Parmak izi/Yüz tanıma desteği
+- **Uygulama Kilidi**: Ek güvenlik katmanı
+- **Veri Şifreleme**: Cihaz düzeyinde şifreleme
+
+## 🍪 Çerezler ve İzleme
+
+### 📊 Analitik Çerezler
+- Kullanım istatistikleri toplamak için kullanılır
+- Anonim veriler içerir
+- Devre dışı bırakılabilir
+
+### 🎯 Reklam Çerezleri
+- Kullanılmaz
+- Üçüncü taraf reklam servisleri entegre edilmez
+
+## 👥 Çocukların Gizliliği
+
+- Uygulama 13 yaş altındaki çocuklar için tasarlanmamıştır
+- Çocukların kişisel bilgileri kasıtlı olarak toplanmaz
+- Ebeveynler çocuklarının kullanımını kontrol etmelidir
+
+## 🌍 Uluslararası Veri Transferi
+
+- Veriler Türkiye ve Avrupa Birliği ülkelerinde saklanır
+- GDPR ve KVKK uyumluluğu sağlanır
+- Uluslararası transferler için uygun koruma önlemleri alınır
+
+## ⚖️ Yasal Haklarınız
+
+### 📋 Erişim Hakkı
+- Toplanan verilerinize erişim talep edebilirsiniz
+- Veri kullanımını sorgulayabilirsiniz
+
+### ✏️ Düzeltme Hakkı
+- Yanlış verilerin düzeltilmesini talep edebilirsiniz
+- Eksik bilgilerin tamamlanmasını isteyebilirsiniz
+
+### 🗑️ Silme Hakkı
+- Verilerin silinmesini talep edebilirsiniz
+- "Unutulma hakkı" kullanabilirsiniz
+
+### 🚫 İtiraz Hakkı
+- Veri işleme faaliyetlerine itiraz edebilirsiniz
+- Otomatik karar verme süreçlerine karşı çıkabilirsiniz
+
+## 📞 İletişim
+
+Gizlilik politikası ile ilgili sorularınız için:
+
+- **E-posta**: privacy@kesifapp.com
+- **Web Sitesi**: https://kesifapp.com/privacy
+- **Destek**: https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/issues
+
+## 🔄 Politika Güncellemeleri
+
+- Bu politika zaman zaman güncellenebilir
+- Önemli değişiklikler kullanıcılara bildirilir
+- Devam eden kullanım, güncellenmiş politikayı kabul anlamına gelir
+
+## 📋 Kabul ve Onay
+
+Uygulamayı kullanarak bu gizlilik politikasını kabul etmiş olursunuz. Politika ile ilgili endişeleriniz varsa uygulamayı kullanmaktan vazgeçebilirsiniz.
+
+---
+
+*Bu gizlilik politikası KesifApp v4.0 için geçerlidir ve 30 Ağustos 2025 tarihinde güncellenmiştir.*

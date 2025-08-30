@@ -1,0 +1,202 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using KesifUygulamasiTemplate.Models;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// HERE Maps Flexible Polyline encoding/decoding algoritması
+    /// https://github.com/heremaps/flexible-polyline
+    /// </summary>
+    public static class PolylineDecoder
+    {
+        private const int COORDINATE_PRECISION = 5; // 5 decimal places
+        private const int THIRD_DIM_PRECISION = 2;  // 2 decimal places for elevation/time
+        private const string ENCODING_TABLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+        /// <summary>
+        /// HERE Flexible Polyline string'ini koordinat listesine çevirir
+        /// </summary>
+        /// <param name="encoded">Encoded polyline string</param>
+        /// <returns>List of LatLng coordinates</returns>
+        public static List<LatLng> Decode(string encoded)
+        {
+            if (string.IsNullOrEmpty(encoded))
+                return new List<LatLng>();
+
+            try
+            {
+                var decoder = new FlexiblePolylineDecoder(encoded);
+                var tuples = decoder.Decode();
+                return tuples.Select(t => new LatLng(t.lat, t.lon)).ToList();
+            }
+            catch (Exception)
+            {
+                // Decode hatası durumunda boş liste döndür
+                return new List<LatLng>();
+            }
+        }
+
+        /// <summary>
+        /// Koordinat listesini HERE Flexible Polyline string'ine çevirir
+        /// </summary>
+        /// <param name="coordinates">List of LatLng coordinates</param>
+        /// <returns>Encoded polyline string</returns>
+        public static string Encode(List<LatLng> coordinates)
+        {
+            if (coordinates == null || coordinates.Count == 0)
+                return string.Empty;
+
+            try
+            {
+                var tuples = coordinates.Select(c => (lat: c.Lat, lon: c.Lng)).ToList();
+                var encoder = new FlexiblePolylineEncoder(tuples);
+                return encoder.Encode();
+            }
+            catch (Exception)
+            {
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Flexible Polyline Decoder implementasyonu
+        /// </summary>
+        private class FlexiblePolylineDecoder
+        {
+            private readonly string _encoded;
+            private int _index;
+            private int _precision;
+
+            public FlexiblePolylineDecoder(string encoded)
+            {
+                _encoded = encoded;
+                _index = 0;
+                _precision = COORDINATE_PRECISION;
+            }
+
+            public List<(double lat, double lon)> Decode()
+            {
+                var coordinates = new List<(double, double)>();
+
+                // Header decode
+                var header = DecodeUnsignedVarint();
+                var version = (int)(header >> 3);
+                var hasThirdDimension = (header & 0x04) != 0;
+
+                if (version != 1)
+                    throw new InvalidOperationException("Unsupported polyline version");
+
+                // Precision decode
+                _precision = (int)DecodeUnsignedVarint();
+
+                // Third dimension precision (eğer varsa)
+                if (hasThirdDimension)
+                    DecodeUnsignedVarint(); // Skip third dimension precision
+
+                // Coordinates decode
+                double lat = 0, lon = 0;
+                while (_index < _encoded.Length)
+                {
+                    lat += DecodeSignedVarint() * Math.Pow(10, -_precision);
+                    lon += DecodeSignedVarint() * Math.Pow(10, -_precision);
+
+                    coordinates.Add((lat, lon));
+
+                    // Third dimension skip (eğer varsa)
+                    if (hasThirdDimension)
+                        DecodeSignedVarint();
+                }
+
+                return coordinates;
+            }
+
+            private long DecodeUnsignedVarint()
+            {
+                long value = 0;
+                int shift = 0;
+                int b;
+
+                do
+                {
+                    if (_index >= _encoded.Length)
+                        throw new InvalidOperationException("Unexpected end of polyline");
+
+                    b = ENCODING_TABLE.IndexOf(_encoded[_index++]);
+                    if (b < 0)
+                        throw new InvalidOperationException("Invalid character in polyline");
+
+                    value |= (long)(b & 0x1F) << shift;
+                    shift += 5;
+                } while ((b & 0x20) != 0);
+
+                return value;
+            }
+
+            private long DecodeSignedVarint()
+            {
+                var unsigned = DecodeUnsignedVarint();
+                return (unsigned & 1) != 0 ? ~(unsigned >> 1) : (unsigned >> 1);
+            }
+        }
+
+        /// <summary>
+        /// Flexible Polyline Encoder implementasyonu
+        /// </summary>
+        private class FlexiblePolylineEncoder
+        {
+            private readonly List<(double lat, double lon)> _coordinates;
+            private readonly int _precision;
+
+            public FlexiblePolylineEncoder(List<(double lat, double lon)> coordinates)
+            {
+                _coordinates = coordinates;
+                _precision = COORDINATE_PRECISION;
+            }
+
+            public string Encode()
+            {
+                var result = new System.Text.StringBuilder();
+
+                // Header encode (version 1, no third dimension)
+                EncodeUnsignedVarint(result, (1 << 3) | 0);
+
+                // Precision encode
+                EncodeUnsignedVarint(result, _precision);
+
+                // Coordinates encode
+                double prevLat = 0, prevLon = 0;
+                foreach (var (lat, lon) in _coordinates)
+                {
+                    var deltaLat = (long)Math.Round((lat - prevLat) * Math.Pow(10, _precision));
+                    var deltaLon = (long)Math.Round((lon - prevLon) * Math.Pow(10, _precision));
+
+                    EncodeSignedVarint(result, deltaLat);
+                    EncodeSignedVarint(result, deltaLon);
+
+                    prevLat = lat;
+                    prevLon = lon;
+                }
+
+                return result.ToString();
+            }
+
+            private void EncodeUnsignedVarint(System.Text.StringBuilder result, long value)
+            {
+                while (value > 0x1F)
+                {
+                    result.Append(ENCODING_TABLE[(int)((value & 0x1F) | 0x20)]);
+                    value >>= 5;
+                }
+                result.Append(ENCODING_TABLE[(int)value]);
+            }
+
+            private void EncodeSignedVarint(System.Text.StringBuilder result, long value)
+            {
+                var unsigned = value < 0 ? ~(value << 1) : (value << 1);
+                EncodeUnsignedVarint(result, unsigned);
+            }
+        }
+    }
+}

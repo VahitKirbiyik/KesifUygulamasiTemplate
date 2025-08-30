@@ -1,10 +1,1 @@
-namespace KesifUygulamasiTemplate.Views
-{
-    public partial class OllamaPanel : ContentView
-    {
-        public OllamaPanel()
-        {
-            InitializeComponent();
-        }
-    }
-}
+namespace KesifUygulamasiTemplate.Views\n{\n    public partial class OllamaPanel : ContentView\n    {\n        public OllamaPanel()\n        {\n            InitializeComponent();\n        }\n    }\n}\n

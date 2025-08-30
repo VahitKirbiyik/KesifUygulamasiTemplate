@@ -1,0 +1,72 @@
+using System;
+using KesifUygulamasiTemplate.ViewModels;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.ApplicationModel;
+
+namespace KesifUygulamasi.Pages
+{
+    public partial class SettingsPage : ContentPage
+    {
+        public SettingsPage(SettingsViewModel viewModel)
+        {
+            InitializeComponent();
+            BindingContext = viewModel;
+        }
+
+        private void OfflineModeSwitch_Toggled(object sender, ToggledEventArgs e)
+        {
+            // MVVM ile offline mod yönetimi
+        }
+
+        private void RequestLocationPermission_Clicked(object sender, EventArgs e)
+        {
+            // MVVM ile konum izni yönetimi
+        }
+
+        private async void PayPalDonationButton_Clicked(object sender, EventArgs e)
+        {
+            try
+            {
+                // PayPal bağış linki - gerçek implementasyonda dinamik URL kullanılmalı
+                string paypalUrl = "https://www.paypal.com/donate/?hosted_button_id=YOUR_BUTTON_ID";
+
+                await Launcher.OpenAsync(paypalUrl);
+
+                await DisplayAlert("Teşekkürler! 💝",
+                    "PayPal sayfasına yönlendiriliyorsunuz. Bağışınız için teşekkür ederiz!",
+                    "Tamam");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Hata",
+                    $"PayPal sayfası açılamadı: {ex.Message}",
+                    "Tamam");
+            }
+        }
+
+        private async void DownloadOfflineMapButton_Clicked(object sender, EventArgs e)
+        {
+            try
+            {
+                // Mock offline map download
+                await DisplayAlert("Offline Harita İndirme",
+                    "Türkiye haritası indiriliyor... (Bu özellik henüz geliştirilme aşamasındadır)",
+                    "Tamam");
+
+                // Simulate download completion
+                await Task.Delay(2000); // 2 saniye beklet
+
+                DownloadStatusLabel.IsVisible = true;
+                await DisplayAlert("Başarılı",
+                    "Türkiye haritası başarıyla indirildi! Artık offline kullanabilirsiniz.",
+                    "Tamam");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Hata",
+                    $"Harita indirme başarısız: {ex.Message}",
+                    "Tamam");
+            }
+        }
+    }
+}

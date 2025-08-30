@@ -1,5 +1,1 @@
-[31;1mParserError: [0mC:\Users\VAH˜T\KesifUygulamasiTemplate\tools\release-build.ps1:36:117[0m
-[31;1m[0m[36;1mLine |[0m
-[31;1m[0m[36;1m[36;1m  36 | [0m  eplace 'android:versionCode="\d+"', "android:versionCode=\"[36;1m$([0m$version [0m
-[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m                                                              ~~[0m
-[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mUnexpected token '$(' in expression or statement.[0m
+[31;1mParserError: [0mC:\Users\VAHï¿½T\KesifUygulamasiTemplate\tools\release-build.ps1:36:117[0m\n[31;1m[0m[36;1mLine |[0m\n[31;1m[0m[36;1m[36;1m  36 | [0m  eplace 'android:versionCode="\d+"', "android:versionCode=\"[36;1m$([0m$version [0m\n[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m                                                              ~~[0m\n[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mUnexpected token '$(' in expression or statement.[0m\n

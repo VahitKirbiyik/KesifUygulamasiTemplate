@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:maps="clr-namespace:Microsoft.Maui.Controls.Maps;assembly=Microsoft.Maui.Controls.Maps"
+             x:Class="KesifUygulamasiTemplate.Pages.RoutePage"
+             Title="Rota Olustur">
+    <StackLayout Padding="20" Spacing="16">
+        <Label Text="Baslangic Noktasi (Lat,Lng)"/>
+        <Entry x:Name="StartEntry" Placeholder="Orn: 39.9,32.8"/>
+        <Label Text="Rota Türü:" />
+        <Picker ItemsSource="{Binding OptimizationTypes}"
+                SelectedItem="{Binding SelectedOptimizationTypeString, Mode=TwoWay}"
+                Title="Rota Türü Seçin" />
+
+        <Button Text="Rota Hesapla" Command="{Binding GetRouteCommand}"/>
+
+        <!-- Provider Badge -->
+        <Frame BackgroundColor="LightBlue" CornerRadius="8" Padding="8" Margin="0,8,0,0">
+            <Label Text="{Binding CurrentProvider, StringFormat='Provider: {0}'}"
+                   FontAttributes="Bold"
+                   HorizontalTextAlignment="Center" />
+        </Frame>
+
+        <maps:Map x:Name="RouteMap" HeightRequest="300" IsShowingUser="True" />
+
+        <!-- Route Points List -->
+        <ListView ItemsSource="{Binding RoutePoints}"
+                  HeightRequest="150"
+                  Margin="0,8,0,0">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <ViewCell>
+                        <StackLayout Orientation="Horizontal" Padding="8">
+                            <Label Text="{Binding Latitude, StringFormat='Lat: {0:F4}'}"
+                                   VerticalOptions="Center" />
+                            <Label Text="{Binding Longitude, StringFormat='Lng: {0:F4}'}"
+                                   VerticalOptions="Center"
+                                   Margin="16,0,0,0" />
+                        </StackLayout>
+                    </ViewCell>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <Label Text="{Binding ErrorMessage}" TextColor="Red" IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}" />
+        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+    </StackLayout>
+</ContentPage>

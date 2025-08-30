@@ -1,0 +1,30 @@
+<!-- PWA Test Badges - Otomatik Güncellenir -->
+[![PWA Tests](https://img.shields.io/badge/PWA_Tests-0%25-red)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/pwa-test.yml)
+[![PWA Score](https://img.shields.io/badge/PWA_Score-0%25-red)](https://kesifapp.com/pwa-dashboard.html)
+[![Tests Passed](https://img.shields.io/badge/Tests_Passed-0/7-brightgreen)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/pwa-test.yml)
+[![Tests Failed](https://img.shields.io/badge/Tests_Failed-7-red)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/pwa-test.yml)
+[![Tests Skipped](https://img.shields.io/badge/Tests_Skipped-0-yellow)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/pwa-test.yml)
+[![Trend](https://img.shields.io/badge/Trend-STABLE-red)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/pwa-test.yml)
+
+<!-- Shields.io Badges with Style -->
+![PWA](https://img.shields.io/badge/PWA-Ready-=for-the-badge&logo=pwa)
+![Progressive Web App](https://img.shields.io/badge/Progressive_Web_App-0%25-=for-the-badge&logo=web)
+![Test Status](https://img.shields.io/badge/Test_Status-Failing-=for-the-badge&logo=github-actions)
+![Trend Status](https://img.shields.io/badge/Trend-STABLE-=for-the-badge&logo=chart-with-upwards-trend)
+
+<!-- Test Summary -->
+| Metrik | Değer |
+|--------|-------|
+| Başarı Oranı | **0%** |
+| Geçen Testler | **0** |
+| Başarısız Testler | **7** |
+| Atlanan Testler | **0** |
+| Toplam Testler | **7** |
+| Trend Yönü | **Trend: N/A** |
+| Son Test Tarihi | **2025-08-30 03:07** |
+| Badge Rengi | **RED** |
+
+<!-- Otomatik Güncelleme Notu -->
+> Bu badge'ler her test çalıştırıldığında otomatik olarak güncellenir.
+> Son güncelleme: 2025-08-30 03:07:58
+> Trend analizi son 5 test sonucuna göre hesaplanır.

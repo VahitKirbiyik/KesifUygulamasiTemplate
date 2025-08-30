@@ -1,0 +1,251 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using KesifUygulamasiTemplate.Services.Interfaces;
+using KesifUygulamasiTemplate.Models;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Platform servislerinin mock implementasyonu - CI/CD testleri için
+    /// </summary>
+    public class PlatformMock : IARPlatformService, IMapDataService, IOfflineDataService
+    {
+        private readonly ILogger<PlatformMock> _logger;
+        private readonly IBadgeService _badgeService;
+
+        // Mock veriler
+        private readonly List<LocationModel> _mockLocations = new()
+        {
+            new LocationModel { Latitude = 41.0082, Longitude = 28.9784, Name = "İstanbul", Address = "İstanbul, Türkiye" },
+            new LocationModel { Latitude = 39.9334, Longitude = 32.8597, Name = "Ankara", Address = "Ankara, Türkiye" },
+            new LocationModel { Latitude = 40.1885, Longitude = 29.0610, Name = "Bursa", Address = "Bursa, Türkiye" }
+        };
+
+        private readonly List<RouteModel> _mockRoutes = new()
+        {
+            new RouteModel
+            {
+                Distance = 500000, // 500km
+                Duration = TimeSpan.FromHours(6),
+                Steps = new List<RouteStep>
+                {
+                    new RouteStep { Instruction = "İstanbul'dan çıkın", Distance = 100000 },
+                    new RouteStep { Instruction = "Ankara yönüne devam edin", Distance = 400000 }
+                }
+            }
+        };
+
+        public PlatformMock(ILogger<PlatformMock> logger, IBadgeService badgeService)
+        {
+            _logger = logger;
+            _badgeService = badgeService;
+            _logger.LogInformation("PlatformMock servisi başlatıldı - Test modu aktif");
+        }
+
+        #region IARPlatformService Implementation
+
+        public Task<bool> IsARSupportedAsync()
+        {
+            _logger.LogInformation("Mock: AR desteği kontrol edildi - true döndürüldü");
+            return Task.FromResult(true);
+        }
+
+        public Task StartARSessionAsync()
+        {
+            _logger.LogInformation("Mock: AR oturumu başlatıldı");
+            _badgeService?.AwardBadge("AR-Explorer");
+            return Task.CompletedTask;
+        }
+
+        public Task StopARSessionAsync()
+        {
+            _logger.LogInformation("Mock: AR oturumu durduruldu");
+            return Task.CompletedTask;
+        }
+
+        public Task<ARAnchor> CreateAnchorAsync(double latitude, double longitude, double altitude)
+        {
+            var anchor = new ARAnchor
+            {
+                Latitude = latitude,
+                Longitude = longitude,
+                Altitude = altitude,
+                Id = Guid.NewGuid().ToString(),
+                IsActive = true
+            };
+
+            _logger.LogInformation($"Mock: AR anchor oluşturuldu - {anchor.Id}");
+            return Task.FromResult(anchor);
+        }
+
+        public Task<List<ARAnchor>> GetNearbyAnchorsAsync(double latitude, double longitude, double radius)
+        {
+            var nearbyAnchors = new List<ARAnchor>
+            {
+                new ARAnchor
+                {
+                    Latitude = latitude + 0.001,
+                    Longitude = longitude + 0.001,
+                    Altitude = 0,
+                    Id = "mock-anchor-1",
+                    IsActive = true
+                }
+            };
+
+            _logger.LogInformation($"Mock: {nearbyAnchors.Count} yakındaki anchor bulundu");
+            return Task.FromResult(nearbyAnchors);
+        }
+
+        #endregion
+
+        #region IMapDataService Implementation
+
+        public Task<List<LocationModel>> SearchLocationsAsync(string query)
+        {
+            _logger.LogInformation($"Mock: '{query}' için konum arama yapıldı");
+
+            var results = _mockLocations.Where(l =>
+                l.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                l.Address.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            _logger.LogInformation($"Mock: {results.Count} sonuç bulundu");
+            return Task.FromResult(results);
+        }
+
+        public Task<LocationModel> GetCurrentLocationAsync()
+        {
+            var currentLocation = _mockLocations[0]; // İstanbul
+            _logger.LogInformation($"Mock: Geçerli konum döndürüldü - {currentLocation.Name}");
+            return Task.FromResult(currentLocation);
+        }
+
+        public Task<List<RouteModel>> GetRouteAsync(LocationModel start, LocationModel end, RouteOptimizationType optimizationType)
+        {
+            _logger.LogInformation($"Mock: {start.Name} -> {end.Name} rotası hesaplandı ({optimizationType})");
+
+            var route = _mockRoutes[0];
+            route.OptimizationType = optimizationType;
+
+            // Optimizasyon tipine göre süre/distance ayarla
+            switch (optimizationType)
+            {
+                case RouteOptimizationType.Fastest:
+                    route.Duration = TimeSpan.FromHours(5);
+                    break;
+                case RouteOptimizationType.Shortest:
+                    route.Distance = 450000;
+                    break;
+                case RouteOptimizationType.Eco:
+                    route.Duration = TimeSpan.FromHours(6.5);
+                    break;
+                case RouteOptimizationType.Safe:
+                    route.Duration = TimeSpan.FromHours(7);
+                    break;
+            }
+
+            return Task.FromResult(new List<RouteModel> { route });
+        }
+
+        public Task<MapRegion> GetVisibleRegionAsync()
+        {
+            var region = new MapRegion
+            {
+                TopLeft = new LocationModel { Latitude = 42.0, Longitude = 26.0 },
+                BottomRight = new LocationModel { Latitude = 36.0, Longitude = 45.0 },
+                Name = "Türkiye"
+            };
+
+            _logger.LogInformation("Mock: Görünür bölge döndürüldü");
+            return Task.FromResult(region);
+        }
+
+        #endregion
+
+        #region IOfflineDataService Implementation
+
+        public Task<bool> IsOfflineDataAvailableAsync(double latitude, double longitude, int zoomLevel)
+        {
+            _logger.LogInformation($"Mock: Offline veri kontrolü - {latitude},{longitude} (zoom: {zoomLevel})");
+            return Task.FromResult(true); // Mock olarak her zaman mevcut
+        }
+
+        public Task DownloadOfflineDataAsync(MapRegion region, int zoomLevel, Action<double> progressCallback)
+        {
+            _logger.LogInformation($"Mock: Offline veri indirme başlatıldı - {region.Name}");
+
+            // Simülasyon için progress callback'leri
+            for (int i = 0; i <= 100; i += 10)
+            {
+                progressCallback?.Invoke(i / 100.0);
+                Task.Delay(50).Wait(); // Kısa bekleme
+            }
+
+            _badgeService?.AwardBadge("Offline-Ready");
+            _logger.LogInformation("Mock: Offline veri indirme tamamlandı");
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteOfflineDataAsync(MapRegion region)
+        {
+            _logger.LogInformation($"Mock: Offline veri silindi - {region.Name}");
+            return Task.CompletedTask;
+        }
+
+        public Task<List<MapRegion>> GetDownloadedRegionsAsync()
+        {
+            var regions = new List<MapRegion>
+            {
+                new MapRegion
+                {
+                    TopLeft = new LocationModel { Latitude = 42.0, Longitude = 26.0 },
+                    BottomRight = new LocationModel { Latitude = 36.0, Longitude = 45.0 },
+                    Name = "Türkiye"
+                }
+            };
+
+            _logger.LogInformation($"Mock: {regions.Count} indirilmiş bölge bulundu");
+            return Task.FromResult(regions);
+        }
+
+        public Task<long> GetOfflineDataSizeAsync()
+        {
+            var size = 524288000L; // 500MB mock
+            _logger.LogInformation($"Mock: Offline veri boyutu - {size} bytes");
+            return Task.FromResult(size);
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Test için mock verileri sıfırlar
+        /// </summary>
+        public void ResetMockData()
+        {
+            _logger.LogInformation("Mock veriler sıfırlandı");
+        }
+
+        /// <summary>
+        /// Test için özel mock verisi ekler
+        /// </summary>
+        public void AddMockLocation(LocationModel location)
+        {
+            _mockLocations.Add(location);
+            _logger.LogInformation($"Mock konum eklendi: {location.Name}");
+        }
+    }
+
+    /// <summary>
+    /// AR Anchor sınıfı
+    /// </summary>
+    public class ARAnchor
+    {
+        public string Id { get; set; }
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public double Altitude { get; set; }
+        public bool IsActive { get; set; }
+    }
+}

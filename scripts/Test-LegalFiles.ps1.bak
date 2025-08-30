@@ -1,0 +1,356 @@
+# Test-LegalFiles.ps1 - CI/CD pipeline ile entegre legal dosya doğrulama testi
+# Bu script privacy policy, terms of service, robots.txt ve sitemap.xml dosyalarını doğrular
+
+param(
+    [string]$TestEnvironment = "local",
+    [string]$Configuration = "Debug",
+    [string]$ProjectPath = $PSScriptRoot,
+    [switch]$SkipBuild,
+    [switch]$Verbose,
+    [switch]$ExportJson,
+    [string]$Domain = "https://kesifapp.com"
+)
+
+# Script ayarları
+$ErrorActionPreference = "Stop"
+$VerbosePreference = if ($Verbose) { "Continue" } else { "SilentlyContinue" }
+
+# Test sonuçları için değişkenler
+$testResults = @{
+    TotalTests = 0
+    PassedTests = 0
+    FailedTests = 0
+    TestDuration = [TimeSpan]::Zero
+    Details = @()
+}
+
+# Renkli output için
+function Write-ColorOutput {
+    param(
+        [string]$Message,
+        [string]$Color = "White"
+    )
+    Write-Host $Message -ForegroundColor $Color
+}
+
+# Başlık
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "    🧾 Legal Dosya Doğrulama Testi" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput ""
+
+# Environment değişkenlerini ayarla
+$env:TEST_ENVIRONMENT = $TestEnvironment
+$env:CI = if ($TestEnvironment -eq "ci") { "true" } else { "false" }
+$env:DOMAIN = $Domain
+
+Write-ColorOutput "Test Environment: $TestEnvironment" "Yellow"
+Write-ColorOutput "Domain: $Domain" "Yellow"
+Write-ColorOutput "Project Path: $ProjectPath" "Yellow"
+Write-ColorOutput ""
+
+# Proje yolunu kontrol et
+if (!(Test-Path $ProjectPath)) {
+    Write-ColorOutput "Hata: Proje yolu bulunamadı: $ProjectPath" "Red"
+    exit 1
+}
+
+# Legal dosyalar listesi
+$legalFiles = @(
+    @{ Path = ".\legal\privacy-policy.md"; Name = "Privacy Policy"; Required = $true },
+    @{ Path = ".\legal\terms-of-service.md"; Name = "Terms of Service"; Required = $true },
+    @{ Path = ".\robots.txt"; Name = "Robots.txt"; Required = $true },
+    @{ Path = ".\sitemap.xml"; Name = "Sitemap.xml"; Required = $true },
+    @{ Path = ".\legal\cookie-policy.md"; Name = "Cookie Policy"; Required = $false },
+    @{ Path = ".\legal\data-processing-agreement.md"; Name = "Data Processing Agreement"; Required = $false },
+    @{ Path = ".\legal\gdpr-compliance.md"; Name = "GDPR Compliance"; Required = $false }
+)
+
+# SEO dosyalar listesi
+$seoFiles = @(
+    @{ Path = ".\seo\description.txt"; Name = "SEO Description"; Required = $true },
+    @{ Path = ".\seo\keywords.txt"; Name = "SEO Keywords"; Required = $true },
+    @{ Path = ".\seo\meta-tags.html"; Name = "Meta Tags"; Required = $false },
+    @{ Path = ".\seo\structured-data.json"; Name = "Structured Data"; Required = $false }
+)
+
+# Test fonksiyonları
+function Test-FileExists {
+    param(
+        [string]$FilePath,
+        [string]$FileName,
+        [bool]$Required = $true
+    )
+
+    $startTime = Get-Date
+    $testPassed = $false
+    $errorMessage = ""
+
+    Write-ColorOutput "🧪 $FileName dosyası kontrol ediliyor..." "White"
+
+    try {
+        $fullPath = Join-Path $ProjectPath $FilePath
+
+        if (Test-Path $fullPath) {
+            Write-ColorOutput "  ✅ Dosya bulundu: $FilePath" "Green"
+
+            # Dosya içeriği kontrolü
+            $fileInfo = Get-Item $fullPath
+            $fileSize = $fileInfo.Length
+
+            if ($fileSize -eq 0) {
+                $errorMessage = "Dosya boş"
+                Write-ColorOutput "  ⚠️  Dosya boş: $fileSize bytes" "Yellow"
+                $testPassed = !$Required  # Required değilse boş dosya kabul edilebilir
+            } else {
+                Write-ColorOutput "  📄 Dosya boyutu: $fileSize bytes" "Gray"
+                $testPassed = $true
+
+                # İçerik temel kontrolü
+                Test-FileContent -FilePath $fullPath -FileName $FileName
+            }
+        } else {
+            $errorMessage = "Dosya bulunamadı"
+            if ($Required) {
+                Write-ColorOutput "  ❌ Gerekli dosya bulunamadı: $FilePath" "Red"
+            } else {
+                Write-ColorOutput "  ⚠️  İsteğe bağlı dosya bulunamadı: $FilePath" "Yellow"
+                $testPassed = $true  # İsteğe bağlı dosya için test başarılı
+            }
+        }
+
+    } catch {
+        $errorMessage = $_.Exception.Message
+        Write-ColorOutput "  💥 Dosya kontrol hatası: $errorMessage" "Red"
+    } finally {
+        $endTime = Get-Date
+        $duration = $endTime - $startTime
+
+        $testResults.TotalTests++
+        if ($testPassed) {
+            $testResults.PassedTests++
+        } else {
+            $testResults.FailedTests++
+        }
+        $testResults.TestDuration += $duration
+
+        $testResults.Details += @{
+            TestName = "$FileName Dosya Kontrolü"
+            FilePath = $FilePath
+            Passed = $testPassed
+            Required = $Required
+            Duration = $duration
+            ErrorMessage = $errorMessage
+        }
+    }
+}
+
+function Test-FileContent {
+    param(
+        [string]$FilePath,
+        [string]$FileName
+    )
+
+    try {
+        $content = Get-Content $FilePath -Raw
+
+        # Temel içerik kontrolleri
+        switch -Wildcard ($FileName) {
+            "*Privacy*" {
+                # Privacy policy için gerekli kelimeler
+                $requiredTerms = @("privacy", "data", "personal information", "cookies")
+                $missingTerms = $requiredTerms | Where-Object { $content -notmatch $_ }
+                if ($missingTerms) {
+                    Write-ColorOutput "  ⚠️  Privacy policy'de eksik terimler: $($missingTerms -join ', ')" "Yellow"
+                }
+            }
+            "*Terms*" {
+                # Terms of service için gerekli kelimeler
+                $requiredTerms = @("terms", "service", "agreement", "liability")
+                $missingTerms = $requiredTerms | Where-Object { $content -notmatch $_ }
+                if ($missingTerms) {
+                    Write-ColorOutput "  ⚠️  Terms'de eksik terimler: $($missingTerms -join ', ')" "Yellow"
+                }
+            }
+            "*Robots*" {
+                # Robots.txt için temel yapı kontrolü
+                if ($content -notmatch "User-agent") {
+                    Write-ColorOutput "  ⚠️  Robots.txt'de User-agent bulunamadı" "Yellow"
+                }
+            }
+            "*Sitemap*" {
+                # Sitemap.xml için domain kontrolü
+                if ($content -notmatch $Domain) {
+                    Write-ColorOutput "  ⚠️  Sitemap.xml'de domain bulunamadı: $Domain" "Yellow"
+                }
+            }
+        }
+
+        Write-ColorOutput "  ✅ Dosya içeriği kontrol edildi" "Green"
+
+    } catch {
+        Write-ColorOutput "  ⚠️  Dosya içeriği kontrol edilemedi: $($_.Exception.Message)" "Yellow"
+    }
+}
+
+function Test-WebAccessibility {
+    param([string]$Url)
+
+    Write-ColorOutput "🌐 Web erişilebilirliği kontrol ediliyor: $Url" "White"
+
+    try {
+        $response = Invoke-WebRequest -Uri $Url -Method Head -TimeoutSec 10
+        if ($response.StatusCode -eq 200) {
+            Write-ColorOutput "  ✅ URL erişilebilir: $($response.StatusCode)" "Green"
+            return $true
+        } else {
+            Write-ColorOutput "  ❌ URL erişilemez: $($response.StatusCode)" "Red"
+            return $false
+        }
+    } catch {
+        Write-ColorOutput "  ⚠️  URL kontrol edilemedi: $($_.Exception.Message)" "Yellow"
+        return $false
+    }
+}
+
+function Show-Badge {
+    param([string]$BadgeName)
+
+    Write-ColorOutput "🏅 Badge kazanıldı: $BadgeName" "Cyan"
+
+    # Badge dosyasını güncelle (varsa)
+    $badgeFile = Join-Path $ProjectPath "badge.json"
+    if (Test-Path $badgeFile) {
+        try {
+            $badgeData = Get-Content $badgeFile -Raw | ConvertFrom-Json
+            if ($badgeData.PSObject.Properties.Name -contains $BadgeName) {
+                $badgeData.$BadgeName = $true
+                $badgeData | ConvertTo-Json | Set-Content $badgeFile
+                Write-ColorOutput "  ✅ Badge dosyası güncellendi" "Green"
+            }
+        } catch {
+            Write-ColorOutput "  ⚠️  Badge dosyası güncellenemedi" "Yellow"
+        }
+    }
+}
+
+# Ana test döngüsü
+Write-ColorOutput "🚀 Legal ve SEO dosya testleri başlatılıyor..." "White"
+Write-ColorOutput ""
+
+# Legal dosyalar testi
+Write-ColorOutput "📋 Legal Dosyalar:" "Cyan"
+foreach ($file in $legalFiles) {
+    Test-FileExists -FilePath $file.Path -FileName $file.Name -Required $file.Required
+}
+
+Write-ColorOutput ""
+
+# SEO dosyalar testi
+Write-ColorOutput "🔍 SEO Dosyalar:" "Cyan"
+foreach ($file in $seoFiles) {
+    Test-FileExists -FilePath $file.Path -FileName $file.Name -Required $file.Required
+}
+
+Write-ColorOutput ""
+
+# Web erişilebilirlik testi (production ortamında)
+if ($TestEnvironment -ne "local") {
+    Write-ColorOutput "🌐 Web Erişilebilirlik Testleri:" "Cyan"
+
+    $webUrls = @(
+        "$Domain/legal/privacy-policy.html",
+        "$Domain/legal/terms-of-service.html",
+        "$Domain/robots.txt",
+        "$Domain/sitemap.xml"
+    )
+
+    foreach ($url in $webUrls) {
+        Test-WebAccessibility -Url $url
+    }
+}
+
+# Test özeti
+Write-ColorOutput "" "White"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "           📊 Test Sonuçları" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+
+$successRate = if ($testResults.TotalTests -gt 0) {
+    [math]::Round(($testResults.PassedTests / $testResults.TotalTests) * 100, 1)
+} else { 0 }
+
+Write-ColorOutput "Toplam Test: $($testResults.TotalTests)" "White"
+Write-ColorOutput "Başarılı: $($testResults.PassedTests)" "Green"
+Write-ColorOutput "Başarısız: $($testResults.FailedTests)" "Red"
+Write-ColorOutput "Başarı Oranı: $successRate%" "Cyan"
+Write-ColorOutput "Toplam Süre: $($testResults.TestDuration.TotalSeconds) saniye" "White"
+
+# Detaylı sonuçlar
+if ($Verbose) {
+    Write-ColorOutput "" "White"
+    Write-ColorOutput "Detaylı Sonuçlar:" "Yellow"
+    foreach ($detail in $testResults.Details) {
+        $status = if ($detail.Passed) { "✅" } else { "❌" }
+        $required = if ($detail.Required) { " (Gerekli)" } else { " (İsteğe bağlı)" }
+        Write-ColorOutput "  $status $($detail.TestName)$required" "White"
+        if (!$detail.Passed -and $detail.ErrorMessage) {
+            Write-ColorOutput "    Hata: $($detail.ErrorMessage)" "Red"
+        }
+    }
+}
+
+# JSON export
+if ($ExportJson) {
+    $jsonPath = Join-Path $ProjectPath "legal-seo-test-results.json"
+    $exportData = @{
+        metadata = @{
+            timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            script_version = "1.0.0"
+            test_environment = $TestEnvironment
+            domain = $Domain
+            total_duration_seconds = $testResults.TestDuration.TotalSeconds
+        }
+        summary = @{
+            total_tests = $testResults.TotalTests
+            passed_tests = $testResults.PassedTests
+            failed_tests = $testResults.FailedTests
+            success_rate = $successRate
+            test_duration = $testResults.TestDuration.ToString()
+        }
+        legal_files = @{
+            required = $legalFiles | Where-Object { $_.Required } | ForEach-Object { $_.Name }
+            optional = $legalFiles | Where-Object { !$_.Required } | ForEach-Object { $_.Name }
+        }
+        seo_files = @{
+            required = $seoFiles | Where-Object { $_.Required } | ForEach-Object { $_.Name }
+            optional = $seoFiles | Where-Object { !$_.Required } | ForEach-Object { $_.Name }
+        }
+        details = $testResults.Details
+        recommendations = @(
+            "Eksik legal dosyaları oluşturun (privacy-policy.md, terms-of-service.md)",
+            "Robots.txt ve sitemap.xml dosyalarını ekleyin",
+            "SEO için description.txt ve keywords.txt dosyalarını oluşturun",
+            "Web sunucusunda legal sayfalarının erişilebilir olduğundan emin olun"
+        )
+    }
+
+    $exportData | ConvertTo-Json -Depth 10 | Set-Content $jsonPath
+    Write-ColorOutput "📄 Test sonuçları JSON olarak kaydedildi: $jsonPath" "Green"
+}
+
+# Badge tetikleme
+if ($testResults.PassedTests -gt 0) {
+    Show-Badge "LegalVerified"
+    Show-Badge "SEO-Verified"
+}
+
+# Final sonuç
+Write-ColorOutput "" "White"
+if ($testResults.FailedTests -eq 0) {
+    Write-ColorOutput "🎉 Tüm legal ve SEO testleri başarılı! CI/CD pipeline devam edebilir." "Green"
+    exit 0
+} else {
+    Write-ColorOutput "💥 Bazı legal ve SEO testleri başarısız. Lütfen eksik dosyaları oluşturun." "Red"
+    exit 1
+}

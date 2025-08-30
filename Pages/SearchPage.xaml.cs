@@ -1,12 +1,1 @@
-using Microsoft.Maui.Controls;
-
-namespace KesifUygulamasi.Pages
-{
-    public partial class SearchPage : ContentPage
-    {
-        public SearchPage()
-        {
-            InitializeComponent();
-        }
-    }
-}
+using Microsoft.Maui.Controls;\n\nnamespace KesifUygulamasi.Pages\n{\n    public partial class SearchPage : ContentPage\n    {\n        public SearchPage()\n        {\n            InitializeComponent();\n        }\n    }\n}\n

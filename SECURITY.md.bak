@@ -1,0 +1,408 @@
+# SECURITY.md
+
+## Güvenlik Politikası ve Prosedürleri
+
+Bu dokümanda KesifUygulamasiTemplate projesinin güvenlik politikaları, token doğrulama prosedürleri ve güvenlik en iyi uygulamaları açıklanmaktadır.
+
+## 🔐 Güvenlik Genel Bakış
+
+### Desteklenen Kimlik Doğrulama Türleri
+
+1. **JWT (JSON Web Tokens)**
+   - HS256 algoritması ile imzalanmış token'lar
+   - 24 saatlik maksimum geçerlilik süresi
+   - Zorunlu claim'ler: `iss`, `aud`, `exp`, `iat`, `sub`
+
+2. **OAuth 2.0**
+   - Authorization Code Grant akışı
+   - PKCE (Proof Key for Code Exchange) desteği
+   - Refresh token rotasyonu
+
+3. **API Keys**
+   - HMAC-SHA256 ile imzalanmış istekler
+   - Rate limiting ve kullanım takibi
+   - Düzenli rotasyon politikası
+
+## 🛡️ Token Doğrulama Prosedürleri
+
+### JWT Token Doğrulama
+
+#### 1. Token Yapısı Kontrolü
+```csharp
+// JWT token yapısı kontrolü
+public bool ValidateJwtStructure(string token)
+{
+    try
+    {
+        var parts = token.Split('.');
+        if (parts.Length != 3)
+            return false;
+
+        // Header, Payload ve Signature bölümlerinin base64url formatında olduğunu kontrol et
+        foreach (var part in parts)
+        {
+            Convert.FromBase64String(part.Replace('-', '+').Replace('_', '/'));
+        }
+
+        return true;
+    }
+    catch
+    {
+        return false;
+    }
+}
+```
+
+#### 2. Token İmza Doğrulama
+```csharp
+// JWT imza doğrulama
+public bool ValidateJwtSignature(string token, string secretKey)
+{
+    try
+    {
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var validationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = _configuration["Jwt:Issuer"],
+            ValidAudience = _configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            ClockSkew = TimeSpan.Zero
+        };
+
+        tokenHandler.ValidateToken(token, validationParameters, out _);
+        return true;
+    }
+    catch
+    {
+        return false;
+    }
+}
+```
+
+#### 3. Token Claim Doğrulama
+```csharp
+// JWT claim doğrulama
+public bool ValidateJwtClaims(JwtSecurityToken jwtToken)
+{
+    // Zorunlu claim'leri kontrol et
+    if (string.IsNullOrEmpty(jwtToken.Issuer))
+        return false;
+
+    if (string.IsNullOrEmpty(jwtToken.Audience))
+        return false;
+
+    if (jwtToken.ValidTo < DateTime.UtcNow)
+        return false;
+
+    // Özel claim'leri kontrol et
+    var userId = jwtToken.Claims.FirstOrDefault(c => c.Type == "userId")?.Value;
+    if (string.IsNullOrEmpty(userId))
+        return false;
+
+    var role = jwtToken.Claims.FirstOrDefault(c => c.Type == "role")?.Value;
+    if (string.IsNullOrEmpty(role))
+        return false;
+
+    return true;
+}
+```
+
+### OAuth Token Doğrulama
+
+#### 1. Access Token Doğrulama
+```csharp
+// OAuth access token doğrulama
+public async Task<bool> ValidateOAuthToken(string accessToken)
+{
+    try
+    {
+        using var client = new HttpClient();
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{_oauthAuthority}/oauth2/v2.0/token");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await client.SendAsync(request);
+        return response.IsSuccessStatusCode;
+    }
+    catch
+    {
+        return false;
+    }
+}
+```
+
+#### 2. Refresh Token Rotasyonu
+```csharp
+// Refresh token rotasyonu
+public async Task<TokenResponse> RotateRefreshToken(string refreshToken)
+{
+    var tokenRequest = new Dictionary<string, string>
+    {
+        ["grant_type"] = "refresh_token",
+        ["refresh_token"] = refreshToken,
+        ["client_id"] = _configuration["OAuth:ClientId"],
+        ["client_secret"] = _configuration["OAuth:ClientSecret"]
+    };
+
+    using var client = new HttpClient();
+    var response = await client.PostAsync($"{_oauthAuthority}/oauth2/v2.0/token",
+        new FormUrlEncodedContent(tokenRequest));
+
+    if (response.IsSuccessStatusCode)
+    {
+        var tokenResponse = await response.Content.ReadFromJsonAsync<TokenResponse>();
+        return tokenResponse;
+    }
+
+    throw new SecurityException("Token rotation failed");
+}
+```
+
+### API Key Doğrulama
+
+#### 1. HMAC İmza Doğrulama
+```csharp
+// API key HMAC imza doğrulama
+public bool ValidateApiKeySignature(string apiKey, string signature, string payload, string timestamp)
+{
+    try
+    {
+        // Timestamp kontrolü (5 dakika tolerans)
+        var requestTime = DateTimeOffset.FromUnixTimeSeconds(long.Parse(timestamp));
+        var currentTime = DateTimeOffset.UtcNow;
+
+        if (Math.Abs((currentTime - requestTime).TotalMinutes) > 5)
+            return false;
+
+        // HMAC-SHA256 imza oluştur
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(apiKey));
+        var message = $"{payload}.{timestamp}";
+        var expectedSignature = Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(message)));
+
+        return CryptographicOperations.FixedTimeEquals(
+            Encoding.UTF8.GetBytes(signature),
+            Encoding.UTF8.GetBytes(expectedSignature));
+    }
+    catch
+    {
+        return false;
+    }
+}
+```
+
+#### 2. API Key Rate Limiting
+```csharp
+// API key rate limiting
+public class ApiKeyRateLimiter
+{
+    private readonly ConcurrentDictionary<string, RateLimitInfo> _rateLimits = new();
+    private readonly int _maxRequestsPerHour = 1000;
+
+    public bool IsAllowed(string apiKey)
+    {
+        var now = DateTime.UtcNow;
+        var key = $"{apiKey}:{now.ToString("yyyy-MM-dd-HH")}";
+
+        var rateLimit = _rateLimits.GetOrAdd(key, _ => new RateLimitInfo
+        {
+            WindowStart = now,
+            RequestCount = 0
+        });
+
+        if ((now - rateLimit.WindowStart).TotalHours >= 1)
+        {
+            rateLimit.WindowStart = now;
+            rateLimit.RequestCount = 0;
+        }
+
+        if (rateLimit.RequestCount >= _maxRequestsPerHour)
+            return false;
+
+        rateLimit.RequestCount++;
+        return true;
+    }
+}
+```
+
+## 🔒 Güvenlik Konfigürasyonu
+
+### Environment Variables
+
+```bash
+# JWT Configuration
+JWT_SECRET_KEY=your-256-bit-secret-key-here
+JWT_ISSUER=https://your-app.com
+JWT_AUDIENCE=https://your-app.com
+JWT_EXPIRATION_MINUTES=1440
+
+# OAuth Configuration
+OAUTH_CLIENT_ID=your-oauth-client-id
+OAUTH_CLIENT_SECRET=your-oauth-client-secret
+OAUTH_AUTHORITY=https://login.microsoftonline.com/your-tenant-id
+
+# API Keys
+GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+MAPBOX_ACCESS_TOKEN=your-mapbox-access-token
+HERE_API_KEY=your-here-api-key
+
+# Security Settings
+SECURITY_AUDIT_ENABLED=true
+SECURITY_REPORTS_PATH=security-reports
+SECURITY_SCORE_THRESHOLD=80
+```
+
+### appsettings.json Konfigürasyonu
+
+```json
+{
+  "Jwt": {
+    "SecretKey": "your-256-bit-secret-key-here",
+    "Issuer": "https://your-app.com",
+    "Audience": "https://your-app.com",
+    "ExpirationMinutes": 1440
+  },
+  "OAuth": {
+    "ClientId": "your-oauth-client-id",
+    "ClientSecret": "your-oauth-client-secret",
+    "Authority": "https://login.microsoftonline.com/your-tenant-id",
+    "RedirectUris": [
+      "https://your-app.com/auth/callback"
+    ]
+  },
+  "SecurityHeaders": {
+    "XContentTypeOptions": "nosniff",
+    "XFrameOptions": "DENY",
+    "XXSSProtection": "1; mode=block",
+    "StrictTransportSecurity": "max-age=31536000; includeSubDomains"
+  },
+  "Cors": {
+    "AllowedOrigins": [
+      "https://your-app.com",
+      "https://app.your-app.com"
+    ],
+    "AllowedHeaders": [
+      "Authorization",
+      "Content-Type",
+      "X-Requested-With"
+    ],
+    "AllowedMethods": [
+      "GET",
+      "POST",
+      "PUT",
+      "DELETE",
+      "OPTIONS"
+    ]
+  }
+}
+```
+
+## 🚨 Güvenlik Olayları ve Müdahale
+
+### Güvenlik İhlali Tespiti
+
+1. **Şüpheli Aktivite Tespiti**
+   - Çok sayıda başarısız giriş denemesi
+   - Anormal API kullanım paternleri
+   - Şüpheli IP adreslerinden gelen istekler
+
+2. **Otomatik Müdahale**
+   - Hesap geçici olarak kilitleme
+   - IP adresi bloklama
+   - Güvenlik olay loglama
+
+3. **Manuel İnceleme**
+   - Güvenlik loglarının analizi
+   - Kullanıcı davranış paternlerinin incelenmesi
+   - Sistem erişim loglarının kontrolü
+
+### Güvenlik Olay Müdahale Prosedürü
+
+```csharp
+// Güvenlik olay loglama
+public async Task LogSecurityEvent(SecurityEvent securityEvent)
+{
+    var logEntry = new SecurityLogEntry
+    {
+        EventType = securityEvent.Type,
+        Severity = securityEvent.Severity,
+        UserId = securityEvent.UserId,
+        IpAddress = securityEvent.IpAddress,
+        UserAgent = securityEvent.UserAgent,
+        Details = securityEvent.Details,
+        Timestamp = DateTime.UtcNow
+    };
+
+    // Güvenlik olayını veritabanına kaydet
+    await _securityLogRepository.AddAsync(logEntry);
+
+    // Kritik olaylarda bildirim gönder
+    if (securityEvent.Severity == SecuritySeverity.Critical)
+    {
+        await _notificationService.SendSecurityAlert(logEntry);
+    }
+}
+```
+
+## 📊 Güvenlik İzleme ve Raporlama
+
+### Güvenlik Metrikleri
+
+- **Kimlik Doğrulama Başarı Oranı**: Başarılı/Toplam giriş denemeleri
+- **Token Geçerlilik Süresi**: Ortalama token kullanım süresi
+- **API Kullanım Paternleri**: Saatlik/daily API çağrı istatistikleri
+- **Güvenlik Olay Sayısı**: Günlük/haftalık güvenlik olay istatistikleri
+
+### Güvenlik Raporları
+
+```powershell
+# Güvenlik denetimi çalıştırma
+.\scripts\SecurityAudit.ps1 -EnableDetailedAudit -GenerateHtmlReport
+
+# Sonuçlar:
+# - security-reports/security-audit-summary.json
+# - security-reports/security-audit-report.html
+```
+
+## 🔄 Düzenli Güvenlik Kontrolleri
+
+### Haftalık Kontroller
+- [ ] Token expiration kontrolü
+- [ ] API key rotasyon kontrolü
+- [ ] Güvenlik log analizi
+- [ ] Bağımlılık güncellemeleri kontrolü
+
+### Aylık Kontroller
+- [ ] Tam güvenlik taraması
+- [ ] Penetration testing
+- [ ] Güvenlik politika güncellemeleri
+- [ ] Sertifika geçerlilik kontrolü
+
+### Yıllık Kontroller
+- [ ] Güvenlik mimarisi review
+- [ ] Üçüncü parti bağımlılık audit
+- [ ] Güvenlik eğitim güncellemeleri
+
+## 📞 İletişim ve Destek
+
+Güvenlik sorunları için:
+- **Email**: security@your-app.com
+- **Response Time**: Kritik sorunlar için 1 saat, diğerleri için 24 saat
+- **PGP Key**: Güvenlik raporları için şifreleme anahtarı
+
+## 📝 Değişiklik Geçmişi
+
+| Tarih | Sürüm | Değişiklik |
+|-------|--------|------------|
+| 2024-01-15 | 1.0 | İlk güvenlik politikası |
+| 2024-01-20 | 1.1 | JWT ve OAuth prosedürleri eklendi |
+| 2024-01-25 | 1.2 | API key doğrulama prosedürleri eklendi |
+| 2024-02-01 | 1.3 | Güvenlik olay müdahale prosedürleri eklendi |
+
+---
+
+**Son Güncelleme**: 2024-02-01
+**Sürüm**: 1.3
+**Doküment Sahibi**: Güvenlik Ekibi

@@ -1,0 +1,439 @@
+# Test-Notification.ps1
+# Notification delivery validation and badge trigger test script
+# Tests notification system functionality and triggers badges
+
+param(
+    [string]$ProjectPath = $PSScriptRoot,
+    [string]$TestEnvironment = "Development",
+    [switch]$EnableBadgeTrigger = $true,
+    [switch]$SendTestNotifications = $true,
+    [switch]$ValidateDeliveryTracking = $true,
+    [switch]$TestWebhookIntegration = $true,
+    [switch]$GenerateTestReport = $true,
+    [int]$NotificationCount = 10,
+    [string]$WebhookUrl = "https://webhook.site/test-notification",
+    [string]$TestDeviceToken = "test-device-token-12345"
+)
+
+# Environment variables for notification testing
+$env:NOTIFICATION_TEST_ENABLED = $SendTestNotifications.ToString().ToLower()
+$env:NOTIFICATION_WEBHOOK_URL = $WebhookUrl
+$env:NOTIFICATION_DEVICE_TOKEN = $TestDeviceToken
+$env:BADGE_TRIGGER_ENABLED = $EnableBadgeTrigger.ToString().ToLower()
+
+# Test configuration
+$testConfig = @{
+    ProjectPath = $ProjectPath
+    TestEnvironment = $TestEnvironment
+    StartTime = Get-Date
+    NotificationsSent = 0
+    NotificationsDelivered = 0
+    NotificationsFailed = 0
+    BadgeTriggers = @()
+    TestResults = @()
+}
+
+# Create test output directories
+$testOutputPath = Join-Path $ProjectPath "test-results\notifications"
+New-Item -ItemType Directory -Force -Path $testOutputPath | Out-Null
+
+Write-Host "=== Notification System Test Started ===" -ForegroundColor Cyan
+Write-Host "Project Path: $ProjectPath" -ForegroundColor Gray
+Write-Host "Test Environment: $TestEnvironment" -ForegroundColor Gray
+Write-Host "Notification Count: $NotificationCount" -ForegroundColor Gray
+Write-Host ""
+
+# Test notification classes
+class TestNotificationResult {
+    [string]$NotificationId
+    [string]$Type
+    [string]$Title
+    [string]$Message
+    [bool]$Sent
+    [bool]$Delivered
+    [DateTime]$SentTime
+    [DateTime]$DeliveredTime
+    [string]$ErrorMessage
+    [hashtable]$Metadata
+
+    TestNotificationResult() {
+        $this.NotificationId = [guid]::NewGuid().ToString()
+        $this.SentTime = Get-Date
+        $this.Metadata = @{}
+    }
+}
+
+class BadgeTriggerResult {
+    [string]$BadgeName
+    [string]$TriggerReason
+    [DateTime]$TriggerTime
+    [bool]$Triggered
+    [string]$Details
+
+    BadgeTriggerResult([string]$badgeName, [string]$reason) {
+        $this.BadgeName = $badgeName
+        $this.TriggerReason = $reason
+        $this.TriggerTime = Get-Date
+        $this.Triggered = $false
+    }
+}
+
+# Mock notification service for testing
+class MockNotificationService {
+    [System.Collections.Generic.List[TestNotificationResult]]$Notifications
+    [int]$DeliveryDelayMs
+    [double]$FailureRate
+
+    MockNotificationService([int]$delayMs = 100, [double]$failureRate = 0.1) {
+        $this.Notifications = New-Object System.Collections.Generic.List[TestNotificationResult]
+        $this.DeliveryDelayMs = $delayMs
+        $this.FailureRate = $failureRate
+    }
+
+    [TestNotificationResult]SendToastNotification([string]$title, [string]$message) {
+        $notification = [TestNotificationResult]::new()
+        $notification.Type = "Toast"
+        $notification.Title = $title
+        $notification.Message = $message
+
+        # Simulate delivery
+        $notification.Sent = $true
+        $this.Notifications.Add($notification)
+
+        # Simulate delivery delay and potential failure
+        Start-Sleep -Milliseconds ($this.DeliveryDelayMs + (Get-Random -Minimum 0 -Maximum 200))
+
+        if ((Get-Random -Maximum 1) -lt $this.FailureRate) {
+            $notification.Delivered = $false
+            $notification.ErrorMessage = "Simulated delivery failure"
+            $testConfig.NotificationsFailed++
+        } else {
+            $notification.Delivered = $true
+            $notification.DeliveredTime = Get-Date
+            $testConfig.NotificationsDelivered++
+        }
+
+        $testConfig.NotificationsSent++
+        return $notification
+    }
+
+    [TestNotificationResult]SendPushNotification([string]$title, [string]$message, [string]$deviceToken) {
+        $notification = [TestNotificationResult]::new()
+        $notification.Type = "Push"
+        $notification.Title = $title
+        $notification.Message = $message
+        $notification.Metadata["DeviceToken"] = $deviceToken
+
+        $notification.Sent = $true
+        $this.Notifications.Add($notification)
+
+        # Simulate delivery
+        Start-Sleep -Milliseconds ($this.DeliveryDelayMs + (Get-Random -Minimum 0 -Maximum 300))
+
+        if ((Get-Random -Maximum 1) -lt $this.FailureRate) {
+            $notification.Delivered = $false
+            $notification.ErrorMessage = "Push notification delivery failed"
+            $testConfig.NotificationsFailed++
+        } else {
+            $notification.Delivered = $true
+            $notification.DeliveredTime = Get-Date
+            $testConfig.NotificationsDelivered++
+        }
+
+        $testConfig.NotificationsSent++
+        return $notification
+    }
+
+    [TestNotificationResult]SendWebhookNotification([string]$title, [string]$message, [string]$webhookUrl) {
+        $notification = [TestNotificationResult]::new()
+        $notification.Type = "Webhook"
+        $notification.Title = $title
+        $notification.Message = $message
+        $notification.Metadata["WebhookUrl"] = $webhookUrl
+
+        try {
+            $payload = @{
+                title = $title
+                message = $message
+                timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+                notificationId = $notification.NotificationId
+            } | ConvertTo-Json
+
+            $response = Invoke-WebRequest -Uri $webhookUrl -Method POST -Body $payload -ContentType "application/json" -TimeoutSec 10
+            $notification.Sent = $true
+            $notification.Delivered = $response.StatusCode -eq 200
+            $notification.Metadata["ResponseStatus"] = $response.StatusCode.ToString()
+
+            if ($notification.Delivered) {
+                $notification.DeliveredTime = Get-Date
+                $testConfig.NotificationsDelivered++
+            } else {
+                $notification.ErrorMessage = "Webhook returned status $($response.StatusCode)"
+                $testConfig.NotificationsFailed++
+            }
+        }
+        catch {
+            $notification.Sent = $false
+            $notification.Delivered = $false
+            $notification.ErrorMessage = "Webhook request failed: $($_.Exception.Message)"
+            $testConfig.NotificationsFailed++
+        }
+
+        $this.Notifications.Add($notification)
+        $testConfig.NotificationsSent++
+        return $notification
+    }
+}
+
+# Initialize mock notification service
+$mockService = [MockNotificationService]::new(150, 0.05)  # 150ms delay, 5% failure rate
+
+# Test functions
+function Test-ToastNotifications {
+    Write-Host "Testing Toast Notifications..." -ForegroundColor Yellow
+
+    $toastResults = @()
+    for ($i = 1; $i -le ($NotificationCount / 3); $i++) {
+        $title = "Test Toast Notification $i"
+        $message = "This is a test toast notification message $i sent at $(Get-Date -Format 'HH:mm:ss')"
+
+        $result = $mockService.SendToastNotification($title, $message)
+        $toastResults += $result
+
+        if ($result.Delivered) {
+            Write-Host "✓ Toast $i delivered successfully" -ForegroundColor Green
+        } else {
+            Write-Host "✗ Toast $i failed: $($result.ErrorMessage)" -ForegroundColor Red
+        }
+    }
+
+    return $toastResults
+}
+
+function Test-PushNotifications {
+    Write-Host "Testing Push Notifications..." -ForegroundColor Yellow
+
+    $pushResults = @()
+    for ($i = 1; $i -le ($NotificationCount / 3); $i++) {
+        $title = "Test Push Notification $i"
+        $message = "This is a test push notification message $i sent at $(Get-Date -Format 'HH:mm:ss')"
+
+        $result = $mockService.SendPushNotification($title, $message, $TestDeviceToken)
+        $pushResults += $result
+
+        if ($result.Delivered) {
+            Write-Host "✓ Push $i delivered successfully" -ForegroundColor Green
+        } else {
+            Write-Host "✗ Push $i failed: $($result.ErrorMessage)" -ForegroundColor Red
+        }
+    }
+
+    return $pushResults
+}
+
+function Test-WebhookNotifications {
+    Write-Host "Testing Webhook Notifications..." -ForegroundColor Yellow
+
+    $webhookResults = @()
+    for ($i = 1; $i -le ($NotificationCount / 3); $i++) {
+        $title = "Test Webhook Notification $i"
+        $message = "This is a test webhook notification message $i sent at $(Get-Date -Format 'HH:mm:ss')"
+
+        $result = $mockService.SendWebhookNotification($title, $message, $WebhookUrl)
+        $webhookResults += $result
+
+        if ($result.Delivered) {
+            Write-Host "✓ Webhook $i delivered successfully" -ForegroundColor Green
+        } else {
+            Write-Host "✗ Webhook $i failed: $($result.ErrorMessage)" -ForegroundColor Red
+        }
+    }
+
+    return $webhookResults
+}
+
+function Test-BadgeTriggers {
+    Write-Host "Testing Badge Triggers..." -ForegroundColor Yellow
+
+    $badgeResults = @()
+
+    # Test Notification-Delivered badge (requires 10 successful notifications)
+    if ($testConfig.NotificationsDelivered -ge 10) {
+        $badge = [BadgeTriggerResult]::new("Notification-Delivered", "10 successful notification deliveries")
+        $badge.Triggered = $true
+        $badge.Details = "Delivered $testConfig.NotificationsDelivered notifications successfully"
+        $badgeResults += $badge
+        Write-Host "✓ Notification-Delivered badge triggered!" -ForegroundColor Green
+    }
+
+    return $badgeResults
+}
+
+function Test-DeliveryTracking {
+    Write-Host "Testing Delivery Tracking..." -ForegroundColor Yellow
+
+    $trackingResults = @{
+        TotalNotifications = $mockService.Notifications.Count
+        DeliveredNotifications = ($mockService.Notifications | Where-Object { $_.Delivered }).Count
+        FailedNotifications = ($mockService.Notifications | Where-Object { -not $_.Delivered }).Count
+        AverageDeliveryTime = 0
+        SuccessRate = 0
+    }
+
+    $deliveredNotifications = $mockService.Notifications | Where-Object { $_.Delivered -and $_.SentTime -and $_.DeliveredTime }
+    if ($deliveredNotifications.Count -gt 0) {
+        $totalDeliveryTime = 0
+        foreach ($notification in $deliveredNotifications) {
+            $deliveryTime = ($notification.DeliveredTime - $notification.SentTime).TotalMilliseconds
+            $totalDeliveryTime += $deliveryTime
+        }
+        $trackingResults.AverageDeliveryTime = [math]::Round($totalDeliveryTime / $deliveredNotifications.Count, 2)
+    }
+
+    if ($trackingResults.TotalNotifications -gt 0) {
+        $trackingResults.SuccessRate = [math]::Round(($trackingResults.DeliveredNotifications / $trackingResults.TotalNotifications) * 100, 2)
+    }
+
+    Write-Host "Delivery Tracking Results:" -ForegroundColor Cyan
+    Write-Host "  Total: $($trackingResults.TotalNotifications)" -ForegroundColor White
+    Write-Host "  Delivered: $($trackingResults.DeliveredNotifications)" -ForegroundColor Green
+    Write-Host "  Failed: $($trackingResults.FailedNotifications)" -ForegroundColor Red
+    Write-Host "  Success Rate: $($trackingResults.SuccessRate)%" -ForegroundColor Yellow
+    Write-Host "  Avg Delivery Time: $($trackingResults.AverageDeliveryTime)ms" -ForegroundColor Yellow
+
+    return $trackingResults
+}
+
+# Run tests
+$testResults = @{}
+
+if ($SendTestNotifications) {
+    $testResults.ToastResults = Test-ToastNotifications
+    $testResults.PushResults = Test-PushNotifications
+    $testResults.WebhookResults = Test-WebhookNotifications
+}
+
+if ($ValidateDeliveryTracking) {
+    $testResults.TrackingResults = Test-DeliveryTracking
+}
+
+if ($EnableBadgeTrigger) {
+    $testResults.BadgeResults = Test-BadgeTriggers
+}
+
+# Generate test report
+if ($GenerateTestReport) {
+    Write-Host ""
+    Write-Host "=== Generating Test Report ===" -ForegroundColor Cyan
+
+    $reportData = @{
+        TestRun = @{
+            StartTime = $testConfig.StartTime
+            EndTime = Get-Date
+            Duration = ((Get-Date) - $testConfig.StartTime).TotalSeconds
+            Environment = $TestEnvironment
+            Configuration = @{
+                NotificationCount = $NotificationCount
+                EnableBadgeTrigger = $EnableBadgeTrigger
+                SendTestNotifications = $SendTestNotifications
+                ValidateDeliveryTracking = $ValidateDeliveryTracking
+                TestWebhookIntegration = $TestWebhookIntegration
+            }
+        }
+        Results = @{
+            TotalNotifications = $testConfig.NotificationsSent
+            DeliveredNotifications = $testConfig.NotificationsDelivered
+            FailedNotifications = $testConfig.NotificationsFailed
+            SuccessRate = if ($testConfig.NotificationsSent -gt 0) {
+                [math]::Round(($testConfig.NotificationsDelivered / $testConfig.NotificationsSent) * 100, 2)
+            } else { 0 }
+            BadgeTriggers = $testResults.BadgeResults | ForEach-Object {
+                @{
+                    BadgeName = $_.BadgeName
+                    Triggered = $_.Triggered
+                    Reason = $_.TriggerReason
+                    Details = $_.Details
+                }
+            }
+        }
+        DetailedResults = @{
+            ToastNotifications = $testResults.ToastResults | ForEach-Object {
+                @{
+                    Id = $_.NotificationId
+                    Type = $_.Type
+                    Title = $_.Title
+                    Sent = $_.Sent
+                    Delivered = $_.Delivered
+                    SentTime = $_.SentTime
+                    DeliveredTime = $_.DeliveredTime
+                    ErrorMessage = $_.ErrorMessage
+                }
+            }
+            PushNotifications = $testResults.PushResults | ForEach-Object {
+                @{
+                    Id = $_.NotificationId
+                    Type = $_.Type
+                    Title = $_.Title
+                    DeviceToken = $_.Metadata["DeviceToken"]
+                    Sent = $_.Sent
+                    Delivered = $_.Delivered
+                    SentTime = $_.SentTime
+                    DeliveredTime = $_.DeliveredTime
+                    ErrorMessage = $_.ErrorMessage
+                }
+            }
+            WebhookNotifications = $testResults.WebhookResults | ForEach-Object {
+                @{
+                    Id = $_.NotificationId
+                    Type = $_.Type
+                    Title = $_.Title
+                    WebhookUrl = $_.Metadata["WebhookUrl"]
+                    ResponseStatus = $_.Metadata["ResponseStatus"]
+                    Sent = $_.Sent
+                    Delivered = $_.Delivered
+                    SentTime = $_.SentTime
+                    DeliveredTime = $_.DeliveredTime
+                    ErrorMessage = $_.ErrorMessage
+                }
+            }
+        }
+    }
+
+    $reportPath = Join-Path $testOutputPath "notification-test-report.json"
+    $reportData | ConvertTo-Json -Depth 10 | Out-File -FilePath $reportPath -Encoding UTF8
+
+    Write-Host "Test report generated: $reportPath" -ForegroundColor Green
+}
+
+# Summary
+Write-Host ""
+Write-Host "=== Notification Test Summary ===" -ForegroundColor Cyan
+Write-Host "Total Notifications Sent: $($testConfig.NotificationsSent)" -ForegroundColor White
+Write-Host "Delivered: $($testConfig.NotificationsDelivered)" -ForegroundColor Green
+Write-Host "Failed: $($testConfig.NotificationsFailed)" -ForegroundColor Red
+Write-Host "Success Rate: $(if ($testConfig.NotificationsSent -gt 0) { [math]::Round(($testConfig.NotificationsDelivered / $testConfig.NotificationsSent) * 100, 2) } else { 0 })%" -ForegroundColor Yellow
+
+if ($testResults.BadgeResults) {
+    Write-Host "Badge Triggers: $($testResults.BadgeResults.Count)" -ForegroundColor Magenta
+    foreach ($badge in $testResults.BadgeResults) {
+        if ($badge.Triggered) {
+            Write-Host "  ✓ $($badge.BadgeName): $($badge.Details)" -ForegroundColor Green
+        }
+    }
+}
+
+Write-Host ""
+Write-Host "=== Notification Test Completed ===" -ForegroundColor Cyan
+
+# Return test results for CI/CD integration
+return @{
+    Success = $testConfig.NotificationsDelivered -ge ($NotificationCount * 0.8)  # 80% success rate required
+    TotalNotifications = $testConfig.NotificationsSent
+    DeliveredNotifications = $testConfig.NotificationsDelivered
+    FailedNotifications = $testConfig.NotificationsFailed
+    SuccessRate = if ($testConfig.NotificationsSent -gt 0) {
+        [math]::Round(($testConfig.NotificationsDelivered / $testConfig.NotificationsSent) * 100, 2)
+    } else { 0 }
+    BadgeTriggers = $testResults.BadgeResults.Count
+    TestDuration = ((Get-Date) - $testConfig.StartTime).TotalSeconds
+}

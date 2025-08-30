@@ -1,0 +1,200 @@
+# Android AAB Production Build Documentation
+
+## Genel Bak��
+
+Bu script, .NET MAUI projesi i�in production-ready Android App Bundle (AAB) dosyalar� olu�turur. Google Play Store'a y�klenmeye haz�r, imzal� AAB dosyalar� �retir.
+
+## �zellikler
+
+### ? **Tam �mzalama Deste�i**
+- Keystore dosyas� do�rulama
+- Otomatik key alias tespiti
+- Keystore b�t�nl�k kontrol�
+- �oklu imzalama algoritmas� deste�i
+
+### ? **Otomatik Versiyonlama**
+- Git tag'lerinden versiyon ��karma
+- GitHub Actions entegrasyonu
+- Commit count tabanl� versiyon kodlar�
+- Fallback versiyonlama stratejisi
+
+### ? **Build Optimizasyonlar�**
+- R8 code shrinking
+- ProGuard obfuscation
+- LLVM optimizations
+- MultiDex support
+- AOT compilation
+- IL stripping
+
+### ? **Geli�mi� Hata Kontrol�**
+- Kapsaml� input validation
+- Build environment checks
+- AAB integrity verification
+- Signature validation
+- Comprehensive logging
+
+### ? **CI/CD Entegrasyonu**
+- GitHub Actions output variables
+- Environment variable support
+- Artifact management
+- Build reporting
+- Log archiving
+
+## Kullan�m
+
+### Lokal Development
+
+```bash
+# Temel kullan�m (unsigned)
+./scripts/build-android-aab.sh
+
+# Signed build i�in environment variables
+export ANDROID_KEYSTORE_PATH="/path/to/your/keystore.jks"
+export ANDROID_SIGNING_PASSWORD="your_password"
+export ANDROID_KEY_ALIAS="your_key_alias"
+./scripts/build-android-aab.sh
+```
+
+### GitHub Actions
+
+```yaml
+- name: Build Android AAB
+  env:
+    ANDROID_KEYSTORE_PATH: ${{ env.ANDROID_KEYSTORE_PATH }}
+    ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
+    ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+  run: |
+    chmod +x ./scripts/build-android-aab.sh
+    ./scripts/build-android-aab.sh
+```
+
+## Environment Variables
+
+### Gerekli (�mzal� build i�in)
+- `ANDROID_KEYSTORE_PATH`: Keystore dosyas�n�n tam yolu
+- `ANDROID_SIGNING_PASSWORD`: Keystore ve key �ifresi
+
+### Opsiyonel
+- `ANDROID_KEY_ALIAS`: Key alias (varsay�lan: "androiddebugkey")
+
+### GitHub Actions Otomatik
+- `GITHUB_REF`: Git tag referans�
+- `GITHUB_OUTPUT`: Actions output file
+- `GITHUB_ENV`: Actions environment file
+
+## ��kt�lar
+
+### Dosyalar
+- `./artifacts/*.aab`: Olu�turulan AAB dosyalar�
+- `./build-logs/build-*.log.gz`: Kompresli build loglar�
+
+### GitHub Actions Outputs
+- `aab_count`: Olu�turulan AAB say�s�
+- `primary_aab`: Ana AAB dosyas� yolu
+- `version_name`: Uygulaman�n versiyon ad�
+- `version_code`: Uygulaman�n versiyon kodu
+- `signed`: �mzalama durumu (true/false)
+- `total_size`: Toplam artifact boyutu
+
+## Versiyonlama Stratejisi
+
+### Git Tag Versiyonlama
+```bash
+# v1.2.3 tag'i ? Version Name: 1.2.3, Version Code: commit count
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+### Otomatik Versiyon Kodu
+- Commit count kullan�larak otomatik artan versiyon kodu
+- Her commit yeni bir versiyon kodu olu�turur
+
+## Build Optimizasyonlar�
+
+### R8 Code Shrinking
+```xml
+<AndroidLinkTool>r8</AndroidLinkTool>
+<AndroidLinkMode>SdkOnly</AndroidLinkMode>
+```
+
+### LLVM Optimizations
+```xml
+<EnableLLVM>true</EnableLLVM>
+<AndroidStripILAfterAOT>true</AndroidStripILAfterAOT>
+```
+
+### Publishing Options
+```xml
+<PublishTrimmed>true</PublishTrimmed>
+<AndroidCreatePackagePerAbi>false</AndroidCreatePackagePerAbi>
+```
+
+## Hata Giderme
+
+### Build Hatalar�
+- Build log dosyas�n� kontrol edin: `./build-logs/build-*.log.gz`
+- Verbose output i�in `-verbosity:detailed` ekleyin
+
+### �mzalama Hatalar�
+- Keystore dosyas� yolunu kontrol edin
+- Key alias'�n do�ru oldu�undan emin olun
+- �ifrelerin e�le�ti�ini do�rulay�n
+
+### Versiyon Hatalar�
+- Git repository'sinde oldu�unuzdan emin olun
+- Tag'lerin `v` prefix'i ile ba�lad���ndan emin olun
+
+## G�venlik
+
+### Keystore G�venli�i
+- Keystore dosyalar�n� asla repository'ye commit etmeyin
+- �ifreleri environment variables olarak saklay�n
+- GitHub Secrets kullan�n
+
+### Build G�venli�i
+- Script her zaman `set -euo pipefail` ile �al���r
+- Input validation yap�l�r
+- Temporary file'lar temizlenir
+
+## �leri Seviye Kullan�m
+
+### Custom Build Parameters
+Script i�erisindeki `build_params` array'ini modifiye edebilirsiniz:
+
+```bash
+# Ek build parametreleri
+build_params+=(
+    "-p:AndroidEnableProfiledAot=true"
+    "-p:AndroidR8JarPath=/custom/r8.jar"
+)
+```
+
+### Custom Validation
+`verify_aab_integrity` fonksiyonunu geni�letebilirsiniz:
+
+```bash
+# Custom AAB validation
+verify_custom_aab() {
+    local aab_file="$1"
+    # Your custom validation logic
+}
+```
+
+## Versiyon Ge�mi�i
+
+### v2.0.0 (Current)
+- ? Tam production-ready script
+- ? Comprehensive error handling
+- ? Advanced logging system
+- ? AAB integrity verification
+- ? CI/CD integration
+
+### v1.0.0 (Previous)
+- ? Basic AAB build functionality
+- ? Simple signing support
+- ?? Limited error handling
+- ?? Basic versioning
+
+## Lisans
+
+Bu script MIT lisans� alt�nda da��t�lmaktad�r.

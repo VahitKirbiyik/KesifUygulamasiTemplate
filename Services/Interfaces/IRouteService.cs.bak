@@ -1,0 +1,36 @@
+using System.Threading.Tasks;
+using KesifUygulamasiTemplate.Models;
+
+namespace KesifUygulamasiTemplate.Services.Interfaces
+{
+    /// <summary>
+    /// Rota optimizasyon türleri
+    /// </summary>
+    public enum RouteOptimizationType
+    {
+        Fastest,    // Trafik + hız (varsayılan)
+        Shortest,   // Mesafe
+        Eco,        // Yakıt/enerji verimliliği
+        Safe        // Riskli yolları azalt
+    }
+
+    /// <summary>
+    /// Interface for route generation services
+    /// </summary>
+    public interface IRouteService
+    {
+        /// <summary>
+        /// Gets route points between two locations
+        /// </summary>
+        /// <param name="start">Starting location</param>
+        /// <param name="end">Ending location</param>
+        /// <param name="optimizationType">Route optimization type</param>
+        /// <returns>List of location points that make up the route</returns>
+        Task<System.Collections.Generic.List<LocationModel>> GetRouteAsync(LocationModel start, LocationModel end, RouteOptimizationType optimizationType = RouteOptimizationType.Fastest);
+
+        /// <summary>
+        /// Gets the current route provider name
+        /// </summary>
+        string CurrentProvider { get; }
+    }
+}

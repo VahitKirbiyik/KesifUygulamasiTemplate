@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ext="clr-namespace:KesifUygulamasiTemplate.Extensions"
+             xmlns:controls="clr-namespace:KesifUygulamasiTemplate.Controls"
+             x:Class="KesifUygulamasiTemplate.Views.MoonCompassPage"
+             Title="{ext:TranslateBinding Key=MoonCompass}">
+
+    <RefreshView Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsBusy}">
+        <ScrollView>
+            <Grid RowDefinitions="Auto,*,Auto" Padding="20" RowSpacing="15">
+                
+                <!-- Loading Indicator -->
+                <ActivityIndicator Grid.Row="0"
+                                   IsRunning="{Binding IsBusy}" 
+                                   IsVisible="{Binding IsBusy}"
+                                   HorizontalOptions="Center" 
+                                   HeightRequest="50" 
+                                   WidthRequest="50"
+                                   Color="{AppThemeBinding Light={StaticResource PrimaryColor}, Dark={StaticResource SecondaryColor}}"
+                                   AutomationId="LoadingIndicator"
+                                   SemanticProperties.Description="{ext:TranslateBinding Key=Loading}" />
+
+                <!-- Main Content -->
+                <VerticalStackLayout Grid.Row="1" 
+                                     Spacing="20" 
+                                     IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}">
+                    
+                    <!-- Error Message -->
+                    <Label Text="{Binding ErrorMessage}" 
+                           IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}"
+                           TextColor="{AppThemeBinding Light=Red, Dark=LightCoral}"
+                           HorizontalOptions="Center"
+                           SemanticProperties.HeadingLevel="Level2"
+                           SemanticProperties.Description="{ext:TranslateBinding Key=Error}" />
+
+                    <!-- Ay Fazi Gorsellestirme -->
+                    <Frame IsVisible="{Binding HasMoonData}"
+                           CornerRadius="20"
+                           Padding="20"
+                           BackgroundColor="{AppThemeBinding Light=#f8f9fa, Dark=#2d3436}"
+                           HasShadow="True"
+                           BorderColor="{AppThemeBinding Light=#dee2e6, Dark=#636e72}"
+                           SemanticProperties.Description="{ext:TranslateBinding Key=MoonPhaseVisualization}">
+                        <VerticalStackLayout Spacing="15">
+                            
+                            <!-- Ay Fazi Emoji ve Isim -->
+                            <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
+                                <Label Text="{Binding MoonPhaseEmoji}" 
+                                       FontSize="48" />
+                                <Label Text="{Binding MoonPhaseName}" 
+                                       FontSize="24" 
+                                       FontAttributes="Bold"
+                                       VerticalOptions="Center"
+                                       TextColor="{AppThemeBinding Light=#2d3436, Dark=#ddd}" />
+                            </HorizontalStackLayout>
+
+                            <!-- SkiaSharp Ay Gorsellestirmesi -->
+                            <controls:MoonPhaseView 
+                                Phase="{Binding MoonData.Phase}"
+                                Illumination="{Binding MoonData.Illumination}"
+                                MoonColor="{AppThemeBinding Light=#f39c12, Dark=#f1c40f}"
+                                ShadowColor="{AppThemeBinding Light=#2c3e50, Dark=#34495e}"
+                                HeightRequest="200"
+                                WidthRequest="200"
+                                HorizontalOptions="Center" />
+
+                            <!-- Aydinlanma Bilgisi -->
+                            <Label Text="{Binding FormattedIllumination}"
+                                   FontSize="18"
+                                   HorizontalOptions="Center"
+                                   TextColor="{AppThemeBinding Light=#636e72, Dark=#b2bec3}" />
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <!-- Ay Bilgileri Karti -->
+                    <Frame IsVisible="{Binding HasMoonData}"
+                           CornerRadius="16"
+                           Padding="20"
+                           BackgroundColor="{AppThemeBinding Light=#f8f9fa, Dark=#2d3436}"
+                           HasShadow="True"
+                           BorderColor="{AppThemeBinding Light=#dee2e6, Dark=#636e72}"
+                           SemanticProperties.Description="{ext:TranslateBinding Key=MoonDataCard}">
+                        <VerticalStackLayout Spacing="15">
+
+                            <Label Text="{ext:TranslateBinding Key=MoonInformation}"
+                                   FontAttributes="Bold"
+                                   FontSize="20"
+                                   HorizontalOptions="Center"
+                                   TextColor="{AppThemeBinding Light=#2d3436, Dark=#ddd}"
+                                   SemanticProperties.HeadingLevel="Level2" />
+
+                            <Grid RowSpacing="12" ColumnSpacing="15">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Dogus Saati -->
+                                <Label Grid.Row="0" Grid.Column="0"
+                                       Text="{ext:TranslateBinding Key=MoonRise}"
+                                       FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light=#636e72, Dark=#b2bec3}" />
+                                <Label Grid.Row="0" Grid.Column="1"
+                                       Text="{Binding FormattedRiseTime}"
+                                       TextColor="{AppThemeBinding Light=#2d3436, Dark=#ddd}"
+                                       SemanticProperties.Description="{ext:TranslateBinding Key=MoonRiseTime}" />
+
+                                <!-- Batis Saati -->
+                                <Label Grid.Row="1" Grid.Column="0"
+                                       Text="{ext:TranslateBinding Key=MoonSet}"
+                                       FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light=#636e72, Dark=#b2bec3}" />
+                                <Label Grid.Row="1" Grid.Column="1"
+                                       Text="{Binding FormattedSetTime}"
+                                       TextColor="{AppThemeBinding Light=#2d3436, Dark=#ddd}"
+                                       SemanticProperties.Description="{ext:TranslateBinding Key=MoonSetTime}" />
+
+                                <!-- Ay Fazi -->
+                                <Label Grid.Row="2" Grid.Column="0"
+                                       Text="{ext:TranslateBinding Key=MoonPhase}"
+                                       FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light=#636e72, Dark=#b2bec3}" />
+                                <Label Grid.Row="2" Grid.Column="1"
+                                       Text="{Binding FormattedPhase}"
+                                       TextColor="{AppThemeBinding Light=#2d3436, Dark=#ddd}"
+                                       SemanticProperties.Description="{ext:TranslateBinding Key=MoonPhasePercentage}" />
+
+                                <!-- Azimuth -->
+                                <Label Grid.Row="3" Grid.Column="0"
+                                       Text="{ext:TranslateBinding Key=Azimuth}"
+                                       FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light=#636e72, Dark=#b2bec3}" />
+                                <Label Grid.Row="3" Grid.Column="1"
+                                       Text="{Binding FormattedAzimuth}"
+                                       TextColor="{AppThemeBinding Light=#2d3436, Dark=#ddd}" />
+
+                                <!-- Altitude -->
+                                <Label Grid.Row="4" Grid.Column="0"
+                                       Text="{ext:TranslateBinding Key=Altitude}"
+                                       FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light=#636e72, Dark=#b2bec3}" />
+                                <Label Grid.Row="4" Grid.Column="1"
+                                       Text="{Binding FormattedAltitude}"
+                                       TextColor="{AppThemeBinding Light=#2d3436, Dark=#ddd}" />
+
+                                <!-- Mesafe -->
+                                <Label Grid.Row="5" Grid.Column="0"
+                                       Text="{ext:TranslateBinding Key=Distance}"
+                                       FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light=#636e72, Dark=#b2bec3}" />
+                                <Label Grid.Row="5" Grid.Column="1"
+                                       Text="{Binding FormattedDistance}"
+                                       TextColor="{AppThemeBinding Light=#2d3436, Dark=#ddd}" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Frame>
+
+                    <!-- Veri Yok Mesaji -->
+                    <Label IsVisible="{Binding HasMoonData, Converter={StaticResource InvertedBoolConverter}}"
+                           Text="{ext:TranslateBinding Key=NoMoonData}"
+                           HorizontalOptions="Center"
+                           TextColor="{AppThemeBinding Light=#6c757d, Dark=#adb5bd}"
+                           FontSize="16"
+                           SemanticProperties.Description="{ext:TranslateBinding Key=NoMoonData}" />
+
+                </VerticalStackLayout>
+
+                <!-- Aksiyon Butonlari -->
+                <StackLayout Grid.Row="2" 
+                            Orientation="Horizontal" 
+                            HorizontalOptions="Center" 
+                            Spacing="16">
+                    
+                    <Button Text="{ext:TranslateBinding Key=GetLocation}"
+                            Command="{Binding GetLocationCommand}"
+                            IsEnabled="{Binding IsNotBusy}"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource PrimaryColor}, Dark={StaticResource SecondaryColor}}"
+                            TextColor="White"
+                            CornerRadius="25"
+                            Padding="20,12"
+                            SemanticProperties.Description="{ext:TranslateBinding Key=GetCurrentLocation}"
+                            AutomationId="GetLocationButton" />
+
+                    <Button Text="{ext:TranslateBinding Key=Share}"
+                            Command="{Binding ShareCommand}"
+                            IsEnabled="{Binding HasMoonData}"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource AccentColor}, Dark=#e67e22}"
+                            TextColor="White"
+                            CornerRadius="25"
+                            Padding="20,12"
+                            SemanticProperties.Description="{ext:TranslateBinding Key=ShareMoonData}"
+                            AutomationId="ShareButton" />
+                </StackLayout>
+
+            </Grid>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

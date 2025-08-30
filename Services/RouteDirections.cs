@@ -1,13 +1,1 @@
-using System;
-using System.Collections.Generic;
-
-namespace KesifUygulamasiTemplate.Services
-{
-    public class RouteDirections
-    {
-        public string Summary { get; set; } = "";
-        public List<string> Steps { get; set; } = new();
-        public double TotalDistance { get; set; } // Kilometers
-        public TimeSpan TotalDuration { get; set; } // Time required
-    }
-}
+using System;\nusing System.Collections.Generic;\n\nnamespace KesifUygulamasiTemplate.Services\n{\n    public class RouteDirections\n    {\n        public string Summary { get; set; } = "";\n        public List<string> Steps { get; set; } = new();\n        public double TotalDistance { get; set; } // Kilometers\n        public TimeSpan TotalDuration { get; set; } // Time required\n    }\n}\n

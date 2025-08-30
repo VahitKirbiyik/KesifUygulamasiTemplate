@@ -39,4 +39,4 @@ namespace KesifUygulamasiTemplate.KesifUygulamasi.OllamaTool
             return Task.FromResult(xaml);
         }
     }
-}
+}\n

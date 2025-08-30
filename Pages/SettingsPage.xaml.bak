@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="KesifUygulamasi.Pages.SettingsPage"
+             Title="Ayarlar">
+
+    <ScrollView>
+        <StackLayout Padding="20" Spacing="25">
+
+            <Label Text="Ayarlar" FontSize="24" FontAttributes="Bold" />
+
+            <!-- Offline Mod -->
+            <StackLayout Orientation="Horizontal" VerticalOptions="Center">
+                <Label Text="Offline Mod:" VerticalOptions="Center" />
+                <Switch x:Name="OfflineModeSwitch"
+                        Toggled="OfflineModeSwitch_Toggled"
+                        HorizontalOptions="EndAndExpand" />
+            </StackLayout>
+
+            <!-- Harita Sağlayıcı Seçimi -->
+            <Label Text="Harita Sağlayıcı Seçimi:" />
+            <Picker ItemsSource="{Binding MapProviders}"
+                    SelectedItem="{Binding SelectedMapProvider, Mode=TwoWay}"
+                    Title="Sağlayıcı Seçin" />
+
+            <!-- Rota Optimizasyon Türü -->
+            <Label Text="Varsayılan Rota Türü:" />
+            <Picker ItemsSource="{Binding RouteOptimizationTypes}"
+                    SelectedItem="{Binding SelectedRouteOptimization, Mode=TwoWay}"
+                    Title="Rota Türü Seçin" />
+
+            <!-- Push Bildirimleri -->
+            <StackLayout Orientation="Horizontal" VerticalOptions="Center">
+                <Label Text="Push Bildirimleri:" VerticalOptions="Center" />
+                <Switch IsToggled="{Binding IsPushEnabled, Mode=TwoWay}" HorizontalOptions="EndAndExpand" />
+            </StackLayout>
+
+            <!-- Konum Izni Durumu -->
+            <StackLayout>
+                <Label Text="Konum Izni Durumu:" FontAttributes="Bold" />
+                <Label x:Name="LocationPermissionLabel"
+                       Text="Izin durumu yukleniyor..." />
+                <Button Text="Izin Kontrol Et / Iste"
+                        Clicked="RequestLocationPermission_Clicked" />
+            </StackLayout>
+
+            <!-- Offline Harita İndirme -->
+            <Label Text="Offline Harita:" FontAttributes="Bold" />
+            <Label Text="Türkiye Haritası (300MB) - İndirilebilir" FontSize="14" />
+            <Button Text="� Haritayı İndir"
+                    BackgroundColor="#4CAF50"
+                    TextColor="White"
+                    Clicked="DownloadOfflineMapButton_Clicked"
+                    CornerRadius="8"
+                    HeightRequest="45" />
+
+            <!-- İndirme Durumu -->
+            <Label x:Name="DownloadStatusLabel"
+                   Text="İndirme tamamlandı ✓"
+                   TextColor="Green"
+                   IsVisible="False" />
+
+        </StackLayout>
+    </ScrollView>
+</ContentPage>

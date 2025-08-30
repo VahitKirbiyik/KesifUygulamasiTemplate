@@ -39,4 +39,4 @@ catch {
     Write-Host "❌ README.md dosyası okunamadı veya erişilemiyor" -ForegroundColor Red
 }
 
-Write-Host "🔎 Test Tamamlandı!" -ForegroundColor Cyan
+Write-Host "🔎 Test Tamamlandı!" -ForegroundColor Cyan\n

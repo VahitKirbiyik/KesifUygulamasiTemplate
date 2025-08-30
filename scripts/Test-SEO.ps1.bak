@@ -1,0 +1,434 @@
+# Test-SEO.ps1 - CI/CD pipeline ile entegre SEO dosya doğrulama testi
+# Bu script SEO dosyalarını, meta etiketleri ve search engine optimizasyonunu doğrular
+
+param(
+    [string]$TestEnvironment = "local",
+    [string]$Configuration = "Debug",
+    [string]$ProjectPath = $PSScriptRoot,
+    [switch]$SkipBuild,
+    [switch]$Verbose,
+    [switch]$ExportJson,
+    [string]$Domain = "https://kesifapp.com"
+)
+
+# Script ayarları
+$ErrorActionPreference = "Stop"
+$VerbosePreference = if ($Verbose) { "Continue" } else { "SilentlyContinue" }
+
+# Test sonuçları için değişkenler
+$testResults = @{
+    TotalTests = 0
+    PassedTests = 0
+    FailedTests = 0
+    TestDuration = [TimeSpan]::Zero
+    Details = @()
+}
+
+# Renkli output için
+function Write-ColorOutput {
+    param(
+        [string]$Message,
+        [string]$Color = "White"
+    )
+    Write-Host $Message -ForegroundColor $Color
+}
+
+# Başlık
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "      🔍 SEO Dosya Doğrulama Testi" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput ""
+
+# Environment değişkenlerini ayarla
+$env:TEST_ENVIRONMENT = $TestEnvironment
+$env:CI = if ($TestEnvironment -eq "ci") { "true" } else { "false" }
+$env:DOMAIN = $Domain
+
+Write-ColorOutput "Test Environment: $TestEnvironment" "Yellow"
+Write-ColorOutput "Domain: $Domain" "Yellow"
+Write-ColorOutput "Project Path: $ProjectPath" "Yellow"
+Write-ColorOutput ""
+
+# Proje yolunu kontrol et
+if (!(Test-Path $ProjectPath)) {
+    Write-ColorOutput "Hata: Proje yolu bulunamadı: $ProjectPath" "Red"
+    exit 1
+}
+
+# SEO dosyalar listesi
+$seoFiles = @(
+    @{ Path = ".\seo\description.txt"; Name = "SEO Description"; Required = $true; MinLength = 120; MaxLength = 160 },
+    @{ Path = ".\seo\keywords.txt"; Name = "SEO Keywords"; Required = $true; MinCount = 5; MaxCount = 15 },
+    @{ Path = ".\seo\title.txt"; Name = "Page Title"; Required = $true; MinLength = 30; MaxLength = 60 },
+    @{ Path = ".\seo\meta-tags.html"; Name = "Meta Tags HTML"; Required = $false },
+    @{ Path = ".\seo\structured-data.json"; Name = "Structured Data JSON"; Required = $false },
+    @{ Path = ".\seo\robots-meta.html"; Name = "Robots Meta"; Required = $false },
+    @{ Path = ".\seo\canonical-urls.txt"; Name = "Canonical URLs"; Required = $false }
+)
+
+# HTML dosyalar listesi (meta etiket kontrolü için)
+$htmlFiles = @(
+    ".\index.html",
+    ".\wwwroot\index.html",
+    ".\Pages\Index.cshtml",
+    ".\Views\Home\Index.cshtml"
+)
+
+# Test fonksiyonları
+function Test-SEOFile {
+    param(
+        [string]$FilePath,
+        [string]$FileName,
+        [bool]$Required = $true,
+        [int]$MinLength = 0,
+        [int]$MaxLength = 0,
+        [int]$MinCount = 0,
+        [int]$MaxCount = 0
+    )
+
+    $startTime = Get-Date
+    $testPassed = $false
+    $errorMessage = ""
+    $warnings = @()
+
+    Write-ColorOutput "🧪 $FileName dosyası kontrol ediliyor..." "White"
+
+    try {
+        $fullPath = Join-Path $ProjectPath $FilePath
+
+        if (Test-Path $fullPath) {
+            Write-ColorOutput "  ✅ Dosya bulundu: $FilePath" "Green"
+
+            # Dosya içeriği kontrolü
+            $content = Get-Content $fullPath -Raw
+            $fileInfo = Get-Item $fullPath
+            $fileSize = $fileInfo.Length
+
+            if ($fileSize -eq 0) {
+                $errorMessage = "Dosya boş"
+                Write-ColorOutput "  ⚠️  Dosya boş: $fileSize bytes" "Yellow"
+                $testPassed = !$Required
+            } else {
+                Write-ColorOutput "  📄 Dosya boyutu: $fileSize bytes" "Gray"
+
+                # İçerik validasyonu
+                $contentValid = Test-SEOContent -Content $content -FileName $FileName -MinLength $MinLength -MaxLength $MaxLength -MinCount $MinCount -MaxCount $MaxCount -Warnings ([ref]$warnings)
+
+                if ($contentValid) {
+                    $testPassed = $true
+                    Write-ColorOutput "  ✅ Dosya içeriği geçerli" "Green"
+                } else {
+                    $errorMessage = "Dosya içeriği validasyon hatası"
+                    Write-ColorOutput "  ❌ Dosya içeriği geçersiz" "Red"
+                }
+
+                # Uyarıları göster
+                foreach ($warning in $warnings) {
+                    Write-ColorOutput "  ⚠️  $warning" "Yellow"
+                }
+            }
+        } else {
+            $errorMessage = "Dosya bulunamadı"
+            if ($Required) {
+                Write-ColorOutput "  ❌ Gerekli dosya bulunamadı: $FilePath" "Red"
+            } else {
+                Write-ColorOutput "  ⚠️  İsteğe bağlı dosya bulunamadı: $FilePath" "Yellow"
+                $testPassed = $true
+            }
+        }
+
+    } catch {
+        $errorMessage = $_.Exception.Message
+        Write-ColorOutput "  💥 Dosya kontrol hatası: $errorMessage" "Red"
+    } finally {
+        $endTime = Get-Date
+        $duration = $endTime - $startTime
+
+        $testResults.TotalTests++
+        if ($testPassed) {
+            $testResults.PassedTests++
+        } else {
+            $testResults.FailedTests++
+        }
+        $testResults.TestDuration += $duration
+
+        $testResults.Details += @{
+            TestName = "$FileName SEO Kontrolü"
+            FilePath = $FilePath
+            Passed = $testPassed
+            Required = $Required
+            Duration = $duration
+            ErrorMessage = $errorMessage
+            Warnings = $warnings
+        }
+    }
+}
+
+function Test-SEOContent {
+    param(
+        [string]$Content,
+        [string]$FileName,
+        [int]$MinLength,
+        [int]$MaxLength,
+        [int]$MinCount,
+        [int]$MaxCount,
+        [ref]$Warnings
+    )
+
+    $isValid = $true
+
+    switch -Wildcard ($FileName) {
+        "*Description*" {
+            # Description kontrolü
+            $length = $Content.Length
+            if ($MinLength -gt 0 -and $length -lt $MinLength) {
+                $Warnings.Value += "Description çok kısa: ${length}/${MinLength} karakter"
+                $isValid = $false
+            }
+            if ($MaxLength -gt 0 -and $length -gt $MaxLength) {
+                $Warnings.Value += "Description çok uzun: ${length}/${MaxLength} karakter"
+                $isValid = $false
+            }
+
+            # Özel karakter kontrolü
+            if ($Content -match '[<>]') {
+                $Warnings.Value += "Description'da HTML etiketleri olmamalı"
+            }
+        }
+
+        "*Keywords*" {
+            # Keywords kontrolü
+            $keywords = $Content -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+            $count = $keywords.Count
+
+            if ($MinCount -gt 0 -and $count -lt $MinCount) {
+                $Warnings.Value += "Yetersiz keyword sayısı: ${count}/${MinCount}"
+                $isValid = $false
+            }
+            if ($MaxCount -gt 0 -and $count -gt $MaxCount) {
+                $Warnings.Value += "Çok fazla keyword: ${count}/${MaxCount}"
+            }
+
+            # Tekrar eden keyword kontrolü
+            $duplicates = $keywords | Group-Object | Where-Object { $_.Count -gt 1 }
+            if ($duplicates) {
+                $Warnings.Value += "Tekrar eden keyword'ler: $($duplicates.Name -join ', ')"
+            }
+        }
+
+        "*Title*" {
+            # Title kontrolü
+            $length = $Content.Length
+            if ($MinLength -gt 0 -and $length -lt $MinLength) {
+                $Warnings.Value += "Title çok kısa: ${length}/${MinLength} karakter"
+                $isValid = $false
+            }
+            if ($MaxLength -gt 0 -and $length -gt $MaxLength) {
+                $Warnings.Value += "Title çok uzun: ${length}/${MaxLength} karakter"
+                $isValid = $false
+            }
+        }
+
+        "*Meta Tags*" {
+            # HTML meta tags kontrolü
+            if ($Content -notmatch '<meta') {
+                $Warnings.Value += "Meta etiketleri bulunamadı"
+            }
+            if ($Content -notmatch 'name="description"') {
+                $Warnings.Value += "Description meta etiketi bulunamadı"
+            }
+            if ($Content -notmatch 'name="keywords"') {
+                $Warnings.Value += "Keywords meta etiketi bulunamadı"
+            }
+        }
+
+        "*Structured Data*" {
+            # JSON-LD structured data kontrolü
+            try {
+                $jsonData = $Content | ConvertFrom-Json
+                if (-not $jsonData.'@context' -or $jsonData.'@context' -notmatch 'schema.org') {
+                    $Warnings.Value += "Geçersiz schema.org context"
+                }
+                if (-not $jsonData.'@type') {
+                    $Warnings.Value += "Missing @type in structured data"
+                }
+            } catch {
+                $Warnings.Value += "Geçersiz JSON formatı"
+                $isValid = $false
+            }
+        }
+    }
+
+    return $isValid
+}
+
+function Test-HTMLMetaTags {
+    param([string]$HtmlFile)
+
+    Write-ColorOutput "🔍 HTML meta etiketleri kontrol ediliyor: $HtmlFile" "White"
+
+    try {
+        if (Test-Path $HtmlFile) {
+            $content = Get-Content $HtmlFile -Raw
+
+            $checks = @(
+                @{ Pattern = '<title>'; Name = "Title etiketi"; Required = $true },
+                @{ Pattern = 'name="description"'; Name = "Description meta"; Required = $true },
+                @{ Pattern = 'name="keywords"'; Name = "Keywords meta"; Required = $false },
+                @{ Pattern = 'name="robots"'; Name = "Robots meta"; Required = $false },
+                @{ Pattern = 'property="og:'; Name = "Open Graph meta"; Required = $false },
+                @{ Pattern = 'name="twitter:'; Name = "Twitter Card meta"; Required = $false },
+                @{ Pattern = 'rel="canonical"'; Name = "Canonical URL"; Required = $false }
+            )
+
+            $passedChecks = 0
+            foreach ($check in $checks) {
+                if ($content -match $check.Pattern) {
+                    Write-ColorOutput "  ✅ $($check.Name) bulundu" "Green"
+                    $passedChecks++
+                } elseif ($check.Required) {
+                    Write-ColorOutput "  ❌ $($check.Name) bulunamadı (gerekli)" "Red"
+                } else {
+                    Write-ColorOutput "  ⚠️  $($check.Name) bulunamadı (isteğe bağlı)" "Yellow"
+                }
+            }
+
+            return $passedChecks -ge 2  # En az 2 gerekli etiket
+        } else {
+            Write-ColorOutput "  ⚠️  HTML dosya bulunamadı: $HtmlFile" "Yellow"
+            return $false
+        }
+    } catch {
+        Write-ColorOutput "  💥 HTML kontrol hatası: $($_.Exception.Message)" "Red"
+        return $false
+    }
+}
+
+function Show-Badge {
+    param([string]$BadgeName)
+
+    Write-ColorOutput "🏅 Badge kazanıldı: $BadgeName" "Cyan"
+
+    # Badge dosyasını güncelle (varsa)
+    $badgeFile = Join-Path $ProjectPath "badge.json"
+    if (Test-Path $badgeFile) {
+        try {
+            $badgeData = Get-Content $badgeFile -Raw | ConvertFrom-Json
+            if ($badgeData.PSObject.Properties.Name -contains $BadgeName) {
+                $badgeData.$BadgeName = $true
+                $badgeData | ConvertTo-Json | Set-Content $badgeFile
+                Write-ColorOutput "  ✅ Badge dosyası güncellendi" "Green"
+            }
+        } catch {
+            Write-ColorOutput "  ⚠️  Badge dosyası güncellenemedi" "Yellow"
+        }
+    }
+}
+
+# Ana test döngüsü
+Write-ColorOutput "🚀 SEO dosya testleri başlatılıyor..." "White"
+Write-ColorOutput ""
+
+# SEO dosyalar testi
+Write-ColorOutput "📄 SEO Dosyaları:" "Cyan"
+foreach ($file in $seoFiles) {
+    Test-SEOFile -FilePath $file.Path -FileName $file.Name -Required $file.Required -MinLength $file.MinLength -MaxLength $file.MaxLength -MinCount $file.MinCount -MaxCount $file.MaxCount
+}
+
+Write-ColorOutput ""
+
+# HTML meta etiketleri testi
+Write-ColorOutput "🏷️  HTML Meta Etiketleri:" "Cyan"
+foreach ($htmlFile in $htmlFiles) {
+    $fullHtmlPath = Join-Path $ProjectPath $htmlFile
+    if (Test-HTMLMetaTags -HtmlFile $fullHtmlPath) {
+        Write-ColorOutput "✅ $htmlFile meta etiketleri geçerli" "Green"
+    } else {
+        Write-ColorOutput "❌ $htmlFile meta etiketleri eksik" "Red"
+    }
+}
+
+# Test özeti
+Write-ColorOutput "" "White"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "           📊 Test Sonuçları" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+
+$successRate = if ($testResults.TotalTests -gt 0) {
+    [math]::Round(($testResults.PassedTests / $testResults.TotalTests) * 100, 1)
+} else { 0 }
+
+Write-ColorOutput "Toplam Test: $($testResults.TotalTests)" "White"
+Write-ColorOutput "Başarılı: $($testResults.PassedTests)" "Green"
+Write-ColorOutput "Başarısız: $($testResults.FailedTests)" "Red"
+Write-ColorOutput "Başarı Oranı: $successRate%" "Cyan"
+Write-ColorOutput "Toplam Süre: $($testResults.TestDuration.TotalSeconds) saniye" "White"
+
+# Detaylı sonuçlar
+if ($Verbose) {
+    Write-ColorOutput "" "White"
+    Write-ColorOutput "Detaylı Sonuçlar:" "Yellow"
+    foreach ($detail in $testResults.Details) {
+        $status = if ($detail.Passed) { "✅" } else { "❌" }
+        $required = if ($detail.Required) { " (Gerekli)" } else { " (İsteğe bağlı)" }
+        Write-ColorOutput "  $status $($detail.TestName)$required" "White"
+        if (!$detail.Passed -and $detail.ErrorMessage) {
+            Write-ColorOutput "    Hata: $($detail.ErrorMessage)" "Red"
+        }
+        foreach ($warning in $detail.Warnings) {
+            Write-ColorOutput "    Uyarı: $warning" "Yellow"
+        }
+    }
+}
+
+# JSON export
+if ($ExportJson) {
+    $jsonPath = Join-Path $ProjectPath "seo-test-results.json"
+    $exportData = @{
+        metadata = @{
+            timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            script_version = "1.0.0"
+            test_environment = $TestEnvironment
+            domain = $Domain
+            total_duration_seconds = $testResults.TestDuration.TotalSeconds
+        }
+        summary = @{
+            total_tests = $testResults.TotalTests
+            passed_tests = $testResults.PassedTests
+            failed_tests = $testResults.FailedTests
+            success_rate = $successRate
+            test_duration = $testResults.TestDuration.ToString()
+        }
+        seo_files = @{
+            required = $seoFiles | Where-Object { $_.Required } | ForEach-Object { $_.Name }
+            optional = $seoFiles | Where-Object { !$_.Required } | ForEach-Object { $_.Name }
+        }
+        html_files = $htmlFiles
+        details = $testResults.Details
+        recommendations = @(
+            "SEO description.txt dosyasını oluşturun (120-160 karakter)",
+            "SEO keywords.txt dosyasını oluşturun (5-15 keyword)",
+            "HTML sayfalarına meta etiketleri ekleyin",
+            "Structured data JSON-LD ekleyin",
+            "Canonical URL'leri tanımlayın"
+        )
+    }
+
+    $exportData | ConvertTo-Json -Depth 10 | Set-Content $jsonPath
+    Write-ColorOutput "📄 Test sonuçları JSON olarak kaydedildi: $jsonPath" "Green"
+}
+
+# Badge tetikleme
+if ($testResults.PassedTests -gt 0) {
+    Show-Badge "SEO-Verified"
+}
+
+# Final sonuç
+Write-ColorOutput "" "White"
+if ($testResults.FailedTests -eq 0) {
+    Write-ColorOutput "🎉 Tüm SEO testleri başarılı! CI/CD pipeline devam edebilir." "Green"
+    exit 0
+} else {
+    Write-ColorOutput "💥 Bazı SEO testleri başarısız. Lütfen eksik dosyaları ve meta etiketleri ekleyin." "Red"
+    exit 1
+}

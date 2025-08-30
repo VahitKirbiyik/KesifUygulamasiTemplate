@@ -1,14 +1,1 @@
-using System.Threading.Tasks;
-
-namespace KesifUygulamasi.AIHelper.OllamaPanel
-{
-    public class OllamaService
-    {
-        public async Task<string> GenerateTextAsync(string model, string prompt)
-        {
-            // Burada Ollama CLI veya API çağrısı yapılacak
-            await Task.Delay(100); // simülasyon
-            return $"Model: {model}\nYanıt: {prompt} → [simüle edilmiş cevap]";
-        }
-    }
-}
+using System.Threading.Tasks;\n\nnamespace KesifUygulamasi.AIHelper.OllamaPanel\n{\n    public class OllamaService\n    {\n        public async Task<string> GenerateTextAsync(string model, string prompt)\n        {\n            // Burada Ollama CLI veya API çağrısı yapılacak\n            await Task.Delay(100); // simülasyon\n            return $"Model: {model}\nYanıt: {prompt} → [simüle edilmiş cevap]";\n        }\n    }\n}\n

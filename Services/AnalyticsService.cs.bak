@@ -1,0 +1,457 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Kullanıcı davranış analizi servisi
+    /// CI/CD pipeline ile entegre edilmiş analytics ve tracking sistemi
+    /// </summary>
+    public class AnalyticsService
+    {
+        private readonly ILogger<AnalyticsService> _logger;
+        private readonly string _analyticsPath;
+        private readonly string _environment;
+        private readonly bool _enableAnalytics;
+        private readonly int _maxAnalyticsFileSize;
+        private readonly int _retentionDays;
+        private readonly bool _enableRealTimeProcessing;
+
+        public AnalyticsService(ILogger<AnalyticsService> logger)
+        {
+            _logger = logger;
+            _analyticsPath = Environment.GetEnvironmentVariable("ANALYTICS_PATH") ?? "analytics";
+            _environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+            _enableAnalytics = bool.Parse(Environment.GetEnvironmentVariable("ENABLE_ANALYTICS") ?? "true");
+            _maxAnalyticsFileSize = int.Parse(Environment.GetEnvironmentVariable("MAX_ANALYTICS_FILE_SIZE_MB") ?? "50");
+            _retentionDays = int.Parse(Environment.GetEnvironmentVariable("ANALYTICS_RETENTION_DAYS") ?? "90");
+            _enableRealTimeProcessing = bool.Parse(Environment.GetEnvironmentVariable("ENABLE_REALTIME_ANALYTICS") ?? "true");
+
+            // Analytics klasörünü oluştur
+            Directory.CreateDirectory(_analyticsPath);
+        }
+
+        /// <summary>
+        /// Genel olay tracking
+        /// </summary>
+        public async Task TrackEvent(string eventName, string userId, Dictionary<string, object> properties = null)
+        {
+            if (!_enableAnalytics)
+                return;
+
+            try
+            {
+                var analyticsEvent = new AnalyticsEvent
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    EventName = eventName,
+                    UserId = userId,
+                    Timestamp = DateTime.UtcNow,
+                    Environment = _environment,
+                    Properties = properties ?? new Dictionary<string, object>(),
+                    SessionId = GenerateSessionId(userId),
+                    Source = "KesifUygulamasiTemplate"
+                };
+
+                await SaveAnalyticsEvent(analyticsEvent);
+
+                if (_enableRealTimeProcessing)
+                {
+                    await ProcessRealTimeAnalytics(analyticsEvent);
+                }
+
+                _logger.LogInformation($"Analytics event tracked: {eventName} for user {userId}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to track analytics event: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sayfa görüntüleme tracking
+        /// </summary>
+        public async Task TrackPageView(string pageName, string userId, TimeSpan? duration = null)
+        {
+            var properties = new Dictionary<string, object>
+            {
+                ["page_name"] = pageName,
+                ["duration_seconds"] = duration?.TotalSeconds ?? 0
+            };
+
+            await TrackEvent("page_view", userId, properties);
+        }
+
+        /// <summary>
+        /// Kullanıcı etkileşim tracking
+        /// </summary>
+        public async Task TrackUserInteraction(string interactionType, string elementId, string userId, Dictionary<string, object> metadata = null)
+        {
+            var properties = new Dictionary<string, object>
+            {
+                ["interaction_type"] = interactionType,
+                ["element_id"] = elementId
+            };
+
+            if (metadata != null)
+            {
+                foreach (var kvp in metadata)
+                {
+                    properties[kvp.Key] = kvp.Value;
+                }
+            }
+
+            await TrackEvent("user_interaction", userId, properties);
+        }
+
+        /// <summary>
+        /// Rota kullanım tracking
+        /// </summary>
+        public async Task TrackRouteUsage(string routeId, string userId, string optimizationType, double distanceKm, TimeSpan duration)
+        {
+            var properties = new Dictionary<string, object>
+            {
+                ["route_id"] = routeId,
+                ["optimization_type"] = optimizationType,
+                ["distance_km"] = distanceKm,
+                ["duration_seconds"] = duration.TotalSeconds
+            };
+
+            await TrackEvent("route_usage", userId, properties);
+        }
+
+        /// <summary>
+        /// Hata tracking
+        /// </summary>
+        public async Task TrackError(string errorType, string errorMessage, string userId, string stackTrace = null)
+        {
+            var properties = new Dictionary<string, object>
+            {
+                ["error_type"] = errorType,
+                ["error_message"] = errorMessage,
+                ["stack_trace"] = stackTrace ?? ""
+            };
+
+            await TrackEvent("error", userId, properties);
+        }
+
+        /// <summary>
+        /// Performans metrik tracking
+        /// </summary>
+        public async Task TrackPerformance(string metricName, double value, string userId, string context = null)
+        {
+            var properties = new Dictionary<string, object>
+            {
+                ["metric_name"] = metricName,
+                ["value"] = value,
+                ["context"] = context ?? ""
+            };
+
+            await TrackEvent("performance", userId, properties);
+        }
+
+        /// <summary>
+        /// Analytics istatistiklerini getir
+        /// </summary>
+        public async Task<AnalyticsStats> GetAnalyticsStats(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            try
+            {
+                var events = await GetAnalyticsEvents(startDate, endDate);
+
+                var stats = new AnalyticsStats
+                {
+                    TotalEvents = events.Count,
+                    UniqueUsers = events.Select(e => e.UserId).Distinct().Count(),
+                    TimeRange = new TimeRange
+                    {
+                        Start = events.LastOrDefault()?.Timestamp ?? DateTime.MinValue,
+                        End = events.FirstOrDefault()?.Timestamp ?? DateTime.MaxValue
+                    }
+                };
+
+                // Event dağılımı
+                stats.EventDistribution = events.GroupBy(e => e.EventName)
+                    .ToDictionary(g => g.Key, g => g.Count);
+
+                // Günlük aktif kullanıcılar
+                stats.DailyActiveUsers = events.GroupBy(e => e.Timestamp.Date)
+                    .ToDictionary(g => g.Key, g => g.Select(e => e.UserId).Distinct().Count());
+
+                // Popüler sayfalar
+                var pageViews = events.Where(e => e.EventName == "page_view");
+                stats.PopularPages = pageViews.GroupBy(e => e.Properties.GetValueOrDefault("page_name", "").ToString())
+                    .ToDictionary(g => g.Key, g => g.Count());
+
+                // Hata oranları
+                var errors = events.Where(e => e.EventName == "error");
+                stats.ErrorRate = events.Count > 0 ? (double)errors.Count() / events.Count : 0;
+
+                return stats;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to get analytics stats: {ex.Message}");
+                return new AnalyticsStats();
+            }
+        }
+
+        /// <summary>
+        /// Kullanıcı davranış analizi
+        /// </summary>
+        public async Task<UserBehaviorAnalysis> AnalyzeUserBehavior(string userId, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            try
+            {
+                var userEvents = await GetAnalyticsEvents(startDate, endDate);
+                userEvents = userEvents.Where(e => e.UserId == userId).ToList();
+
+                var analysis = new UserBehaviorAnalysis
+                {
+                    UserId = userId,
+                    TotalEvents = userEvents.Count,
+                    SessionCount = userEvents.Select(e => e.SessionId).Distinct().Count(),
+                    TimeRange = new TimeRange
+                    {
+                        Start = userEvents.LastOrDefault()?.Timestamp ?? DateTime.MinValue,
+                        End = userEvents.FirstOrDefault()?.Timestamp ?? DateTime.MaxValue
+                    }
+                };
+
+                // Etkileşim paternleri
+                analysis.InteractionPatterns = userEvents.GroupBy(e => e.EventName)
+                    .ToDictionary(g => g.Key, g => g.Count());
+
+                // Kullanım saatleri
+                analysis.UsageHours = userEvents.GroupBy(e => e.Timestamp.Hour)
+                    .ToDictionary(g => g.Key, g => g.Count());
+
+                // Sayfa görüntüleme sırası
+                var pageViews = userEvents.Where(e => e.EventName == "page_view")
+                    .OrderBy(e => e.Timestamp)
+                    .Select(e => e.Properties.GetValueOrDefault("page_name", "").ToString())
+                    .ToList();
+                analysis.PageFlow = pageViews;
+
+                return analysis;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to analyze user behavior: {ex.Message}");
+                return new UserBehaviorAnalysis { UserId = userId };
+            }
+        }
+
+        /// <summary>
+        /// Analytics verilerini temizle
+        /// </summary>
+        public async Task<int> CleanupOldAnalytics(int maxAgeDays = 90)
+        {
+            try
+            {
+                var cutoffDate = DateTime.Now.AddDays(-maxAgeDays);
+                var oldFiles = Directory.GetFiles(_analyticsPath, "analytics-*.json")
+                    .Where(f => File.GetCreationTimeUtc(f) < cutoffDate)
+                    .ToArray();
+
+                foreach (var file in oldFiles)
+                {
+                    File.Delete(file);
+                }
+
+                _logger.LogInformation($"Cleaned up {oldFiles.Length} old analytics files");
+                return oldFiles.Length;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to cleanup old analytics: {ex.Message}");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Analytics verilerini dışa aktar
+        /// </summary>
+        public async Task ExportAnalytics(string filePath, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            try
+            {
+                var events = await GetAnalyticsEvents(startDate, endDate);
+                var exportData = new
+                {
+                    ExportDate = DateTime.UtcNow,
+                    TotalEvents = events.Count,
+                    DateRange = new { Start = startDate, End = endDate },
+                    Events = events
+                };
+
+                var json = JsonSerializer.Serialize(exportData, new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+
+                await File.WriteAllTextAsync(filePath, json);
+                _logger.LogInformation($"Analytics exported to: {filePath}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to export analytics: {ex.Message}");
+            }
+        }
+
+        private async Task SaveAnalyticsEvent(AnalyticsEvent analyticsEvent)
+        {
+            var fileName = GetAnalyticsFileName();
+            var filePath = Path.Combine(_analyticsPath, fileName);
+
+            // Dosya boyutu kontrolü
+            if (File.Exists(filePath) && new FileInfo(filePath).Length > _maxAnalyticsFileSize * 1024 * 1024)
+            {
+                // Yeni dosya oluştur
+                fileName = GetAnalyticsFileName(true);
+                filePath = Path.Combine(_analyticsPath, fileName);
+            }
+
+            var json = JsonSerializer.Serialize(analyticsEvent, new JsonSerializerOptions
+            {
+                WriteIndented = false,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            await File.AppendAllTextAsync(filePath, json + Environment.NewLine);
+        }
+
+        private async Task<List<AnalyticsEvent>> GetAnalyticsEvents(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var events = new List<AnalyticsEvent>();
+            var analyticsFiles = Directory.GetFiles(_analyticsPath, "analytics-*.json")
+                .OrderByDescending(f => f)
+                .Take(30); // Son 30 dosyayı al
+
+            foreach (var file in analyticsFiles)
+            {
+                var content = await File.ReadAllTextAsync(file);
+                var lines = content.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+
+                foreach (var line in lines)
+                {
+                    try
+                    {
+                        var analyticsEvent = JsonSerializer.Deserialize<AnalyticsEvent>(line);
+                        if (analyticsEvent != null)
+                        {
+                            bool includeEvent = true;
+
+                            if (startDate.HasValue && analyticsEvent.Timestamp < startDate.Value)
+                                includeEvent = false;
+                            if (endDate.HasValue && analyticsEvent.Timestamp > endDate.Value)
+                                includeEvent = false;
+
+                            if (includeEvent)
+                                events.Add(analyticsEvent);
+                        }
+                    }
+                    catch
+                    {
+                        // Geçersiz JSON satırını atla
+                    }
+                }
+            }
+
+            return events.OrderByDescending(e => e.Timestamp).ToList();
+        }
+
+        private async Task ProcessRealTimeAnalytics(AnalyticsEvent analyticsEvent)
+        {
+            // Gerçek zamanlı işleme mantığı
+            // Bu kısım gerçek implementasyonda daha sofistike olabilir
+
+            switch (analyticsEvent.EventName)
+            {
+                case "error":
+                    _logger.LogWarning($"Real-time error detected: {analyticsEvent.Properties.GetValueOrDefault("error_message", "")}");
+                    break;
+
+                case "performance":
+                    var value = Convert.ToDouble(analyticsEvent.Properties.GetValueOrDefault("value", 0));
+                    if (value > 5000) // 5 saniyeden uzun işlemler
+                    {
+                        _logger.LogWarning($"Real-time performance issue detected: {value}ms");
+                    }
+                    break;
+
+                case "user_interaction":
+                    // Yüksek etkileşim oranlarını logla
+                    break;
+            }
+        }
+
+        private string GetAnalyticsFileName(bool forceNew = false)
+        {
+            string dateStr = DateTime.UtcNow.ToString("yyyy-MM-dd");
+            string baseName = $"analytics-{dateStr}";
+
+            if (!forceNew)
+            {
+                // Mevcut dosyayı kontrol et
+                string existingFile = Directory.GetFiles(_analyticsPath, $"{baseName}*.json")
+                    .OrderByDescending(f => f)
+                    .FirstOrDefault();
+
+                if (existingFile != null)
+                {
+                    return Path.GetFileName(existingFile);
+                }
+            }
+
+            // Yeni dosya oluştur
+            return $"{baseName}-{DateTime.UtcNow.ToString("HH-mm-ss")}.json";
+        }
+
+        private string GenerateSessionId(string userId)
+        {
+            // Basit session ID oluşturma
+            return $"{userId}_{DateTime.UtcNow.ToString("yyyyMMddHHmmss")}";
+        }
+    }
+
+    public class AnalyticsEvent
+    {
+        public string Id { get; set; }
+        public string EventName { get; set; }
+        public string UserId { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string Environment { get; set; }
+        public Dictionary<string, object> Properties { get; set; }
+        public string SessionId { get; set; }
+        public string Source { get; set; }
+    }
+
+    public class AnalyticsStats
+    {
+        public int TotalEvents { get; set; }
+        public int UniqueUsers { get; set; }
+        public double ErrorRate { get; set; }
+        public Dictionary<string, int> EventDistribution { get; set; } = new Dictionary<string, int>();
+        public Dictionary<DateTime, int> DailyActiveUsers { get; set; } = new Dictionary<DateTime, int>();
+        public Dictionary<string, int> PopularPages { get; set; } = new Dictionary<string, int>();
+        public TimeRange TimeRange { get; set; }
+    }
+
+    public class UserBehaviorAnalysis
+    {
+        public string UserId { get; set; }
+        public int TotalEvents { get; set; }
+        public int SessionCount { get; set; }
+        public Dictionary<string, int> InteractionPatterns { get; set; } = new Dictionary<string, int>();
+        public Dictionary<int, int> UsageHours { get; set; } = new Dictionary<int, int>();
+        public List<string> PageFlow { get; set; } = new List<string>();
+        public TimeRange TimeRange { get; set; }
+    }
+}

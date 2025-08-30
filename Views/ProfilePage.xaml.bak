@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ext="clr-namespace:KesifUygulamasiTemplate.Extensions"
+             x:Class="KesifUygulamasiTemplate.Views.ProfilePage"
+             Title="{ext:TranslateBinding Key=Profile}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+
+            <!-- Profil Başlığı -->
+            <Label Text="{ext:TranslateBinding Key=Profile}"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center" />
+
+            <!-- Profil Resmi -->
+            <Frame CornerRadius="50"
+                   HeightRequest="100"
+                   WidthRequest="100"
+                   HorizontalOptions="Center"
+                   BackgroundColor="LightGray">
+                <Image x:Name="ProfileImage"
+                       Source="profile_placeholder.png"
+                       Aspect="AspectFill"
+                       HeightRequest="90"
+                       WidthRequest="90"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center" />
+            </Frame>
+
+            <!-- Kişisel Bilgiler -->
+            <Label Text="{ext:TranslateBinding Key=PersonalInformation}"
+                   FontSize="18"
+                   FontAttributes="Bold" />
+
+            <!-- Ad Soyad -->
+            <VerticalStackLayout Spacing="5">
+                <Label Text="{ext:TranslateBinding Key=FullName}" />
+                <Entry x:Name="FullNameEntry"
+                       Text="{Binding FullName}"
+                       Placeholder="{ext:TranslateBinding Key=EnterFullName}" />
+            </VerticalStackLayout>
+
+            <!-- E-posta -->
+            <VerticalStackLayout Spacing="5">
+                <Label Text="{ext:TranslateBinding Key=Email}" />
+                <Entry x:Name="EmailEntry"
+                       Text="{Binding Email}"
+                       Placeholder="{ext:TranslateBinding Key=EnterEmail}"
+                       Keyboard="Email" />
+            </VerticalStackLayout>
+
+            <!-- Telefon -->
+            <VerticalStackLayout Spacing="5">
+                <Label Text="{ext:TranslateBinding Key=Phone}" />
+                <Entry x:Name="PhoneEntry"
+                       Text="{Binding Phone}"
+                       Placeholder="{ext:TranslateBinding Key=EnterPhone}"
+                       Keyboard="Telephone" />
+            </VerticalStackLayout>
+
+            <!-- Tercihler -->
+            <Label Text="{ext:TranslateBinding Key=Preferences}"
+                   FontSize="18"
+                   FontAttributes="Bold" />
+
+            <!-- Bildirim Tercihleri -->
+            <VerticalStackLayout Spacing="10">
+                <Label Text="{ext:TranslateBinding Key=Notifications}" />
+
+                <StackLayout Orientation="Horizontal">
+                    <Label Text="{ext:TranslateBinding Key=PushNotifications}"
+                           VerticalOptions="Center" />
+                    <Switch x:Name="PushNotificationsSwitch"
+                            IsToggled="{Binding IsPushNotificationsEnabled}"
+                            HorizontalOptions="EndAndExpand" />
+                </StackLayout>
+
+                <StackLayout Orientation="Horizontal">
+                    <Label Text="{ext:TranslateBinding Key=EmailNotifications}"
+                           VerticalOptions="Center" />
+                    <Switch x:Name="EmailNotificationsSwitch"
+                            IsToggled="{Binding IsEmailNotificationsEnabled}"
+                            HorizontalOptions="EndAndExpand" />
+                </StackLayout>
+
+                <StackLayout Orientation="Horizontal">
+                    <Label Text="{ext:TranslateBinding Key=SMSNotifications}"
+                           VerticalOptions="Center" />
+                    <Switch x:Name="SMSNotificationsSwitch"
+                            IsToggled="{Binding IsSMSNotificationsEnabled}"
+                            HorizontalOptions="EndAndExpand" />
+                </StackLayout>
+            </VerticalStackLayout>
+
+            <!-- Gizlilik Tercihleri -->
+            <VerticalStackLayout Spacing="10">
+                <Label Text="{ext:TranslateBinding Key=Privacy}" />
+
+                <StackLayout Orientation="Horizontal">
+                    <Label Text="{ext:TranslateBinding Key=LocationTracking}"
+                           VerticalOptions="Center" />
+                    <Switch x:Name="LocationTrackingSwitch"
+                            IsToggled="{Binding IsLocationTrackingEnabled}"
+                            HorizontalOptions="EndAndExpand" />
+                </StackLayout>
+
+                <StackLayout Orientation="Horizontal">
+                    <Label Text="{ext:TranslateBinding Key=DataSharing}"
+                           VerticalOptions="Center" />
+                    <Switch x:Name="DataSharingSwitch"
+                            IsToggled="{Binding IsDataSharingEnabled}"
+                            HorizontalOptions="EndAndExpand" />
+                </StackLayout>
+            </VerticalStackLayout>
+
+            <!-- Kaydet Butonu -->
+            <Button x:Name="SaveButton"
+                    Text="{ext:TranslateBinding Key=Save}"
+                    Command="{Binding SaveProfileCommand}"
+                    BackgroundColor="DodgerBlue"
+                    TextColor="White"
+                    CornerRadius="8"
+                    HeightRequest="50"
+                    Margin="0,20,0,0" />
+
+            <!-- İptal Butonu -->
+            <Button x:Name="CancelButton"
+                    Text="{ext:TranslateBinding Key=Cancel}"
+                    Command="{Binding CancelCommand}"
+                    BackgroundColor="Gray"
+                    TextColor="White"
+                    CornerRadius="8"
+                    HeightRequest="50" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

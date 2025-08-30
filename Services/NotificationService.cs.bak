@@ -1,0 +1,461 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Notification service for toast, push, and webhook notifications
+    /// Supports realtime delivery tracking and CI/CD integration
+    /// </summary>
+    public class NotificationService
+    {
+        private readonly ILogger<NotificationService> _logger;
+        private readonly HttpClient _httpClient;
+        private readonly string _logsPath;
+        private readonly bool _enablePushNotifications;
+        private readonly bool _enableWebhookNotifications;
+        private readonly int _maxRetries;
+        private readonly int _retryDelayMs;
+
+        public NotificationService(ILogger<NotificationService> logger)
+        {
+            _logger = logger;
+            _httpClient = new HttpClient();
+            _logsPath = Environment.GetEnvironmentVariable("NOTIFICATION_LOGS_PATH") ?? "logs/notifications";
+            _enablePushNotifications = bool.Parse(Environment.GetEnvironmentVariable("ENABLE_PUSH_NOTIFICATIONS") ?? "true");
+            _enableWebhookNotifications = bool.Parse(Environment.GetEnvironmentVariable("ENABLE_WEBHOOK_NOTIFICATIONS") ?? "true");
+            _maxRetries = int.Parse(Environment.GetEnvironmentVariable("NOTIFICATION_MAX_RETRIES") ?? "3");
+            _retryDelayMs = int.Parse(Environment.GetEnvironmentVariable("NOTIFICATION_RETRY_DELAY_MS") ?? "1000");
+
+            // Logs klasörünü oluştur
+            Directory.CreateDirectory(_logsPath);
+        }
+
+        /// <summary>
+        /// Toast notification gönder
+        /// </summary>
+        public async Task<NotificationResult> SendToastNotification(string title, string message, string? userId = null)
+        {
+            try
+            {
+                var notification = new ToastNotification
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Title = title,
+                    Message = message,
+                    UserId = userId,
+                    Timestamp = DateTime.UtcNow,
+                    Type = NotificationType.Toast
+                };
+
+                // Toast notification'ı gönder (platform specific implementation)
+                var result = await SendToastInternal(notification);
+
+                await LogNotification(notification, result);
+
+                _logger.LogInformation($"Toast notification sent: {title} - Success: {result.Success}");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Toast notification failed: {ex.Message}");
+                return new NotificationResult { Success = false, ErrorMessage = ex.Message };
+            }
+        }
+
+        /// <summary>
+        /// Push notification gönder
+        /// </summary>
+        public async Task<NotificationResult> SendPushNotification(string title, string message, string deviceToken, string? userId = null)
+        {
+            if (!_enablePushNotifications)
+            {
+                return new NotificationResult { Success = false, ErrorMessage = "Push notifications are disabled" };
+            }
+
+            try
+            {
+                var notification = new PushNotification
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Title = title,
+                    Message = message,
+                    DeviceToken = deviceToken,
+                    UserId = userId,
+                    Timestamp = DateTime.UtcNow,
+                    Type = NotificationType.Push
+                };
+
+                var result = await SendPushInternal(notification);
+                await LogNotification(notification, result);
+
+                _logger.LogInformation($"Push notification sent to {deviceToken} - Success: {result.Success}");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Push notification failed: {ex.Message}");
+                return new NotificationResult { Success = false, ErrorMessage = ex.Message };
+            }
+        }
+
+        /// <summary>
+        /// Webhook notification gönder
+        /// </summary>
+        public async Task<NotificationResult> SendWebhookNotification(string webhookUrl, object payload, string? userId = null)
+        {
+            if (!_enableWebhookNotifications)
+            {
+                return new NotificationResult { Success = false, ErrorMessage = "Webhook notifications are disabled" };
+            }
+
+            try
+            {
+                var notification = new WebhookNotification
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    WebhookUrl = webhookUrl,
+                    Payload = payload,
+                    UserId = userId,
+                    Timestamp = DateTime.UtcNow,
+                    Type = NotificationType.Webhook
+                };
+
+                var result = await SendWebhookInternal(notification);
+                await LogNotification(notification, result);
+
+                _logger.LogInformation($"Webhook notification sent to {webhookUrl} - Success: {result.Success}");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Webhook notification failed: {ex.Message}");
+                return new NotificationResult { Success = false, ErrorMessage = ex.Message };
+            }
+        }
+
+        /// <summary>
+        /// Bulk notification gönder
+        /// </summary>
+        public async Task<List<NotificationResult>> SendBulkNotifications(List<NotificationRequest> requests)
+        {
+            var results = new List<NotificationResult>();
+
+            foreach (var request in requests)
+            {
+                NotificationResult result = null;
+
+                switch (request.Type)
+                {
+                    case NotificationType.Toast:
+                        if (request.Title != null && request.Message != null)
+                        {
+                            result = await SendToastNotification(request.Title, request.Message, request.UserId);
+                        }
+                        break;
+                    case NotificationType.Push:
+                        if (request.Title != null && request.Message != null && request.DeviceToken != null)
+                        {
+                            result = await SendPushNotification(request.Title, request.Message, request.DeviceToken, request.UserId);
+                        }
+                        break;
+                    case NotificationType.Webhook:
+                        if (request.WebhookUrl != null && request.Payload != null)
+                        {
+                            result = await SendWebhookNotification(request.WebhookUrl, request.Payload, request.UserId);
+                        }
+                        break;
+                }
+
+                if (result != null)
+                {
+                    results.Add(result);
+                }
+
+                // Rate limiting için kısa gecikme
+                await Task.Delay(100);
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        /// Notification geçmişini al
+        /// </summary>
+        public async Task<List<NotificationLog>> GetNotificationHistory(string? userId = null, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            try
+            {
+                var logFiles = Directory.GetFiles(_logsPath, "notification-*.json")
+                    .Where(f => !startDate.HasValue || File.GetCreationTime(f) >= startDate.Value)
+                    .Where(f => !endDate.HasValue || File.GetCreationTime(f) <= endDate.Value)
+                    .OrderByDescending(f => File.GetCreationTime(f))
+                    .Take(100); // Son 100 log dosyasını al
+
+                var history = new List<NotificationLog>();
+
+                foreach (var logFile in logFiles)
+                {
+                    try
+                    {
+                        var content = await File.ReadAllTextAsync(logFile);
+                        var logs = JsonSerializer.Deserialize<List<NotificationLog>>(content);
+
+                        if (logs != null)
+                        {
+                            var filteredLogs = logs.Where(l => userId == null || l.UserId == userId).ToList();
+                            history.AddRange(filteredLogs);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning($"Failed to read notification log {logFile}: {ex.Message}");
+                    }
+                }
+
+                return history.OrderByDescending(l => l.Timestamp).Take(1000).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to get notification history: {ex.Message}");
+                return new List<NotificationLog>();
+            }
+        }
+
+        /// <summary>
+        /// Notification istatistiklerini al
+        /// </summary>
+        public async Task<NotificationStats> GetNotificationStats(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var history = await GetNotificationHistory(null, startDate, endDate);
+
+            return new NotificationStats
+            {
+                TotalNotifications = history.Count,
+                SuccessfulNotifications = history.Count(l => l.Success),
+                FailedNotifications = history.Count(l => !l.Success),
+                ToastNotifications = history.Count(l => l.Type == NotificationType.Toast),
+                PushNotifications = history.Count(l => l.Type == NotificationType.Push),
+                WebhookNotifications = history.Count(l => l.Type == NotificationType.Webhook),
+                SuccessRate = history.Count > 0 ? (double)history.Count(l => l.Success) / history.Count * 100 : 0,
+                PeriodStart = startDate ?? history.Min(l => l.Timestamp),
+                PeriodEnd = endDate ?? history.Max(l => l.Timestamp)
+            };
+        }
+
+        /// <summary>
+        /// Internal toast notification gönderme
+        /// </summary>
+        private async Task<NotificationResult> SendToastInternal(ToastNotification notification)
+        {
+            // Platform specific toast implementation
+            // Bu örnekte basit bir simulasyon
+            await Task.Delay(100); // Simüle edilmiş delay
+
+            var success = new Random().NextDouble() > 0.1; // %90 başarı oranı
+
+            return new NotificationResult
+            {
+                Success = success,
+                NotificationId = notification.Id,
+                DeliveryTime = DateTime.UtcNow,
+                ErrorMessage = success ? null! : "Toast notification delivery failed"
+            };
+        }
+
+        /// <summary>
+        /// Internal push notification gönderme
+        /// </summary>
+        private async Task<NotificationResult> SendPushInternal(PushNotification notification)
+        {
+            // Push notification service integration (FCM, APNS, etc.)
+            await Task.Delay(200); // Simüle edilmiş delay
+
+            var success = new Random().NextDouble() > 0.15; // %85 başarı oranı
+
+            return new NotificationResult
+            {
+                Success = success,
+                NotificationId = notification.Id,
+                DeliveryTime = DateTime.UtcNow,
+                ErrorMessage = success ? null! : "Push notification delivery failed"
+            };
+        }
+
+        /// <summary>
+        /// Internal webhook notification gönderme
+        /// </summary>
+        private async Task<NotificationResult> SendWebhookInternal(WebhookNotification notification)
+        {
+            try
+            {
+                var jsonPayload = JsonSerializer.Serialize(notification.Payload);
+                var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PostAsync(notification.WebhookUrl, content);
+                var success = response.IsSuccessStatusCode;
+
+                return new NotificationResult
+                {
+                    Success = success,
+                    NotificationId = notification.Id,
+                    DeliveryTime = DateTime.UtcNow,
+                    ErrorMessage = success ? null! : $"Webhook failed: {response.StatusCode}"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new NotificationResult
+                {
+                    Success = false,
+                    NotificationId = notification.Id,
+                    DeliveryTime = DateTime.UtcNow,
+                    ErrorMessage = $"Webhook error: {ex.Message}"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Notification'ı logla
+        /// </summary>
+        private async Task LogNotification(BaseNotification notification, NotificationResult result)
+        {
+            try
+            {
+                var logEntry = new NotificationLog
+                {
+                    Id = notification.Id,
+                    Type = notification.Type,
+                    UserId = notification.UserId,
+                    Title = notification is ToastNotification toast ? toast.Title :
+                           notification is PushNotification push ? push.Title : null!,
+                    Message = notification is ToastNotification toastMsg ? toastMsg.Message :
+                             notification is PushNotification pushMsg ? pushMsg.Message : null!,
+                    Timestamp = notification.Timestamp,
+                    Success = result.Success,
+                    ErrorMessage = result.ErrorMessage,
+                    DeliveryTime = result.DeliveryTime
+                };
+
+                var logFile = Path.Combine(_logsPath, $"notification-{DateTime.UtcNow:yyyy-MM-dd}.json");
+
+                List<NotificationLog> existingLogs = new List<NotificationLog>();
+
+                if (File.Exists(logFile))
+                {
+                    try
+                    {
+                        var content = await File.ReadAllTextAsync(logFile);
+                        existingLogs = JsonSerializer.Deserialize<List<NotificationLog>>(content) ?? new List<NotificationLog>();
+                    }
+                    catch
+                    {
+                        // Log dosyası bozuk ise yeni liste oluştur
+                    }
+                }
+
+                existingLogs.Add(logEntry);
+
+                var json = JsonSerializer.Serialize(existingLogs, new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+
+                await File.WriteAllTextAsync(logFile, json);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to log notification: {ex.Message}");
+            }
+        }
+    }
+
+    public class NotificationRequest
+    {
+        public NotificationType Type { get; set; }
+        public string? Title { get; set; }
+        public string? Message { get; set; }
+        public string? UserId { get; set; }
+        public string? DeviceToken { get; set; }
+        public string? WebhookUrl { get; set; }
+        public object? Payload { get; set; }
+    }
+
+    public class NotificationResult
+    {
+        public bool Success { get; set; }
+        public string? NotificationId { get; set; }
+        public DateTime DeliveryTime { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    public class NotificationStats
+    {
+        public int TotalNotifications { get; set; }
+        public int SuccessfulNotifications { get; set; }
+        public int FailedNotifications { get; set; }
+        public int ToastNotifications { get; set; }
+        public int PushNotifications { get; set; }
+        public int WebhookNotifications { get; set; }
+        public double SuccessRate { get; set; }
+        public DateTime PeriodStart { get; set; }
+        public DateTime PeriodEnd { get; set; }
+    }
+
+    public class NotificationLog
+    {
+        public string? Id { get; set; }
+        public NotificationType Type { get; set; }
+        public string? UserId { get; set; }
+        public string? Title { get; set; }
+        public string? Message { get; set; }
+        public DateTime Timestamp { get; set; }
+        public bool Success { get; set; }
+        public string? ErrorMessage { get; set; }
+        public DateTime? DeliveryTime { get; set; }
+    }
+
+    public abstract class BaseNotification
+    {
+        public string? Id { get; set; }
+        public NotificationType Type { get; set; }
+        public string? UserId { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+
+    public class ToastNotification : BaseNotification
+    {
+        public string? Title { get; set; }
+        public string? Message { get; set; }
+    }
+
+    public class PushNotification : BaseNotification
+    {
+        public string? Title { get; set; }
+        public string? Message { get; set; }
+        public string? DeviceToken { get; set; }
+    }
+
+    public class WebhookNotification : BaseNotification
+    {
+        public string? WebhookUrl { get; set; }
+        public object? Payload { get; set; }
+    }
+
+    public enum NotificationType
+    {
+        Toast,
+        Push,
+        Webhook
+    }
+}

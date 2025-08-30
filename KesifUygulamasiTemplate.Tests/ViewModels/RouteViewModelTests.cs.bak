@@ -1,0 +1,151 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Moq;
+using KesifUygulamasiTemplate.ViewModels;
+using KesifUygulamasiTemplate.Services.Interfaces;
+using KesifUygulamasiTemplate.Models;
+
+namespace KesifUygulamasiTemplate.Tests.ViewModels
+{
+    [TestClass]
+    public class RouteViewModelTests
+    {
+        private Mock<IRouteService> _mockRouteService;
+        private Mock<ITrafficService> _mockTrafficService;
+        private RouteViewModel _viewModel;
+
+        [TestInitialize]
+        public void Setup()
+        {
+            _mockRouteService = new Mock<IRouteService>();
+            _mockTrafficService = new Mock<ITrafficService>();
+            _viewModel = new RouteViewModel(_mockRouteService.Object, _mockTrafficService.Object);
+        }
+
+        [TestMethod]
+        public void Constructor_WithValidParameters_ShouldInitializeProperties()
+        {
+            // Arrange & Act
+            var viewModel = new RouteViewModel(_mockRouteService.Object, _mockTrafficService.Object);
+
+            // Assert
+            Assert.IsNotNull(viewModel);
+            Assert.IsNotNull(viewModel.RoutePoints);
+            Assert.IsNotNull(viewModel.TrafficData);
+            Assert.IsNotNull(viewModel.TrafficIncidents);
+            Assert.AreEqual(string.Empty, viewModel.ErrorMessage);
+            Assert.AreEqual(string.Empty, viewModel.TrafficWarningMessage);
+            Assert.IsFalse(viewModel.HasTrafficWarnings);
+            Assert.AreEqual(TimeSpan.Zero, viewModel.EstimatedDelay);
+            Assert.AreEqual(TrafficSeverity.Low, viewModel.CurrentCongestionLevel);
+        }
+
+        [TestMethod]
+        public void Constructor_WithNullRouteService_ShouldThrowArgumentNullException()
+        {
+            // Act & Assert
+            Assert.ThrowsException<ArgumentNullException>(() =>
+                new RouteViewModel(null, _mockTrafficService.Object));
+        }
+
+        [TestMethod]
+        public void Constructor_WithNullTrafficService_ShouldThrowArgumentNullException()
+        {
+            // Act & Assert
+            Assert.ThrowsException<ArgumentNullException>(() =>
+                new RouteViewModel(_mockRouteService.Object, null));
+        }
+
+        [TestMethod]
+        public async Task GenerateRouteAsync_WithValidLocations_ShouldUpdateRoutePoints()
+        {
+            // Arrange
+            var startLocation = new LocationModel { Latitude = 39.9, Longitude = 32.8 };
+            var endLocation = new LocationModel { Latitude = 41.0, Longitude = 29.0 };
+            var routePoints = new List<LocationModel>
+            {
+                startLocation,
+                new LocationModel { Latitude = 40.0, Longitude = 31.0 },
+                endLocation
+            };
+
+            _mockRouteService.Setup(x => x.GenerateRouteAsync(startLocation, endLocation))
+                .ReturnsAsync(routePoints);
+
+            _viewModel.StartLocation = startLocation;
+            _viewModel.EndLocation = endLocation;
+
+            // Act
+            await _viewModel.GenerateRouteAsync();
+
+            // Assert
+            Assert.AreEqual(routePoints.Count, _viewModel.RoutePoints.Count);
+            Assert.AreEqual(startLocation.Latitude, _viewModel.RoutePoints.First().Latitude);
+            Assert.AreEqual(endLocation.Latitude, _viewModel.RoutePoints.Last().Latitude);
+        }
+
+        [TestMethod]
+        public async Task LoadTrafficDataAsync_ShouldUpdateTrafficProperties()
+        {
+            // Arrange
+            var trafficInfo = new List<TrafficInfo>
+            {
+                new TrafficInfo { Severity = TrafficSeverity.Medium, Description = "Traffic congestion" }
+            };
+
+            _mockTrafficService.Setup(x => x.GetTrafficInfoAsync(It.IsAny<LocationModel>(), It.IsAny<LocationModel>()))
+                .ReturnsAsync(trafficInfo);
+
+            _viewModel.StartLocation = new LocationModel { Latitude = 39.9, Longitude = 32.8 };
+            _viewModel.EndLocation = new LocationModel { Latitude = 41.0, Longitude = 29.0 };
+
+            // Act
+            await _viewModel.LoadTrafficDataAsync();
+
+            // Assert
+            Assert.AreEqual(trafficInfo.Count, _viewModel.TrafficData.Count);
+            Assert.AreEqual(trafficInfo.First().Severity, _viewModel.TrafficData.First().Severity);
+        }
+
+        [TestMethod]
+        public void PropertyChanged_ShouldBeRaised_WhenTrafficWarningMessageChanges()
+        {
+            // Arrange
+            bool propertyChangedRaised = false;
+            _viewModel.PropertyChanged += (sender, e) =>
+            {
+                if (e.PropertyName == nameof(_viewModel.TrafficWarningMessage))
+                    propertyChangedRaised = true;
+            };
+
+            // Act
+            _viewModel.TrafficWarningMessage = "Heavy traffic ahead";
+
+            // Assert
+            Assert.IsTrue(propertyChangedRaised);
+            Assert.AreEqual("Heavy traffic ahead", _viewModel.TrafficWarningMessage);
+        }
+
+        [TestMethod]
+        public void PropertyChanged_ShouldBeRaised_WhenHasTrafficWarningsChanges()
+        {
+            // Arrange
+            bool propertyChangedRaised = false;
+            _viewModel.PropertyChanged += (sender, e) =>
+            {
+                if (e.PropertyName == nameof(_viewModel.HasTrafficWarnings))
+                    propertyChangedRaised = true;
+            };
+
+            // Act
+            _viewModel.HasTrafficWarnings = true;
+
+            // Assert
+            Assert.IsTrue(propertyChangedRaised);
+            Assert.IsTrue(_viewModel.HasTrafficWarnings);
+        }
+    }
+}

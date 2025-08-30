@@ -1,0 +1,126 @@
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
+using KesifUygulamasiTemplate.Models;
+using KesifUygulamasiTemplate.Services;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Moq;
+using Xunit;
+
+namespace KesifUygulamasiTemplate.Tests.Services
+{
+    public class RouteServiceTests
+    {
+        private readonly Mock<HttpClient> _mockHttpClient;
+        private readonly Mock<ConnectivityService> _mockConnectivityService;
+        private readonly Mock<ILogger<RouteService>> _mockLogger;
+        private readonly LocalizationService _localizationService;
+        private readonly MonitoringService _monitoringService;
+        private readonly RouteService _routeService;
+
+        public RouteServiceTests()
+        {
+            _mockHttpClient = new Mock<HttpClient>();
+            _mockConnectivityService = new Mock<ConnectivityService>();
+            _mockLogger = new Mock<ILogger<RouteService>>();
+            _localizationService = LocalizationService.Instance;
+            var mockMonitoringLogger = new Mock<ILogger<MonitoringService>>();
+            _monitoringService = new MonitoringService(mockMonitoringLogger.Object);
+            _routeService = new RouteService(_mockHttpClient.Object, _mockConnectivityService.Object, _mockLogger.Object, _localizationService, _monitoringService);
+        }
+
+        [Fact]
+        public async Task GetRouteAsync_WithValidLocations_ReturnsRoute()
+        {
+            // Arrange
+            var start = new LocationModel { Latitude = 41.0082, Longitude = 28.9784 }; // İstanbul
+            var end = new LocationModel { Latitude = 39.9334, Longitude = 32.8597 }; // Ankara
+
+            _mockConnectivityService.Setup(c => c.IsConnected).Returns(true);
+
+            // Act
+            var result = await _routeService.GetRouteAsync(start, end);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.True(result.Count >= 2);
+        }
+
+        [Fact]
+        public async Task GetRouteAsync_WhenOffline_ReturnsOfflineRoute()
+        {
+            // Arrange
+            var start = new LocationModel { Latitude = 41.0082, Longitude = 28.9784 };
+            var end = new LocationModel { Latitude = 39.9334, Longitude = 32.8597 };
+
+            _mockConnectivityService.Setup(c => c.IsConnected).Returns(false);
+
+            // Act
+            var result = await _routeService.GetRouteAsync(start, end);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.True(result.Count >= 2);
+        }
+
+        [Fact]
+        public async Task GetRouteAsync_WithSameStartEnd_ReturnsDirectRoute()
+        {
+            // Arrange
+            var location = new LocationModel { Latitude = 41.0082, Longitude = 28.9784 };
+            _mockConnectivityService.Setup(c => c.IsConnected).Returns(true);
+
+            // Act
+            var result = await _routeService.GetRouteAsync(location, location);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.True(result.Count >= 1);
+        }
+
+        [Fact]
+        public void OfflineRouteSimulator_EstimateDuration_WithValidInputs_ReturnsCorrectTimeSpan()
+        {
+            // Arrange
+            double distanceKm = 120;
+            double averageSpeedKmh = 60;
+
+            // Act
+            var result = KesifUygulamasiTemplate.Services.OfflineRouteSimulator.EstimateDuration(distanceKm, averageSpeedKmh);
+
+            // Assert
+            Assert.Equal(120, result.TotalMinutes); // 120km / 60kmh = 2 hours = 120 minutes
+        }
+
+        [Fact]
+        public void OfflineRouteSimulator_EstimateDuration_WithZeroSpeed_ReturnsZero()
+        {
+            // Arrange
+            double distanceKm = 100;
+            double averageSpeedKmh = 0;
+
+            // Act
+            var result = KesifUygulamasiTemplate.Services.OfflineRouteSimulator.EstimateDuration(distanceKm, averageSpeedKmh);
+
+            // Assert
+            Assert.Equal(TimeSpan.Zero, result);
+        }
+
+        [Fact]
+        public void OfflineRouteSimulator_EstimateDuration_WithZeroDistance_ReturnsZero()
+        {
+            // Arrange
+            double distanceKm = 0;
+            double averageSpeedKmh = 50;
+
+            // Act
+            var result = KesifUygulamasiTemplate.Services.OfflineRouteSimulator.EstimateDuration(distanceKm, averageSpeedKmh);
+
+            // Assert
+            Assert.Equal(TimeSpan.Zero, result);
+        }
+    }
+}

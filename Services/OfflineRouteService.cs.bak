@@ -1,0 +1,399 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using SQLite;
+using Microsoft.Maui.Devices.Sensors;
+using KesifUygulamasiTemplate.Services.Interfaces;
+using KesifUygulamasiTemplate.Models;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Offline rota servisi - SQLite veritabanı ile rota depolama ve A* algoritması ile rota hesaplama
+    /// </summary>
+    public class OfflineRouteService : IOfflineRouteService
+    {
+        private readonly SQLiteConnection _database;
+        private readonly string _dbPath;
+
+        public OfflineRouteService()
+        {
+            _dbPath = Path.Combine(FileSystem.AppDataDirectory, "offline_routes.db");
+            _database = new SQLiteConnection(_dbPath);
+
+            // Veritabanı tablolarını oluştur
+            InitializeDatabase();
+        }
+
+        /// <summary>
+        /// Veritabanı tablolarını oluşturur
+        /// </summary>
+        private void InitializeDatabase()
+        {
+            _database.CreateTable<KesifUygulamasiTemplate.Models.SavedRoute>();
+            _database.CreateTable<KesifUygulamasiTemplate.Models.RoutePoint>();
+        }
+
+        /// <summary>
+        /// Belirtilen ID'ye sahip rota var mı kontrol eder
+        /// </summary>
+        public async Task<bool> HasOfflineRouteAsync(string routeId)
+        {
+            await Task.Yield(); // UI thread'i bloklamamak için
+
+            if (int.TryParse(routeId, out int id))
+            {
+                var route = _database.Table<KesifUygulamasiTemplate.Models.SavedRoute>().FirstOrDefault(r => ((KesifUygulamasiTemplate.Models.SavedRoute)r).Id == id);
+                return route != null;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Rotayı veritabanına kaydeder
+        /// </summary>
+        public async Task<string> SaveRouteAsync(Route route)
+        {
+            await Task.Yield();
+
+            try
+            {
+                // SavedRoute oluştur
+                var savedRoute = new KesifUygulamasiTemplate.Models.SavedRoute
+                {
+                    Name = $"Route {DateTime.Now:yyyy-MM-dd HH:mm}",
+                    Description = $"From {route.Start.Latitude:F4}, {route.Start.Longitude:F4} to {route.End.Latitude:F4}, {route.End.Longitude:F4}",
+                    StartLatitude = route.Start.Latitude,
+                    StartLongitude = route.Start.Longitude,
+                    EndLatitude = route.End.Latitude,
+                    EndLongitude = route.End.Longitude,
+                    DistanceKm = route.DistanceKm,
+                    EstimatedDuration = route.Duration,
+                    TransportMode = route.TransportMode.ToString(),
+                    Points = route.Path ?? new List<Location>(),
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                // Rotayı kaydet
+                var routeId = _database.Insert(savedRoute);
+
+                // Rota noktalarını kaydet
+                if (route.Path != null && route.Path.Count > 0)
+                {
+                    for (int i = 0; i < route.Path.Count; i++)
+                    {
+                        var point = new RoutePoint
+                        {
+                            RouteId = routeId,
+                            Latitude = route.Path[i].Latitude,
+                            Longitude = route.Path[i].Longitude,
+                            Sequence = i
+                        };
+                        _database.Insert(point);
+                    }
+                }
+
+                return routeId.ToString();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Rota kaydetme hatası: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Belirtilen ID'ye sahip rotayı yükler
+        /// </summary>
+        public async Task<Route> LoadRouteAsync(string routeId)
+        {
+            await Task.Yield();
+
+            try
+            {
+                if (!int.TryParse(routeId, out int id))
+                {
+                    throw new ArgumentException("Geçersiz rota ID");
+                }
+
+                // SavedRoute'u al
+                var savedRoute = _database.Table<SavedRoute>().FirstOrDefault(r => r.Id == id);
+                if (savedRoute == null)
+                {
+                    throw new KeyNotFoundException($"Rota bulunamadı: {routeId}");
+                }
+
+                // Rota noktalarını al
+                var routePoints = _database.Table<RoutePoint>()
+                    .Where(p => p.RouteId == id)
+                    .OrderBy(p => p.Sequence)
+                    .ToList();
+
+                // Route nesnesini oluştur
+                var route = new Route
+                {
+                    RouteId = routeId,
+                    Start = new Location(savedRoute.StartLatitude, savedRoute.StartLongitude),
+                    End = new Location(savedRoute.EndLatitude, savedRoute.EndLongitude),
+                    Path = routePoints.Select(p => new Location(p.Latitude, p.Longitude)).ToList(),
+                    DistanceKm = savedRoute.DistanceKm,
+                    Duration = savedRoute.EstimatedDuration,
+                    TransportMode = Enum.Parse<TransportMode>(savedRoute.TransportMode)
+                };
+
+                return route;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Rota yükleme hatası: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Tüm kaydedilmiş rotaları listeler
+        /// </summary>
+        public async Task<List<Route>> GetAllSavedRoutesAsync()
+        {
+            await Task.Yield();
+
+            try
+            {
+                var savedRoutes = _database.Table<SavedRoute>().ToList();
+                var routes = new List<Route>();
+
+                foreach (var savedRoute in savedRoutes)
+                {
+                    try
+                    {
+                        var route = await LoadRouteAsync(savedRoute.Id.ToString());
+                        routes.Add(route);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Rota yükleme hatası ({savedRoute.Id}): {ex.Message}");
+                    }
+                }
+
+                return routes;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Rota listesi alma hatası: {ex.Message}");
+                return new List<Route>();
+            }
+        }
+
+        /// <summary>
+        /// İki koordinat arası en kısa rotayı hesaplar (A* algoritması)
+        /// </summary>
+        public async Task<Route> CalculateOfflineRouteAsync(Location start, Location end, List<RoutePoint> availablePoints)
+        {
+            await Task.Yield();
+
+            try
+            {
+                if (availablePoints == null || availablePoints.Count == 0)
+                {
+                    // Hiç nokta yoksa basit doğrusal rota oluştur
+                    return CreateSimpleRoute(start, end);
+                }
+
+                // A* algoritması ile en kısa rotayı hesapla
+                var routePoints = await CalculateShortestPath(start, end, availablePoints);
+
+                // Route nesnesini oluştur
+                var route = new Route
+                {
+                    RouteId = Guid.NewGuid().ToString(),
+                    Start = start,
+                    End = end,
+                    Path = routePoints,
+                    DistanceKm = CalculateTotalDistance(routePoints),
+                    Duration = CalculateEstimatedDuration(routePoints, TransportMode.Driving),
+                    TransportMode = TransportMode.Driving
+                };
+
+                return route;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Offline rota hesaplama hatası: {ex.Message}");
+                // Hata durumunda basit rota döndür
+                return CreateSimpleRoute(start, end);
+            }
+        }
+
+        /// <summary>
+        /// A* algoritması ile en kısa yolu hesaplar
+        /// </summary>
+        private async Task<List<Location>> CalculateShortestPath(Location start, Location end, List<RoutePoint> availablePoints)
+        {
+            await Task.Yield();
+
+            var path = new List<Location> { start };
+
+            // Basit yaklaşım: Mevcut noktaları kullanarak yaklaşık rota oluştur
+            // Gerçek A* implementasyonu için daha karmaşık bir yapı gerekli
+
+            // Başlangıç ve bitiş noktalarına en yakın noktaları bul
+            var nearestToStart = FindNearestPoint(start, availablePoints);
+            var nearestToEnd = FindNearestPoint(end, availablePoints);
+
+            if (nearestToStart != null)
+            {
+                path.Add(new Location(nearestToStart.Latitude, nearestToStart.Longitude));
+            }
+
+            // Ara noktaları ekle (basit yaklaşım)
+            var intermediatePoints = availablePoints
+                .Where(p => p != nearestToStart && p != nearestToEnd)
+                .OrderBy(p => CalculateDistance(start, new Location(p.Latitude, p.Longitude)))
+                .Take(5) // En fazla 5 ara nokta
+                .ToList();
+
+            foreach (var point in intermediatePoints)
+            {
+                path.Add(new Location(point.Latitude, point.Longitude));
+            }
+
+            if (nearestToEnd != null && nearestToEnd != nearestToStart)
+            {
+                path.Add(new Location(nearestToEnd.Latitude, nearestToEnd.Longitude));
+            }
+
+            path.Add(end);
+
+            return path;
+        }
+
+        /// <summary>
+        /// Verilen konuma en yakın noktayı bulur
+        /// </summary>
+        private RoutePoint? FindNearestPoint(Location location, List<RoutePoint> points)
+        {
+            if (points == null || points.Count == 0)
+                return null;
+
+            RoutePoint? nearest = null;
+            double minDistance = double.MaxValue;
+
+            foreach (var point in points)
+            {
+                var pointLocation = new Location(point.Latitude, point.Longitude);
+                var distance = CalculateDistance(location, pointLocation);
+
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    nearest = point;
+                }
+            }
+
+            return nearest;
+        }
+
+        /// <summary>
+        /// İki konum arası mesafeyi hesaplar (Haversine formülü)
+        /// </summary>
+        private double CalculateDistance(Location loc1, Location loc2)
+        {
+            const double EarthRadiusKm = 6371.0;
+
+            var lat1 = loc1.Latitude * Math.PI / 180.0;
+            var lon1 = loc1.Longitude * Math.PI / 180.0;
+            var lat2 = loc2.Latitude * Math.PI / 180.0;
+            var lon2 = loc2.Longitude * Math.PI / 180.0;
+
+            var dLat = lat2 - lat1;
+            var dLon = lon2 - lon1;
+
+            var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                    Math.Cos(lat1) * Math.Cos(lat2) *
+                    Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+
+            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+
+            return EarthRadiusKm * c;
+        }
+
+        /// <summary>
+        /// Rota noktalarının toplam mesafesini hesaplar
+        /// </summary>
+        private double CalculateTotalDistance(List<Location> points)
+        {
+            if (points == null || points.Count < 2)
+                return 0;
+
+            double totalDistance = 0;
+            for (int i = 0; i < points.Count - 1; i++)
+            {
+                totalDistance += CalculateDistance(points[i], points[i + 1]);
+            }
+
+            return totalDistance;
+        }
+
+        /// <summary>
+        /// Rota için tahmini süreyi hesaplar
+        /// </summary>
+        private TimeSpan CalculateEstimatedDuration(List<Location> points, TransportMode mode)
+        {
+            var totalDistance = CalculateTotalDistance(points);
+
+            // Ortalama hızlara göre süre hesapla (km/saat)
+            double averageSpeedKmh = mode switch
+            {
+                TransportMode.Walking => 5.0,
+                TransportMode.Bicycling => 15.0,
+                TransportMode.Driving => 50.0,
+                TransportMode.Transit => 30.0,
+                _ => 30.0
+            };
+
+            var hours = totalDistance / averageSpeedKmh;
+            return TimeSpan.FromHours(hours);
+        }
+
+        /// <summary>
+        /// Basit doğrusal rota oluşturur (fallback)
+        /// </summary>
+        private Route CreateSimpleRoute(Location start, Location end)
+        {
+            var path = new List<Location> { start };
+
+            // 10 ara nokta oluştur
+            const int steps = 10;
+            for (int i = 1; i < steps; i++)
+            {
+                var factor = (double)i / steps;
+                var lat = start.Latitude + (end.Latitude - start.Latitude) * factor;
+                var lng = start.Longitude + (end.Longitude - start.Longitude) * factor;
+                path.Add(new Location(lat, lng));
+            }
+
+            path.Add(end);
+
+            return new Route
+            {
+                RouteId = Guid.NewGuid().ToString(),
+                Start = start,
+                End = end,
+                Path = path,
+                DistanceKm = CalculateTotalDistance(path),
+                Duration = CalculateEstimatedDuration(path, TransportMode.Driving),
+                TransportMode = TransportMode.Driving
+            };
+        }
+
+        /// <summary>
+        /// Veritabanı bağlantısını kapatır
+        /// </summary>
+        public void Dispose()
+        {
+            _database?.Close();
+        }
+    }
+}

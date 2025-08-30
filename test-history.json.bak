@@ -1,0 +1,662 @@
+[
+    {
+        "results":  {
+                        "skipped_tests":  0,
+                        "details":  {
+                                        "ServiceWorker":  false,
+                                        "404 Sayfası":  false,
+                                        "Manifest":  false,
+                                        "Gizlilik Sayfası":  false,
+                                        "OfflineFallback":  false,
+                                        "Yasal Sayfa":  false,
+                                        "Ana Sayfa":  false
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  7
+                    },
+        "id":  "a28f3e5d-b292-493a-97f1-809162f23d0e",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.26,
+        "timestamp":  "2025-08-30T03:07:58Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  0,
+                        "details":  {
+                                        "ServiceWorker":  false,
+                                        "404 Sayfası":  false,
+                                        "Manifest":  false,
+                                        "Gizlilik Sayfası":  false,
+                                        "OfflineFallback":  false,
+                                        "Yasal Sayfa":  false,
+                                        "Ana Sayfa":  false
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  7
+                    },
+        "id":  "118ca552-7c5e-431b-a78d-f4327a2f7c48",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.09,
+        "timestamp":  "2025-08-30T02:52:07Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  0,
+                        "details":  {
+                                        "ServiceWorker":  false,
+                                        "404 Sayfası":  false,
+                                        "Manifest":  false,
+                                        "Gizlilik Sayfası":  false,
+                                        "OfflineFallback":  false,
+                                        "Yasal Sayfa":  false,
+                                        "Ana Sayfa":  false
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  7
+                    },
+        "id":  "21891335-8f4a-41dc-a3ab-371c7071395f",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.07,
+        "timestamp":  "2025-08-30T02:50:15Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  0,
+                        "details":  {
+                                        "ServiceWorker":  false,
+                                        "404 Sayfası":  false,
+                                        "Manifest":  false,
+                                        "Gizlilik Sayfası":  false,
+                                        "OfflineFallback":  false,
+                                        "Yasal Sayfa":  false,
+                                        "Ana Sayfa":  false
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  7
+                    },
+        "id":  "0ca6517d-0ec6-44eb-9f39-18954c61e9fa",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.08,
+        "timestamp":  "2025-08-30T02:50:06Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  0,
+                        "details":  {
+                                        "ServiceWorker":  false,
+                                        "404 Sayfası":  false,
+                                        "Manifest":  false,
+                                        "Gizlilik Sayfası":  false,
+                                        "OfflineFallback":  false,
+                                        "Yasal Sayfa":  false,
+                                        "Ana Sayfa":  false
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  7
+                    },
+        "id":  "84d64101-ef9e-4296-9c02-e1ff50a12407",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.2,
+        "timestamp":  "2025-08-30T02:49:38Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  0,
+                        "details":  {
+                                        "OfflineFallback":  false,
+                                        "Manifest":  false,
+                                        "Gizlilik Sayfası":  false,
+                                        "ServiceWorker":  false,
+                                        "Ana Sayfa":  false,
+                                        "Yasal Sayfa":  false,
+                                        "404 Sayfası":  false
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  7
+                    },
+        "id":  "4724ed34-2739-4738-9041-1b20a2a378aa",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.11,
+        "timestamp":  "2025-08-30T02:40:23Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  0,
+                        "details":  {
+                                        "ServiceWorker":  false,
+                                        "404 Sayfası":  false,
+                                        "Manifest":  false,
+                                        "Gizlilik Sayfası":  false,
+                                        "OfflineFallback":  false,
+                                        "Yasal Sayfa":  false,
+                                        "Ana Sayfa":  false
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  7
+                    },
+        "id":  "603d3465-1755-4182-812b-3398a097bdf3",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.11,
+        "timestamp":  "2025-08-30T02:40:22Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  7,
+                        "details":  {
+                                        "OfflineFallback":  null,
+                                        "Manifest":  null,
+                                        "Gizlilik Sayfası":  null,
+                                        "ServiceWorker":  null,
+                                        "Ana Sayfa":  null,
+                                        "Yasal Sayfa":  null,
+                                        "404 Sayfası":  null
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  0
+                    },
+        "id":  "4b20ce2f-f5a9-420c-800b-c5eb85637ed0",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.06,
+        "timestamp":  "2025-08-30T02:40:18Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  7,
+                        "details":  {
+                                        "ServiceWorker":  null,
+                                        "404 Sayfası":  null,
+                                        "Manifest":  null,
+                                        "Gizlilik Sayfası":  null,
+                                        "OfflineFallback":  null,
+                                        "Yasal Sayfa":  null,
+                                        "Ana Sayfa":  null
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  0
+                    },
+        "id":  "ad963168-e445-4d40-8e84-3114767181cb",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.06,
+        "timestamp":  "2025-08-30T02:40:18Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  0,
+                        "details":  {
+                                        "OfflineFallback":  false,
+                                        "Manifest":  false,
+                                        "Gizlilik Sayfası":  false,
+                                        "ServiceWorker":  false,
+                                        "Ana Sayfa":  false,
+                                        "Yasal Sayfa":  false,
+                                        "404 Sayfası":  false
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  7
+                    },
+        "id":  "c09e3adc-0ead-417d-ac7a-43dacb62c841",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.52,
+        "timestamp":  "2025-08-30T02:37:00Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  0,
+                        "details":  {
+                                        "ServiceWorker":  false,
+                                        "404 Sayfası":  false,
+                                        "Manifest":  false,
+                                        "Gizlilik Sayfası":  false,
+                                        "OfflineFallback":  false,
+                                        "Yasal Sayfa":  false,
+                                        "Ana Sayfa":  false
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  7
+                    },
+        "id":  "c0ff0f1b-e618-4075-93a0-60c482912f0a",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.52,
+        "timestamp":  "2025-08-30T02:37:00Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  7,
+                        "details":  {
+                                        "OfflineFallback":  null,
+                                        "Manifest":  null,
+                                        "Gizlilik Sayfası":  null,
+                                        "ServiceWorker":  null,
+                                        "Ana Sayfa":  null,
+                                        "Yasal Sayfa":  null,
+                                        "404 Sayfası":  null
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  0
+                    },
+        "id":  "e3915a5b-9ffe-44e2-b130-d084a09b87ce",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.07,
+        "timestamp":  "2025-08-30T02:36:53Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  7,
+                        "details":  {
+                                        "ServiceWorker":  null,
+                                        "404 Sayfası":  null,
+                                        "Manifest":  null,
+                                        "Gizlilik Sayfası":  null,
+                                        "OfflineFallback":  null,
+                                        "Yasal Sayfa":  null,
+                                        "Ana Sayfa":  null
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  0
+                    },
+        "id":  "339efa75-15fc-4ab7-9cd4-c3fdc40d972a",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.07,
+        "timestamp":  "2025-08-30T02:36:53Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  7,
+                        "details":  {
+                                        "OfflineFallback":  null,
+                                        "Manifest":  null,
+                                        "Gizlilik Sayfası":  null,
+                                        "ServiceWorker":  null,
+                                        "Ana Sayfa":  null,
+                                        "Yasal Sayfa":  null,
+                                        "404 Sayfası":  null
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  0
+                    },
+        "id":  "95766910-e824-475a-9626-6d8539b39626",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.09,
+        "timestamp":  "2025-08-30T02:36:38Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  7,
+                        "details":  {
+                                        "ServiceWorker":  null,
+                                        "404 Sayfası":  null,
+                                        "Manifest":  null,
+                                        "Gizlilik Sayfası":  null,
+                                        "OfflineFallback":  null,
+                                        "Yasal Sayfa":  null,
+                                        "Ana Sayfa":  null
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  0
+                    },
+        "id":  "e35c6d99-b080-457b-a656-0178f1bf2eb2",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.09,
+        "timestamp":  "2025-08-30T02:36:38Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  7,
+                        "details":  {
+                                        "OfflineFallback":  null,
+                                        "Manifest":  null,
+                                        "Gizlilik Sayfası":  null,
+                                        "ServiceWorker":  null,
+                                        "Ana Sayfa":  null,
+                                        "Yasal Sayfa":  null,
+                                        "404 Sayfası":  null
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  0
+                    },
+        "id":  "280398ea-159c-4509-8dba-4a921d064756",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.09,
+        "timestamp":  "2025-08-30T02:33:29Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  7,
+                        "details":  {
+                                        "ServiceWorker":  null,
+                                        "404 Sayfası":  null,
+                                        "Manifest":  null,
+                                        "Gizlilik Sayfası":  null,
+                                        "OfflineFallback":  null,
+                                        "Yasal Sayfa":  null,
+                                        "Ana Sayfa":  null
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  0
+                    },
+        "id":  "42c07076-43c1-4de7-805b-6697656ce80f",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.09,
+        "timestamp":  "2025-08-30T02:33:29Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  7,
+                        "details":  {
+                                        "ServiceWorker":  null,
+                                        "404 Sayfası":  null,
+                                        "Manifest":  null,
+                                        "Gizlilik Sayfası":  null,
+                                        "OfflineFallback":  null,
+                                        "Yasal Sayfa":  null,
+                                        "Ana Sayfa":  null
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  0
+                    },
+        "id":  "74834dfa-6443-421a-990c-a8aac06ea6c5",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.1,
+        "timestamp":  "2025-08-30T02:33:19Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  7,
+                        "details":  {
+                                        "ServiceWorker":  null,
+                                        "404 Sayfası":  null,
+                                        "Manifest":  null,
+                                        "Gizlilik Sayfası":  null,
+                                        "OfflineFallback":  null,
+                                        "Yasal Sayfa":  null,
+                                        "Ana Sayfa":  null
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  0
+                    },
+        "id":  "5ef6341e-ad9e-4a5a-a4c5-422bcee6d8fa",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.06,
+        "timestamp":  "2025-08-30T02:32:46Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    },
+    {
+        "results":  {
+                        "skipped_tests":  7,
+                        "details":  {
+                                        "ServiceWorker":  null,
+                                        "404 Sayfası":  null,
+                                        "Manifest":  null,
+                                        "Gizlilik Sayfası":  null,
+                                        "OfflineFallback":  null,
+                                        "Yasal Sayfa":  null,
+                                        "Ana Sayfa":  null
+                                    },
+                        "passed_tests":  0,
+                        "success_rate":  0,
+                        "total_tests":  7,
+                        "failed_tests":  0
+                    },
+        "id":  "eb442df0-d259-4988-8f69-31cd6d448208",
+        "legal_compliance":  null,
+        "metadata":  {
+                         "username":  "VAHİT",
+                         "base_url":  "https://kesifapp.com",
+                         "powershell_version":  "5.1.26100.4768",
+                         "script_version":  "3.0.0",
+                         "hostname":  "DESKTOP-F8M2K05"
+                     },
+        "pagespeed_score":  null,
+        "duration_seconds":  0.05,
+        "timestamp":  "2025-08-30T02:25:20Z",
+        "lighthouse_score":  null,
+        "core_web_vitals_score":  null,
+        "seo_score":  null
+    }
+]

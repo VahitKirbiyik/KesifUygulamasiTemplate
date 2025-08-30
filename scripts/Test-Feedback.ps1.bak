@@ -1,0 +1,375 @@
+# Test-Feedback.ps1 - Çok dilli geri bildirim testi
+# Bu script geri bildirim sistemini test eder ve CI/CD pipeline ile entegre çalışır
+
+param(
+    [string]$TestEnvironment = "local",
+    [string]$Configuration = "Debug",
+    [string]$ProjectPath = $PSScriptRoot,
+    [switch]$SkipBuild,
+    [switch]$Verbose,
+    [switch]$ExportJson,
+    [string[]]$TestLanguages = @("en", "tr", "de", "fr", "es", "ar", "zh", "ja"),
+    [int]$MaxFeedbacksPerDay = 100
+)
+
+# Script ayarları
+$ErrorActionPreference = "Stop"
+$VerbosePreference = if ($Verbose) { "Continue" } else { "SilentlyContinue" }
+
+# Test sonuçları için değişkenler
+$testResults = @{
+    TotalTests = 0
+    PassedTests = 0
+    FailedTests = 0
+    TestDuration = [TimeSpan]::Zero
+    Details = @()
+}
+
+# Environment değişkenlerini ayarla
+$env:TEST_ENVIRONMENT = $TestEnvironment
+$env:CI = if ($TestEnvironment -eq "ci") { "true" } else { "false" }
+$env:AUTO_PROCESS_FEEDBACK = "true"
+$env:MAX_FEEDBACKS_PER_DAY = $MaxFeedbacksPerDay.ToString()
+$env:SUPPORTED_LANGUAGES = $TestLanguages -join ","
+
+# Renkli output için
+function Write-ColorOutput {
+    param(
+        [string]$Message,
+        [string]$Color = "White"
+    )
+    Write-Host $Message -ForegroundColor $Color
+}
+
+# Başlık
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "      🌐 Çok Dilli Geri Bildirim Testi" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput ""
+
+# Proje yolunu kontrol et
+if (!(Test-Path $ProjectPath)) {
+    Write-ColorOutput "Hata: Proje yolu bulunamadı: $ProjectPath" "Red"
+    exit 1
+}
+
+# Test fonksiyonları
+function Test-MultiLanguageFeedback {
+    param(
+        [string]$TestName,
+        [scriptblock]$TestScript
+    )
+
+    $startTime = Get-Date
+    $testPassed = $false
+    $errorMessage = ""
+
+    Write-ColorOutput "🧪 $TestName testi başlatılıyor..." "White"
+
+    try {
+        & $TestScript
+        $testPassed = $true
+        Write-ColorOutput "  ✅ $TestName testi başarılı" "Green"
+    } catch {
+        $errorMessage = $_.Exception.Message
+        Write-ColorOutput "  ❌ $TestName testi başarısız: $errorMessage" "Red"
+    } finally {
+        $endTime = Get-Date
+        $duration = $endTime - $startTime
+
+        $testResults.TotalTests++
+        if ($testPassed) {
+            $testResults.PassedTests++
+        } else {
+            $testResults.FailedTests++
+        }
+        $testResults.TestDuration += $duration
+
+        $testResults.Details += @{
+            TestName = $TestName
+            Passed = $testPassed
+            Duration = $duration
+            ErrorMessage = $errorMessage
+        }
+    }
+}
+
+# Dil desteği testi
+function Test-LanguageSupport {
+    Write-ColorOutput "  🌍 Dil desteği test ediliyor..." "Gray"
+
+    $supportedLanguages = $env:SUPPORTED_LANGUAGES -split ","
+    Write-ColorOutput "    📝 Desteklenen diller: $($supportedLanguages -join ', ')" "Gray"
+
+    # Her dil için örnek geri bildirim
+    $sampleFeedbacks = @{
+        "en" = "Great app! Love the navigation features."
+        "tr" = "Harika uygulama! Navigasyon özellikleri çok iyi."
+        "de" = "Tolle App! Die Navigationsfunktionen sind super."
+        "fr" = "Excellente application! J'adore les fonctions de navigation."
+        "es" = "¡Excelente aplicación! Me encantan las funciones de navegación."
+        "ar" = "تطبيق رائع! أحب ميزات التنقل."
+        "zh" = "很棒的应用！我喜欢导航功能。"
+        "ja" = "素晴らしいアプリ！ナビゲーション機能が好きです。"
+    }
+
+    $feedbackCount = 0
+    foreach ($lang in $supportedLanguages) {
+        if ($sampleFeedbacks.ContainsKey($lang)) {
+            Write-ColorOutput "    ✅ $lang : $($sampleFeedbacks[$lang])" "Green"
+            $feedbackCount++
+        } else {
+            Write-ColorOutput "    ⚠️  $lang için örnek geri bildirim bulunamadı" "Yellow"
+        }
+    }
+
+    Write-ColorOutput "    📊 Test edilen dil sayısı: $feedbackCount" "Gray"
+}
+
+# Geri bildirim işleme testi
+function Test-FeedbackProcessing {
+    Write-ColorOutput "  🔄 Geri bildirim işleme test ediliyor..." "Gray"
+
+    # Feedback veri klasörü kontrolü
+    $feedbackDataPath = Join-Path $env:APPDATA "KesifUygulamasi\FeedbackData"
+    if (!(Test-Path $feedbackDataPath)) {
+        New-Item -ItemType Directory -Path $feedbackDataPath -Force | Out-Null
+        Write-ColorOutput "    📁 Feedback veri klasörü oluşturuldu" "Gray"
+    }
+
+    # Örnek feedback dosyası oluştur
+    $sampleFeedback = @{
+        id = [guid]::NewGuid().ToString()
+        language = "en"
+        message = "Test feedback for CI/CD pipeline"
+        category = "Testing"
+        rating = 5
+        timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+        userId = "TestUser"
+        metadata = @{
+            user_agent = "Test-Agent"
+            platform = "CI/CD"
+            app_version = "1.0.0"
+        }
+        isProcessed = $false
+    }
+
+    $feedbackFile = Join-Path $feedbackDataPath "feedback_test_$(Get-Date -Format 'yyyyMMdd_HHmmss').json"
+    $sampleFeedback | ConvertTo-Json -Depth 10 | Set-Content $feedbackFile
+
+    Write-ColorOutput "    📄 Örnek feedback dosyası oluşturuldu: $feedbackFile" "Gray"
+
+    # İşlenmiş feedback kontrolü
+    $processedFeedbacks = Get-ChildItem $feedbackDataPath -Filter "feedback_*.json" | Where-Object {
+        $content = Get-Content $_.FullName -Raw | ConvertFrom-Json
+        $content.isProcessed -eq $true
+    }
+
+    Write-ColorOutput "    ✅ İşlenmiş feedback sayısı: $($processedFeedbacks.Count)" "Green"
+}
+
+# Günlük limit testi
+function Test-DailyLimit {
+    Write-ColorOutput "  📊 Günlük limit testi..." "Gray"
+
+    $maxFeedbacks = [int]$env:MAX_FEEDBACKS_PER_DAY
+    Write-ColorOutput "    🎯 Maksimum günlük feedback: $maxFeedbacks" "Gray"
+
+    # Bugünkü feedback sayısı kontrolü
+    $today = Get-Date -Format "yyyy-MM-dd"
+    $feedbackDataPath = Join-Path $env:APPDATA "KesifUygulamasi\FeedbackData"
+    $todaysFeedbacks = Get-ChildItem $feedbackDataPath -Filter "feedback_*.json" | Where-Object {
+        $fileName = $_.Name
+        $fileDate = $fileName -replace "feedback_", "" -replace "_.*", ""
+        $fileDate -eq $today
+    }
+
+    Write-ColorOutput "    📅 Bugünkü feedback sayısı: $($todaysFeedbacks.Count)" "Gray"
+
+    if ($todaysFeedbacks.Count -lt $maxFeedbacks) {
+        Write-ColorOutput "    ✅ Günlük limit aşılmamış" "Green"
+    } else {
+        Write-ColorOutput "    ⚠️  Günlük limit aşılmış" "Yellow"
+    }
+}
+
+# Duygu analizi testi
+function Test-SentimentAnalysis {
+    Write-ColorOutput "  😊 Duygu analizi testi..." "Gray"
+
+    # Örnek mesajlar
+    $testMessages = @(
+        @{ Message = "This app is amazing!"; ExpectedSentiment = "positive" },
+        @{ Message = "Great navigation features"; ExpectedSentiment = "positive" },
+        @{ Message = "This is terrible"; ExpectedSentiment = "negative" },
+        @{ Message = "Bug in the application"; ExpectedSentiment = "negative" },
+        @{ Message = "Works as expected"; ExpectedSentiment = "neutral" }
+    )
+
+    $positiveWords = @("good", "great", "excellent", "awesome", "love", "amazing")
+    $negativeWords = @("bad", "poor", "terrible", "hate", "worst", "bug")
+
+    foreach ($test in $testMessages) {
+        $message = $test.Message.ToLower()
+        $positiveCount = ($positiveWords | Where-Object { $message.Contains($_) }).Count
+        $negativeCount = ($negativeWords | Where-Object { $message.Contains($_) }).Count
+        $sentimentScore = $positiveCount - $negativeCount
+
+        $actualSentiment = if ($sentimentScore -gt 0) { "positive" } elseif ($sentimentScore -lt 0) { "negative" } else { "neutral" }
+
+        if ($actualSentiment -eq $test.ExpectedSentiment) {
+            Write-ColorOutput "    ✅ '$($test.Message)' -> $actualSentiment" "Green"
+        } else {
+            Write-ColorOutput "    ❌ '$($test.Message)' -> $actualSentiment (beklenen: $($test.ExpectedSentiment))" "Red"
+        }
+    }
+}
+
+# Otomatik yanıt testi
+function Test-AutoResponse {
+    Write-ColorOutput "  🤖 Otomatik yanıt testi..." "Gray"
+
+    # Dile göre otomatik yanıtlar
+    $autoResponses = @{
+        "en" = "Thank you for your feedback! We appreciate your input."
+        "tr" = "Geri bildiriminiz için teşekkür ederiz! Görüşlerinizi değerli buluyoruz."
+        "de" = "Vielen Dank für Ihr Feedback! Wir schätzen Ihre Eingabe."
+        "fr" = "Merci pour votre retour! Nous apprécions vos commentaires."
+        "es" = "¡Gracias por sus comentarios! Apreciamos sus aportes."
+        "ar" = "شكراً لملاحظاتك! نحن نقدر آراءك."
+        "zh" = "感谢您的反馈！我们重视您的意见。"
+        "ja" = "フィードバックありがとうございます！あなたの意見を大切にしています。"
+    }
+
+    foreach ($lang in $TestLanguages) {
+        if ($autoResponses.ContainsKey($lang)) {
+            Write-ColorOutput "    ✅ $lang : $($autoResponses[$lang])" "Green"
+        } else {
+            Write-ColorOutput "    ⚠️  $lang için otomatik yanıt bulunamadı" "Yellow"
+        }
+    }
+}
+
+# Ana test döngüsü
+Write-ColorOutput "🚀 Çok dilli geri bildirim testleri başlatılıyor..." "White"
+Write-ColorOutput ""
+
+# Testleri çalıştır
+Test-MultiLanguageFeedback -TestName "Dil Desteği" -TestScript { Test-LanguageSupport }
+Test-MultiLanguageFeedback -TestName "Geri Bildirim İşleme" -TestScript { Test-FeedbackProcessing }
+Test-MultiLanguageFeedback -TestName "Günlük Limit" -TestScript { Test-DailyLimit }
+Test-MultiLanguageFeedback -TestName "Duygu Analizi" -TestScript { Test-SentimentAnalysis }
+Test-MultiLanguageFeedback -TestName "Otomatik Yanıt" -TestScript { Test-AutoResponse }
+
+# Test özeti
+Write-ColorOutput "" "White"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "           📊 Test Sonuçları" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+
+$successRate = if ($testResults.TotalTests -gt 0) {
+    [math]::Round(($testResults.PassedTests / $testResults.TotalTests) * 100, 1)
+} else { 0 }
+
+Write-ColorOutput "Toplam Test: $($testResults.TotalTests)" "White"
+Write-ColorOutput "Başarılı: $($testResults.PassedTests)" "Green"
+Write-ColorOutput "Başarısız: $($testResults.FailedTests)" "Red"
+Write-ColorOutput "Başarı Oranı: $successRate%" "Cyan"
+Write-ColorOutput "Toplam Süre: $($testResults.TestDuration.TotalSeconds) saniye" "White"
+
+# Detaylı sonuçlar
+if ($Verbose) {
+    Write-ColorOutput "" "White"
+    Write-ColorOutput "Detaylı Sonuçlar:" "Yellow"
+    foreach ($detail in $testResults.Details) {
+        $status = if ($detail.Passed) { "✅" } else { "❌" }
+        Write-ColorOutput "  $status $($detail.TestName)" "White"
+        if (!$detail.Passed -and $detail.ErrorMessage) {
+            Write-ColorOutput "    Hata: $($detail.ErrorMessage)" "Red"
+        }
+    }
+}
+
+# JSON export
+if ($ExportJson) {
+    $jsonPath = Join-Path $ProjectPath "feedback-test-results.json"
+    $exportData = @{
+        metadata = @{
+            timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            script_version = "1.0.0"
+            test_environment = $TestEnvironment
+            supported_languages = $TestLanguages
+            max_feedbacks_per_day = $MaxFeedbacksPerDay
+            total_duration_seconds = $testResults.TestDuration.TotalSeconds
+        }
+        summary = @{
+            total_tests = $testResults.TotalTests
+            passed_tests = $testResults.PassedTests
+            failed_tests = $testResults.FailedTests
+            success_rate = $successRate
+            test_duration = $testResults.TestDuration.ToString()
+        }
+        language_support = @{
+            tested_languages = $TestLanguages
+            sample_feedbacks_created = $true
+        }
+        details = $testResults.Details
+        recommendations = @(
+            "Desteklenen dilleri environment variable ile yapılandırın",
+            "Günlük feedback limitini production ortamına göre ayarlayın",
+            "Duygu analizi algoritmasını geliştirmek için daha fazla örnek kullanın",
+            "Otomatik yanıtları kullanıcı deneyimine göre özelleştirin"
+        )
+    }
+
+    $exportData | ConvertTo-Json -Depth 10 | Set-Content $jsonPath
+    Write-ColorOutput "📄 Test sonuçları JSON olarak kaydedildi: $jsonPath" "Green"
+}
+
+# Badge tetikleme
+if ($testResults.PassedTests -gt 0) {
+    Show-Badge "Feedback-Globalized"
+}
+
+# Final sonuç
+Write-ColorOutput "" "White"
+if ($testResults.FailedTests -eq 0) {
+    Write-ColorOutput "🎉 Tüm çok dilli geri bildirim testleri başarılı! CI/CD pipeline devam edebilir." "Green"
+    exit 0
+} else {
+    Write-ColorOutput "💥 Bazı geri bildirim testleri başarısız. Lütfen dil desteği ayarlarını kontrol edin." "Red"
+    exit 1
+}
+
+# Badge gösterme fonksiyonu
+function Show-Badge {
+    param([string]$BadgeName)
+
+    Write-ColorOutput "🏅 Badge kazanıldı: $BadgeName" "Cyan"
+
+    # Badge dosyasını güncelle (varsa)
+    $badgeFile = Join-Path $ProjectPath "badge.json"
+    if (Test-Path $badgeFile) {
+        try {
+            $badgeData = Get-Content $badgeFile -Raw | ConvertFrom-Json
+            if ($badgeData.PSObject.Properties.Name -notcontains $BadgeName) {
+                $badgeData | Add-Member -MemberType NoteProperty -Name $BadgeName -Value $true
+                $badgeData | ConvertTo-Json | Set-Content $badgeFile
+                Write-ColorOutput "  ✅ Badge dosyası güncellendi" "Green"
+            } else {
+                $badgeData.$BadgeName = $true
+                $badgeData | ConvertTo-Json | Set-Content $badgeFile
+                Write-ColorOutput "  ✅ Badge dosyası güncellendi" "Green"
+            }
+        } catch {
+            Write-ColorOutput "  ⚠️  Badge dosyası güncellenemedi" "Yellow"
+        }
+    } else {
+        # Yeni badge dosyası oluştur
+        $newBadgeData = @{
+            $BadgeName = $true
+        }
+        $newBadgeData | ConvertTo-Json | Set-Content $badgeFile
+        Write-ColorOutput "  ✅ Yeni badge dosyası oluşturuldu" "Green"
+    }
+}

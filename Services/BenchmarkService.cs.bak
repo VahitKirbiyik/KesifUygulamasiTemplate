@@ -1,0 +1,456 @@
+// BenchmarkService.cs - Dinamik benchmark servisi
+// Bu sınıf uygulama performansını ölçer ve CI/CD pipeline ile entegre çalışır
+
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Benchmark sonucu sınıfı
+    /// </summary>
+    public class BenchmarkResult
+    {
+        public string Metric { get; set; }
+        public double Value { get; set; }
+        public string Unit { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string Category { get; set; }
+        public Dictionary<string, object> Metadata { get; set; } = new Dictionary<string, object>();
+        public bool IsBaseline { get; set; }
+        public double? BaselineValue { get; set; }
+        public double? Deviation { get; set; }
+    }
+
+    /// <summary>
+    /// Benchmark istatistikleri
+    /// </summary>
+    public class BenchmarkStatistics
+    {
+        public int TotalBenchmarks { get; set; }
+        public Dictionary<string, int> BenchmarksByCategory { get; set; } = new Dictionary<string, int>();
+        public Dictionary<string, double> AverageValues { get; set; } = new Dictionary<string, double>();
+        public Dictionary<string, double> MinValues { get; set; } = new Dictionary<string, double>();
+        public Dictionary<string, double> MaxValues { get; set; } = new Dictionary<string, double>();
+        public DateTime LastBenchmarkTime { get; set; }
+        public TimeSpan AverageBenchmarkDuration { get; set; }
+    }
+
+    /// <summary>
+    /// Benchmark servisi
+    /// </summary>
+    public class BenchmarkService
+    {
+        private readonly ILogger<BenchmarkService> _logger;
+        private readonly string _benchmarkDataPath;
+        private readonly bool _isTestEnvironment;
+        private readonly List<BenchmarkResult> _results = new List<BenchmarkResult>();
+        private readonly Dictionary<string, double> _baselines = new Dictionary<string, double>();
+
+        // CI/CD için environment variable desteği
+        private readonly bool _autoSaveResults = bool.Parse(Environment.GetEnvironmentVariable("AUTO_SAVE_BENCHMARKS") ?? "true");
+        private readonly int _maxBenchmarkHistory = int.Parse(Environment.GetEnvironmentVariable("MAX_BENCHMARK_HISTORY") ?? "1000");
+        private readonly double _performanceThreshold = double.Parse(Environment.GetEnvironmentVariable("PERFORMANCE_THRESHOLD") ?? "0.1");
+        private readonly string[] _monitoredMetrics = (Environment.GetEnvironmentVariable("MONITORED_METRICS") ?? "route_calculation,map_rendering,tile_loading,api_response").Split(',');
+
+        public event EventHandler<BenchmarkResult> BenchmarkCompleted;
+        public event EventHandler<string> PerformanceAlert;
+
+        public BenchmarkService(ILogger<BenchmarkService> logger)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+            // Test ortamı kontrolü
+            _isTestEnvironment = Environment.GetEnvironmentVariable("CI") == "true" ||
+                                Environment.GetEnvironmentVariable("TEST_ENVIRONMENT") == "true";
+
+            // Benchmark veri yolu
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            _benchmarkDataPath = Path.Combine(appDataPath, "KesifUygulamasi", "BenchmarkData");
+            Directory.CreateDirectory(_benchmarkDataPath);
+
+            _logger.LogInformation("BenchmarkService initialized. Monitored metrics: {Metrics}",
+                string.Join(", ", _monitoredMetrics));
+
+            // Mevcut benchmark verilerini yükle
+            Task.Run(() => LoadBenchmarksAsync()).Wait();
+        }
+
+        /// <summary>
+        /// Benchmark loglar
+        /// </summary>
+        public async Task LogPerformanceAsync(string metric, double value, string unit = "ms", string category = "General")
+        {
+            try
+            {
+                var result = new BenchmarkResult
+                {
+                    Metric = metric,
+                    Value = value,
+                    Unit = unit,
+                    Timestamp = DateTime.UtcNow,
+                    Category = category
+                };
+
+                // Metadata ekleme
+                result.Metadata["environment"] = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+                result.Metadata["platform"] = Environment.GetEnvironmentVariable("PLATFORM") ?? Environment.OSVersion.Platform.ToString();
+                result.Metadata["framework"] = Environment.GetEnvironmentVariable("FRAMEWORK") ?? "Unknown";
+
+                // Baseline karşılaştırma
+                if (_baselines.TryGetValue(metric, out var baseline))
+                {
+                    result.BaselineValue = baseline;
+                    result.Deviation = ((value - baseline) / baseline) * 100;
+                    result.IsBaseline = Math.Abs(result.Deviation.Value) <= _performanceThreshold;
+                }
+
+                _results.Add(result);
+
+                // Performans uyarısı
+                if (result.Deviation.HasValue && Math.Abs(result.Deviation.Value) > _performanceThreshold)
+                {
+                    var alertMessage = $"{metric}: {result.Deviation.Value:F2}% deviation from baseline";
+                    PerformanceAlert?.Invoke(this, alertMessage);
+                    _logger.LogWarning("Performance alert: {Alert}", alertMessage);
+                }
+
+                // Otomatik kaydetme
+                if (_autoSaveResults)
+                {
+                    await SaveBenchmarkAsync(result);
+                }
+
+                // Event tetikleme
+                BenchmarkCompleted?.Invoke(this, result);
+
+                _logger.LogInformation("Benchmark logged: {Metric} = {Value} {Unit} (Category: {Category})",
+                    metric, value, unit, category);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to log benchmark: {Metric}", metric);
+            }
+        }
+
+        /// <summary>
+        /// Senkron benchmark loglama (legacy support)
+        /// </summary>
+        public void LogPerformance(string metric, double value)
+        {
+            Task.Run(() => LogPerformanceAsync(metric, value)).Wait();
+        }
+
+        /// <summary>
+        /// Zamanlayıcı ile benchmark ölçer
+        /// </summary>
+        public async Task<double> MeasureExecutionTimeAsync(string metric, Func<Task> action, string category = "Execution")
+        {
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                await action();
+            }
+            finally
+            {
+                stopwatch.Stop();
+                var executionTime = stopwatch.Elapsed.TotalMilliseconds;
+                await LogPerformanceAsync(metric, executionTime, "ms", category);
+            }
+
+            return stopwatch.Elapsed.TotalMilliseconds;
+        }
+
+        /// <summary>
+        /// Senkron zamanlayıcı ile benchmark ölçer
+        /// </summary>
+        public double MeasureExecutionTime(string metric, Action action, string category = "Execution")
+        {
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                action();
+            }
+            finally
+            {
+                stopwatch.Stop();
+                var executionTime = stopwatch.Elapsed.TotalMilliseconds;
+                Task.Run(() => LogPerformanceAsync(metric, executionTime, "ms", category)).Wait();
+            }
+
+            return stopwatch.Elapsed.TotalMilliseconds;
+        }
+
+        /// <summary>
+        /// Baseline değerini ayarlar
+        /// </summary>
+        public async Task SetBaselineAsync(string metric, double value)
+        {
+            _baselines[metric] = value;
+
+            // Baseline'ı kaydet
+            await SaveBaselinesAsync();
+
+            _logger.LogInformation("Baseline set for {Metric}: {Value}", metric, value);
+        }
+
+        /// <summary>
+        /// Benchmark istatistiklerini döndürür
+        /// </summary>
+        public async Task<BenchmarkStatistics> GetBenchmarkStatisticsAsync()
+        {
+            await LoadBenchmarksAsync(); // En güncel veriyi yükle
+
+            var stats = new BenchmarkStatistics
+            {
+                TotalBenchmarks = _results.Count,
+                LastBenchmarkTime = _results.Any() ? _results.Max(r => r.Timestamp) : DateTime.MinValue
+            };
+
+            if (_results.Any())
+            {
+                // Kategori bazlı istatistikler
+                var categoryGroups = _results.GroupBy(r => r.Category);
+                foreach (var group in categoryGroups)
+                {
+                    stats.BenchmarksByCategory[group.Key] = group.Count();
+                }
+
+                // Metrik bazlı istatistikler
+                var metricGroups = _results.GroupBy(r => r.Metric);
+                foreach (var group in metricGroups)
+                {
+                    stats.AverageValues[group.Key] = group.Average(r => r.Value);
+                    stats.MinValues[group.Key] = group.Min(r => r.Value);
+                    stats.MaxValues[group.Key] = group.Max(r => r.Value);
+                }
+
+                // Ortalama benchmark süresi hesaplama
+                var benchmarkDurations = _results.GroupBy(r => r.Timestamp.Date)
+                    .Select(g => g.Count())
+                    .ToList();
+
+                if (benchmarkDurations.Any())
+                {
+                    stats.AverageBenchmarkDuration = TimeSpan.FromMinutes(benchmarkDurations.Average());
+                }
+            }
+
+            return stats;
+        }
+
+        /// <summary>
+        /// Metriğe göre benchmark sonuçlarını filtreler
+        /// </summary>
+        public async Task<IEnumerable<BenchmarkResult>> GetBenchmarksByMetricAsync(string metric)
+        {
+            await LoadBenchmarksAsync();
+            return _results.Where(r => r.Metric.Equals(metric, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Kategoriye göre benchmark sonuçlarını filtreler
+        /// </summary>
+        public async Task<IEnumerable<BenchmarkResult>> GetBenchmarksByCategoryAsync(string category)
+        {
+            await LoadBenchmarksAsync();
+            return _results.Where(r => r.Category.Equals(category, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Zaman aralığına göre benchmark sonuçlarını filtreler
+        /// </summary>
+        public async Task<IEnumerable<BenchmarkResult>> GetBenchmarksByTimeRangeAsync(DateTime startTime, DateTime endTime)
+        {
+            await LoadBenchmarksAsync();
+            return _results.Where(r => r.Timestamp >= startTime && r.Timestamp <= endTime);
+        }
+
+        /// <summary>
+        /// Performans regresyonunu kontrol eder
+        /// </summary>
+        public async Task<bool> CheckPerformanceRegressionAsync(string metric, double threshold = 0.1)
+        {
+            var recentResults = await GetBenchmarksByMetricAsync(metric);
+            var recentResultsList = recentResults.OrderByDescending(r => r.Timestamp).Take(10).ToList();
+
+            if (recentResultsList.Count < 2)
+                return false;
+
+            var latest = recentResultsList.First();
+            var previous = recentResultsList.Skip(1).Take(5).Average(r => r.Value);
+
+            var regression = ((latest.Value - previous) / previous) * 100;
+
+            if (Math.Abs(regression) > threshold * 100)
+            {
+                _logger.LogWarning("Performance regression detected for {Metric}: {Regression:F2}%", metric, regression);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Benchmark verilerini dosyaya kaydeder
+        /// </summary>
+        private async Task SaveBenchmarkAsync(BenchmarkResult result)
+        {
+            try
+            {
+                var fileName = $"benchmark_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json";
+                var filePath = Path.Combine(_benchmarkDataPath, fileName);
+
+                var json = JsonSerializer.Serialize(result, new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+
+                await File.WriteAllTextAsync(filePath, json);
+                _logger.LogInformation("Benchmark saved to {FilePath}", filePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save benchmark");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Baseline değerlerini kaydeder
+        /// </summary>
+        private async Task SaveBaselinesAsync()
+        {
+            try
+            {
+                var baselinePath = Path.Combine(_benchmarkDataPath, "baselines.json");
+                var json = JsonSerializer.Serialize(_baselines, new JsonSerializerOptions { WriteIndented = true });
+                await File.WriteAllTextAsync(baselinePath, json);
+                _logger.LogInformation("Baselines saved");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save baselines");
+            }
+        }
+
+        /// <summary>
+        /// Benchmark verilerini dosyadan yükler
+        /// </summary>
+        private async Task LoadBenchmarksAsync()
+        {
+            try
+            {
+                var benchmarkFiles = Directory.GetFiles(_benchmarkDataPath, "benchmark_*.json")
+                    .OrderByDescending(f => f)
+                    .Take(_maxBenchmarkHistory);
+
+                _results.Clear();
+
+                foreach (var file in benchmarkFiles)
+                {
+                    try
+                    {
+                        var json = await File.ReadAllTextAsync(file);
+                        var result = JsonSerializer.Deserialize<BenchmarkResult>(json);
+                        if (result != null)
+                        {
+                            _results.Add(result);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to load benchmark from {File}", file);
+                    }
+                }
+
+                // Baseline'ları yükle
+                var baselinePath = Path.Combine(_benchmarkDataPath, "baselines.json");
+                if (File.Exists(baselinePath))
+                {
+                    var baselineJson = await File.ReadAllTextAsync(baselinePath);
+                    var baselines = JsonSerializer.Deserialize<Dictionary<string, double>>(baselineJson);
+                    if (baselines != null)
+                    {
+                        _baselines.Clear();
+                        foreach (var kvp in baselines)
+                        {
+                            _baselines[kvp.Key] = kvp.Value;
+                        }
+                    }
+                }
+
+                _logger.LogInformation("Loaded {Count} benchmarks and {BaselineCount} baselines",
+                    _results.Count, _baselines.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load benchmarks");
+            }
+        }
+
+        /// <summary>
+        /// Örnek benchmark'lar oluşturur (test için)
+        /// </summary>
+        public async Task CreateSampleBenchmarksAsync()
+        {
+            if (!_isTestEnvironment)
+                return;
+
+            var sampleBenchmarks = new[]
+            {
+                new { Metric = "route_calculation", Value = 150.5, Unit = "ms", Category = "Navigation" },
+                new { Metric = "map_rendering", Value = 45.2, Unit = "ms", Category = "UI" },
+                new { Metric = "tile_loading", Value = 120.8, Unit = "ms", Category = "Data" },
+                new { Metric = "api_response", Value = 200.3, Unit = "ms", Category = "Network" },
+                new { Metric = "database_query", Value = 25.7, Unit = "ms", Category = "Data" },
+                new { Metric = "image_processing", Value = 89.4, Unit = "ms", Category = "Media" }
+            };
+
+            foreach (var sample in sampleBenchmarks)
+            {
+                await LogPerformanceAsync(sample.Metric, sample.Value, sample.Unit, sample.Category);
+            }
+
+            _logger.LogInformation("Sample benchmarks created for testing");
+        }
+
+        /// <summary>
+        /// Benchmark geçmişini temizler
+        /// </summary>
+        public async Task ClearBenchmarkHistoryAsync()
+        {
+            if (!_isTestEnvironment)
+            {
+                _logger.LogWarning("Benchmark history clearing only allowed in test environment");
+                return;
+            }
+
+            try
+            {
+                var benchmarkFiles = Directory.GetFiles(_benchmarkDataPath, "benchmark_*.json");
+                foreach (var file in benchmarkFiles)
+                {
+                    File.Delete(file);
+                }
+
+                _results.Clear();
+                _logger.LogInformation("Benchmark history cleared");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to clear benchmark history");
+            }
+        }
+    }
+}

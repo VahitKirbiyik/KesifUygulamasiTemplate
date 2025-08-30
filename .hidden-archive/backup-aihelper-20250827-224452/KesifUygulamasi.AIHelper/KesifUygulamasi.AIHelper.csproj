@@ -1,16 +1,1 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UseWindowsForms>true</UseWindowsForms>
-    <AssemblyName>KesifUygulamasi.AIHelper</AssemblyName>
-    <RootNamespace>KesifUygulamasi.AIHelper</RootNamespace>
-  </PropertyGroup>
-  <ItemGroup>
-    <None Include="source.extension.vsixmanifest">
-      <SubType>Designer</SubType>
-    </None>
-  </ItemGroup>
-</Project>
+<?xml version="1.0" encoding="utf-8"?>\n<Project Sdk="Microsoft.NET.Sdk">\n  <PropertyGroup>\n    <TargetFramework>net8.0-windows</TargetFramework>\n    <Nullable>enable</Nullable>\n    <ImplicitUsings>enable</ImplicitUsings>\n    <UseWindowsForms>true</UseWindowsForms>\n    <AssemblyName>KesifUygulamasi.AIHelper</AssemblyName>\n    <RootNamespace>KesifUygulamasi.AIHelper</RootNamespace>\n  </PropertyGroup>\n  <ItemGroup>\n    <None Include="source.extension.vsixmanifest">\n      <SubType>Designer</SubType>\n    </None>\n  </ItemGroup>\n</Project>\n

@@ -22,4 +22,4 @@ namespace KesifUygulamasiTemplate.KesifUygulamasi.OllamaTool
             await this.Extensibility.Shell().ShowToolWindowAsync<OllamaPanelToolWindow>(cancellationToken);
         }
     }
-}
+}\n

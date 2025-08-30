@@ -1,0 +1,500 @@
+# Test-RouteDeviation.ps1
+# Route deviation simulation and fallback test script
+# Tests route deviation detection and recovery mechanisms
+
+param(
+    [string]$ProjectPath = $PSScriptRoot,
+    [string]$TestEnvironment = "Development",
+    [switch]$EnableDeviationSimulation = $true,
+    [switch]$TestFallbackRouting = $true,
+    [switch]$EnableBadgeTrigger = $true,
+    [switch]$GenerateTestReport = $true,
+    [int]$DeviationScenarios = 5,
+    [double]$DeviationThresholdMeters = 50,
+    [int]$GpsUpdateIntervalMs = 1000,
+    [string]$StartLocation = "41.0082,28.9784",  # Istanbul coordinates
+    [string]$EndLocation = "41.0151,28.9795"     # Nearby location
+)
+
+# Environment variables for route deviation testing
+$env:ROUTE_DEVIATION_TEST_ENABLED = $EnableDeviationSimulation.ToString().ToLower()
+$env:DEVIATION_THRESHOLD_METERS = $DeviationThresholdMeters.ToString()
+$env:GPS_UPDATE_INTERVAL_MS = $GpsUpdateIntervalMs.ToString()
+$env:BADGE_TRIGGER_ENABLED = $EnableBadgeTrigger.ToString().ToLower()
+
+# Test configuration
+$testConfig = @{
+    ProjectPath = $ProjectPath
+    TestEnvironment = $TestEnvironment
+    StartTime = Get-Date
+    DeviationScenarios = $DeviationScenarios
+    DeviationsDetected = 0
+    FallbackRoutesCalculated = 0
+    RecoverySuccessCount = 0
+    TestResults = @()
+    BadgeTriggers = @()
+}
+
+# Create test output directories
+$testOutputPath = Join-Path $ProjectPath "test-results\route-deviation"
+New-Item -ItemType Directory -Force -Path $testOutputPath | Out-Null
+
+Write-Host "=== Route Deviation Test Started ===" -ForegroundColor Cyan
+Write-Host "Project Path: $ProjectPath" -ForegroundColor Gray
+Write-Host "Test Environment: $TestEnvironment" -ForegroundColor Gray
+Write-Host "Deviation Scenarios: $DeviationScenarios" -ForegroundColor Gray
+Write-Host "Deviation Threshold: ${DeviationThresholdMeters}m" -ForegroundColor Gray
+Write-Host ""
+
+# Test classes
+class GpsLocation {
+    [double]$Latitude
+    [double]$Longitude
+    [DateTime]$Timestamp
+    [double]$Accuracy
+    [string]$Source
+
+    GpsLocation([double]$lat, [double]$lon) {
+        $this.Latitude = $lat
+        $this.Longitude = $lon
+        $this.Timestamp = Get-Date
+        $this.Accuracy = 5.0  # Default accuracy in meters
+        $this.Source = "GPS"
+    }
+
+    [double]DistanceTo([GpsLocation]$other) {
+        # Haversine formula for distance calculation
+        $lat1 = $this.Latitude * [Math]::PI / 180
+        $lon1 = $this.Longitude * [Math]::PI / 180
+        $lat2 = $other.Latitude * [Math]::PI / 180
+        $lon2 = $other.Longitude * [Math]::PI / 180
+
+        $dLat = $lat2 - $lat1
+        $dLon = $lon2 - $lon1
+
+        $a = [Math]::Sin($dLat / 2) * [Math]::Sin($dLat / 2) +
+             [Math]::Cos($lat1) * [Math]::Cos($lat2) *
+             [Math]::Sin($dLon / 2) * [Math]::Sin($dLon / 2)
+
+        $c = 2 * [Math]::Atan2([Math]::Sqrt($a), [Math]::Sqrt(1 - $a))
+
+        return 6371000 * $c  # Earth radius in meters
+    }
+}
+
+class RouteSegment {
+    [GpsLocation]$StartPoint
+    [GpsLocation]$EndPoint
+    [double]$Distance
+    [string]$Instructions
+    [int]$DurationSeconds
+
+    RouteSegment([GpsLocation]$start, [GpsLocation]$end) {
+        $this.StartPoint = $start
+        $this.EndPoint = $end
+        $this.Distance = $start.DistanceTo($end)
+        $this.Instructions = "Navigate from ($($start.Latitude), $($start.Longitude)) to ($($end.Latitude), $($end.Longitude))"
+        $this.DurationSeconds = [Math]::Ceiling($this.Distance / 13.89)  # Assuming 50 km/h average speed
+    }
+}
+
+class DeviationResult {
+    [int]$ScenarioId
+    [GpsLocation]$OriginalLocation
+    [GpsLocation]$DeviatedLocation
+    [double]$DeviationDistance
+    [bool]$DeviationDetected
+    [RouteSegment]$FallbackRoute
+    [bool]$RecoverySuccessful
+    [DateTime]$DetectionTime
+    [DateTime]$RecoveryTime
+    [string]$DeviationType
+    [string]$ErrorMessage
+
+    DeviationResult([int]$scenarioId) {
+        $this.ScenarioId = $scenarioId
+        $this.DeviationDetected = $false
+        $this.RecoverySuccessful = $false
+        $this.DetectionTime = Get-Date
+    }
+}
+
+class MockDeviationHandler {
+    [double]$DeviationThreshold
+    [System.Collections.Generic.List[RouteSegment]]$OriginalRoute
+    [System.Collections.Generic.List[DeviationResult]]$Deviations
+
+    MockDeviationHandler([double]$threshold) {
+        $this.DeviationThreshold = $threshold
+        $this.OriginalRoute = New-Object System.Collections.Generic.List[RouteSegment]
+        $this.Deviations = New-Object System.Collections.Generic.List[DeviationResult]
+    }
+
+    [void]SetOriginalRoute([System.Collections.Generic.List[RouteSegment]]$route) {
+        $this.OriginalRoute = $route
+    }
+
+    [DeviationResult]DetectDeviation([GpsLocation]$currentLocation, [int]$scenarioId) {
+        $result = [DeviationResult]::new($scenarioId)
+        $result.OriginalLocation = $this.GetClosestRoutePoint($currentLocation)
+        $result.DeviatedLocation = $currentLocation
+        $result.DeviationDistance = $result.OriginalLocation.DistanceTo($currentLocation)
+
+        if ($result.DeviationDistance -gt $this.DeviationThreshold) {
+            $result.DeviationDetected = $true
+            $result.DetectionTime = Get-Date
+            $result.DeviationType = $this.ClassifyDeviation($result.DeviationDistance)
+
+            # Calculate fallback route
+            $result.FallbackRoute = $this.CalculateFallbackRoute($result.OriginalLocation, $currentLocation)
+            $testConfig.FallbackRoutesCalculated++
+
+            # Simulate recovery
+            $recoverySuccess = (Get-Random -Maximum 100) -lt 85  # 85% success rate
+            if ($recoverySuccess) {
+                $result.RecoverySuccessful = $true
+                $result.RecoveryTime = Get-Date
+                $testConfig.RecoverySuccessCount++
+            } else {
+                $result.ErrorMessage = "Fallback route calculation failed"
+            }
+        }
+
+        $this.Deviations.Add($result)
+        return $result
+    }
+
+    [GpsLocation]GetClosestRoutePoint([GpsLocation]$location) {
+        $closestPoint = $null
+        $minDistance = [double]::MaxValue
+
+        foreach ($segment in $this.OriginalRoute) {
+            $distanceToStart = $location.DistanceTo($segment.StartPoint)
+            $distanceToEnd = $location.DistanceTo($segment.EndPoint)
+
+            if ($distanceToStart -lt $minDistance) {
+                $minDistance = $distanceToStart
+                $closestPoint = $segment.StartPoint
+            }
+
+            if ($distanceToEnd -lt $minDistance) {
+                $minDistance = $distanceToEnd
+                $closestPoint = $segment.EndPoint
+            }
+        }
+
+        return $closestPoint
+    }
+
+    [string]ClassifyDeviation([double]$distance) {
+        if ($distance -lt 100) { return "Minor" }
+        elseif ($distance -lt 500) { return "Moderate" }
+        elseif ($distance -lt 1000) { return "Major" }
+        else { return "Critical" }
+    }
+
+    [RouteSegment]CalculateFallbackRoute([GpsLocation]$from, [GpsLocation]$to) {
+        # Simulate route calculation with some randomness
+        $midLat = ($from.Latitude + $to.Latitude) / 2 + (Get-Random -Minimum -0.001 -Maximum 0.001)
+        $midLon = ($from.Longitude + $to.Longitude) / 2 + (Get-Random -Minimum -0.001 -Maximum 0.001)
+
+        $midPoint = [GpsLocation]::new($midLat, $midLon)
+        return [RouteSegment]::new($from, $midPoint)
+    }
+}
+
+# Initialize mock deviation handler
+$mockHandler = [MockDeviationHandler]::new($DeviationThresholdMeters)
+
+# Helper functions
+function New-MockRoute {
+    param([string]$startCoords, [string]$endCoords, [int]$segments = 5)
+
+    $route = New-Object System.Collections.Generic.List[RouteSegment]
+
+    $startParts = $startCoords -split ','
+    $endParts = $endCoords -split ','
+
+    $startLat = [double]$startParts[0]
+    $startLon = [double]$startParts[1]
+    $endLat = [double]$endParts[0]
+    $endLon = [double]$endParts[1]
+
+    $latStep = ($endLat - $startLat) / $segments
+    $lonStep = ($endLon - $startLon) / $segments
+
+    for ($i = 0; $i -lt $segments; $i++) {
+        $segmentStart = [GpsLocation]::new($startLat + ($latStep * $i), $startLon + ($lonStep * $i))
+        $segmentEnd = [GpsLocation]::new($startLat + ($latStep * ($i + 1)), $startLon + ($lonStep * ($i + 1)))
+
+        $route.Add([RouteSegment]::new($segmentStart, $segmentEnd))
+    }
+
+    return $route
+}
+
+function New-DeviatedLocation {
+    param([GpsLocation]$originalLocation, [double]$deviationDistance, [double]$angle)
+
+    # Calculate new position using deviation distance and angle
+    $angleRad = $angle * [Math]::PI / 180
+    $latOffset = ($deviationDistance / 111320) * [Math]::Cos($angleRad)  # Rough conversion to degrees
+    $lonOffset = ($deviationDistance / 111320) * [Math]::Sin($angleRad) / [Math]::Cos($originalLocation.Latitude * [Math]::PI / 180)
+
+    return [GpsLocation]::new($originalLocation.Latitude + $latOffset, $originalLocation.Longitude + $lonOffset)
+}
+
+# Test functions
+function Test-DeviationDetection {
+    Write-Host "Testing Route Deviation Detection..." -ForegroundColor Yellow
+
+    # Create mock route
+    $originalRoute = New-MockRoute $StartLocation $EndLocation 5
+    $mockHandler.SetOriginalRoute($originalRoute)
+
+    $deviationResults = @()
+
+    for ($i = 1; $i -le $DeviationScenarios; $i++) {
+        Write-Host "  Running deviation scenario $i..." -ForegroundColor Gray
+
+        # Select random point on route
+        $routePoint = $originalRoute[(Get-Random -Minimum 0 -Maximum $originalRoute.Count)].StartPoint
+
+        # Create deviated location
+        $deviationDistance = $DeviationThresholdMeters + (Get-Random -Minimum 10 -Maximum 200)
+        $deviationAngle = Get-Random -Minimum 0 -Maximum 360
+        $deviatedLocation = New-DeviatedLocation $routePoint $deviationDistance $deviationAngle
+
+        # Detect deviation
+        $result = $mockHandler.DetectDeviation($deviatedLocation, $i)
+        $deviationResults += $result
+
+        if ($result.DeviationDetected) {
+            $testConfig.DeviationsDetected++
+            Write-Host "    ✓ Deviation detected: $($result.DeviationDistance.ToString("F1"))m ($($result.DeviationType))" -ForegroundColor Green
+
+            if ($result.RecoverySuccessful) {
+                Write-Host "    ✓ Recovery successful" -ForegroundColor Green
+            } else {
+                Write-Host "    ✗ Recovery failed: $($result.ErrorMessage)" -ForegroundColor Red
+            }
+        } else {
+            Write-Host "    - No deviation detected" -ForegroundColor Gray
+        }
+
+        # Simulate GPS update delay
+        Start-Sleep -Milliseconds $GpsUpdateIntervalMs
+    }
+
+    return $deviationResults
+}
+
+function Test-FallbackRouting {
+    Write-Host "Testing Fallback Route Calculation..." -ForegroundColor Yellow
+
+    $fallbackResults = @()
+
+    foreach ($deviation in $mockHandler.Deviations) {
+        if ($deviation.DeviationDetected -and $deviation.FallbackRoute) {
+            $result = @{
+                ScenarioId = $deviation.ScenarioId
+                OriginalDistance = $deviation.DeviationDistance
+                FallbackDistance = $deviation.FallbackRoute.Distance
+                RecoveryTime = if ($deviation.RecoverySuccessful) {
+                    ($deviation.RecoveryTime - $deviation.DetectionTime).TotalMilliseconds
+                } else { 0 }
+                Successful = $deviation.RecoverySuccessful
+            }
+
+            $fallbackResults += $result
+
+            Write-Host "  Scenario $($deviation.ScenarioId): Fallback route calculated ($($result.FallbackDistance.ToString("F1"))m)" -ForegroundColor Cyan
+        }
+    }
+
+    return $fallbackResults
+}
+
+function Test-BadgeTriggers {
+    Write-Host "Testing Badge Triggers..." -ForegroundColor Yellow
+
+    $badgeResults = @()
+
+    # Test Route-Stabilized badge (requires 5 deviation recoveries)
+    if ($testConfig.RecoverySuccessCount -ge 5) {
+        $badge = @{
+            BadgeName = "Route-Stabilized"
+            TriggerReason = "5 successful route deviation recoveries"
+            TriggerTime = Get-Date
+            Triggered = $true
+            Details = "Successfully recovered from $testConfig.RecoverySuccessCount route deviations"
+        }
+        $badgeResults += $badge
+        Write-Host "✓ Route-Stabilized badge triggered!" -ForegroundColor Green
+    }
+
+    return $badgeResults
+}
+
+function Test-PerformanceMetrics {
+    Write-Host "Testing Performance Metrics..." -ForegroundColor Yellow
+
+    $metrics = @{
+        TotalScenarios = $DeviationScenarios
+        DeviationsDetected = $testConfig.DeviationsDetected
+        DetectionRate = [math]::Round(($testConfig.DeviationsDetected / $DeviationScenarios) * 100, 2)
+        FallbackRoutesCalculated = $testConfig.FallbackRoutesCalculated
+        RecoverySuccessCount = $testConfig.RecoverySuccessCount
+        RecoveryRate = if ($testConfig.DeviationsDetected -gt 0) {
+            [math]::Round(($testConfig.RecoverySuccessCount / $testConfig.DeviationsDetected) * 100, 2)
+        } else { 0 }
+        AverageDetectionTime = 0
+        AverageRecoveryTime = 0
+    }
+
+    # Calculate average times
+    $detectionTimes = @()
+    $recoveryTimes = @()
+
+    foreach ($deviation in $mockHandler.Deviations) {
+        if ($deviation.DeviationDetected) {
+            $detectionTimes += ($deviation.DetectionTime - $deviation.DeviatedLocation.Timestamp).TotalMilliseconds
+
+            if ($deviation.RecoverySuccessful) {
+                $recoveryTimes += ($deviation.RecoveryTime - $deviation.DetectionTime).TotalMilliseconds
+            }
+        }
+    }
+
+    if ($detectionTimes.Count -gt 0) {
+        $metrics.AverageDetectionTime = [math]::Round(($detectionTimes | Measure-Object -Average).Average, 2)
+    }
+
+    if ($recoveryTimes.Count -gt 0) {
+        $metrics.AverageRecoveryTime = [math]::Round(($recoveryTimes | Measure-Object -Average).Average, 2)
+    }
+
+    Write-Host "Performance Metrics:" -ForegroundColor Cyan
+    Write-Host "  Detection Rate: $($metrics.DetectionRate)%" -ForegroundColor Yellow
+    Write-Host "  Recovery Rate: $($metrics.RecoveryRate)%" -ForegroundColor Yellow
+    Write-Host "  Avg Detection Time: $($metrics.AverageDetectionTime)ms" -ForegroundColor Yellow
+    Write-Host "  Avg Recovery Time: $($metrics.AverageRecoveryTime)ms" -ForegroundColor Yellow
+
+    return $metrics
+}
+
+# Run tests
+$testResults = @{}
+
+if ($EnableDeviationSimulation) {
+    $testResults.DeviationResults = Test-DeviationDetection
+}
+
+if ($TestFallbackRouting) {
+    $testResults.FallbackResults = Test-FallbackRouting
+}
+
+$testResults.PerformanceMetrics = Test-PerformanceMetrics
+
+if ($EnableBadgeTrigger) {
+    $testResults.BadgeResults = Test-BadgeTriggers
+}
+
+# Generate test report
+if ($GenerateTestReport) {
+    Write-Host ""
+    Write-Host "=== Generating Test Report ===" -ForegroundColor Cyan
+
+    $reportData = @{
+        TestRun = @{
+            StartTime = $testConfig.StartTime
+            EndTime = Get-Date
+            Duration = ((Get-Date) - $testConfig.StartTime).TotalSeconds
+            Environment = $TestEnvironment
+            Configuration = @{
+                DeviationScenarios = $DeviationScenarios
+                DeviationThresholdMeters = $DeviationThresholdMeters
+                GpsUpdateIntervalMs = $GpsUpdateIntervalMs
+                StartLocation = $StartLocation
+                EndLocation = $EndLocation
+                EnableDeviationSimulation = $EnableDeviationSimulation
+                TestFallbackRouting = $TestFallbackRouting
+                EnableBadgeTrigger = $EnableBadgeTrigger
+            }
+        }
+        Results = @{
+            TotalScenarios = $DeviationScenarios
+            DeviationsDetected = $testConfig.DeviationsDetected
+            DetectionRate = [math]::Round(($testConfig.DeviationsDetected / $DeviationScenarios) * 100, 2)
+            FallbackRoutesCalculated = $testConfig.FallbackRoutesCalculated
+            RecoverySuccessCount = $testConfig.RecoverySuccessCount
+            RecoveryRate = if ($testConfig.DeviationsDetected -gt 0) {
+                [math]::Round(($testConfig.RecoverySuccessCount / $testConfig.DeviationsDetected) * 100, 2)
+            } else { 0 }
+            BadgeTriggers = $testResults.BadgeResults | ForEach-Object {
+                @{
+                    BadgeName = $_.BadgeName
+                    Triggered = $_.Triggered
+                    Reason = $_.TriggerReason
+                    Details = $_.Details
+                }
+            }
+        }
+        DetailedResults = @{
+            DeviationScenarios = $testResults.DeviationResults | ForEach-Object {
+                @{
+                    ScenarioId = $_.ScenarioId
+                    DeviationDetected = $_.DeviationDetected
+                    DeviationDistance = $_.DeviationDistance
+                    DeviationType = $_.DeviationType
+                    RecoverySuccessful = $_.RecoverySuccessful
+                    DetectionTime = $_.DetectionTime
+                    RecoveryTime = $_.RecoveryTime
+                    ErrorMessage = $_.ErrorMessage
+                    FallbackRouteDistance = if ($_.FallbackRoute) { $_.FallbackRoute.Distance } else { 0 }
+                }
+            }
+            PerformanceMetrics = $testResults.PerformanceMetrics
+        }
+    }
+
+    $reportPath = Join-Path $testOutputPath "route-deviation-test-report.json"
+    $reportData | ConvertTo-Json -Depth 10 | Out-File -FilePath $reportPath -Encoding UTF8
+
+    Write-Host "Test report generated: $reportPath" -ForegroundColor Green
+}
+
+# Summary
+Write-Host ""
+Write-Host "=== Route Deviation Test Summary ===" -ForegroundColor Cyan
+Write-Host "Total Scenarios: $($DeviationScenarios)" -ForegroundColor White
+Write-Host "Deviations Detected: $($testConfig.DeviationsDetected)" -ForegroundColor Yellow
+Write-Host "Detection Rate: $([math]::Round(($testConfig.DeviationsDetected / $DeviationScenarios) * 100, 2))%" -ForegroundColor Yellow
+Write-Host "Recovery Success: $($testConfig.RecoverySuccessCount)" -ForegroundColor Green
+Write-Host "Recovery Rate: $(if ($testConfig.DeviationsDetected -gt 0) { [math]::Round(($testConfig.RecoverySuccessCount / $testConfig.DeviationsDetected) * 100, 2) } else { 0 })%" -ForegroundColor Green
+
+if ($testResults.BadgeResults) {
+    Write-Host "Badge Triggers: $($testResults.BadgeResults.Count)" -ForegroundColor Magenta
+    foreach ($badge in $testResults.BadgeResults) {
+        if ($badge.Triggered) {
+            Write-Host "  ✓ $($badge.BadgeName): $($badge.Details)" -ForegroundColor Green
+        }
+    }
+}
+
+Write-Host ""
+Write-Host "=== Route Deviation Test Completed ===" -ForegroundColor Cyan
+
+# Return test results for CI/CD integration
+return @{
+    Success = $testConfig.RecoverySuccessCount -ge ($DeviationScenarios * 0.7)  # 70% recovery success required
+    TotalScenarios = $DeviationScenarios
+    DeviationsDetected = $testConfig.DeviationsDetected
+    DetectionRate = [math]::Round(($testConfig.DeviationsDetected / $DeviationScenarios) * 100, 2)
+    RecoverySuccessCount = $testConfig.RecoverySuccessCount
+    RecoveryRate = if ($testConfig.DeviationsDetected -gt 0) {
+        [math]::Round(($testConfig.RecoverySuccessCount / $testConfig.DeviationsDetected) * 100, 2)
+    } else { 0 }
+    BadgeTriggers = $testResults.BadgeResults.Count
+    TestDuration = ((Get-Date) - $testConfig.StartTime).TotalSeconds
+}

@@ -1,11 +1,1 @@
-using Microsoft.Maui.Controls;
-
-namespace KesifUygulamasiTemplate.Views;
-
-public partial class DetailPage : ContentPage
-{
-    public DetailPage()
-    {
-        InitializeComponent();
-    }
-}
+using Microsoft.Maui.Controls;\n\nnamespace KesifUygulamasiTemplate.Views;\n\npublic partial class DetailPage : ContentPage\n{\n    public DetailPage()\n    {\n        InitializeComponent();\n    }\n}\n

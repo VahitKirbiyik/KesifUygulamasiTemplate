@@ -1,0 +1,446 @@
+// FeedbackService.cs - Çok dilli geri bildirim servisi
+// Bu sınıf kullanıcı geri bildirimlerini çok dilli olarak yönetir ve CI/CD pipeline ile entegre çalışır
+
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Geri bildirim sınıfı
+    /// </summary>
+    public class Feedback
+    {
+        public string Id { get; set; }
+        public string Language { get; set; }
+        public string Message { get; set; }
+        public string Category { get; set; }
+        public int Rating { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string UserId { get; set; }
+        public Dictionary<string, object> Metadata { get; set; } = new Dictionary<string, object>();
+        public bool IsProcessed { get; set; }
+        public DateTime? ProcessedDate { get; set; }
+    }
+
+    /// <summary>
+    /// Geri bildirim istatistikleri
+    /// </summary>
+    public class FeedbackStatistics
+    {
+        public int TotalFeedbacks { get; set; }
+        public Dictionary<string, int> FeedbacksByLanguage { get; set; } = new Dictionary<string, int>();
+        public Dictionary<string, int> FeedbacksByCategory { get; set; } = new Dictionary<string, int>();
+        public double AverageRating { get; set; }
+        public Dictionary<string, double> AverageRatingByLanguage { get; set; } = new Dictionary<string, double>();
+        public int ProcessedFeedbacks { get; set; }
+        public int UnprocessedFeedbacks { get; set; }
+    }
+
+    /// <summary>
+    /// Geri bildirim servisi
+    /// </summary>
+    public class FeedbackService
+    {
+        private readonly ILogger<FeedbackService> _logger;
+        private readonly string _feedbackDataPath;
+        private readonly bool _isTestEnvironment;
+        private readonly List<Feedback> _feedbacks = new List<Feedback>();
+
+        // CI/CD için environment variable desteği
+        private readonly bool _autoProcessFeedback = bool.Parse(Environment.GetEnvironmentVariable("AUTO_PROCESS_FEEDBACK") ?? "true");
+        private readonly int _maxFeedbacksPerDay = int.Parse(Environment.GetEnvironmentVariable("MAX_FEEDBACKS_PER_DAY") ?? "100");
+        private readonly string[] _supportedLanguages = (Environment.GetEnvironmentVariable("SUPPORTED_LANGUAGES") ?? "en,tr,de,fr,es,ar,zh,ja").Split(',');
+
+        public event EventHandler<Feedback> FeedbackSubmitted;
+        public event EventHandler<Feedback> FeedbackProcessed;
+
+        public FeedbackService(ILogger<FeedbackService> logger)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+            // Test ortamı kontrolü
+            _isTestEnvironment = Environment.GetEnvironmentVariable("CI") == "true" ||
+                                Environment.GetEnvironmentVariable("TEST_ENVIRONMENT") == "true";
+
+            // Geri bildirim veri yolu
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            _feedbackDataPath = Path.Combine(appDataPath, "KesifUygulamasi", "FeedbackData");
+            Directory.CreateDirectory(_feedbackDataPath);
+
+            _logger.LogInformation("FeedbackService initialized. Supported languages: {Languages}",
+                string.Join(", ", _supportedLanguages));
+
+            // Mevcut geri bildirimleri yükle
+            Task.Run(() => LoadFeedbacksAsync()).Wait();
+        }
+
+        /// <summary>
+        /// Geri bildirim gönderir
+        /// </summary>
+        public async Task<bool> SubmitFeedbackAsync(string language, string message, string category = "General", int rating = 5, string userId = null)
+        {
+            try
+            {
+                // Dil kontrolü
+                if (!IsLanguageSupported(language))
+                {
+                    _logger.LogWarning("Unsupported language: {Language}", language);
+                    return false;
+                }
+
+                // Günlük limit kontrolü
+                if (!await CheckDailyLimitAsync())
+                {
+                    _logger.LogWarning("Daily feedback limit exceeded");
+                    return false;
+                }
+
+                // Geri bildirim oluştur
+                var feedback = new Feedback
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Language = language,
+                    Message = message,
+                    Category = category,
+                    Rating = Math.Clamp(rating, 1, 5),
+                    Timestamp = DateTime.UtcNow,
+                    UserId = userId ?? "Anonymous",
+                    IsProcessed = false
+                };
+
+                // Metadata ekleme
+                feedback.Metadata["user_agent"] = Environment.GetEnvironmentVariable("USER_AGENT") ?? "Unknown";
+                feedback.Metadata["platform"] = Environment.GetEnvironmentVariable("PLATFORM") ?? "Unknown";
+                feedback.Metadata["app_version"] = Environment.GetEnvironmentVariable("APP_VERSION") ?? "1.0.0";
+
+                _feedbacks.Add(feedback);
+
+                // Dosyaya kaydet
+                await SaveFeedbackAsync(feedback);
+
+                // Event tetikleme
+                FeedbackSubmitted?.Invoke(this, feedback);
+
+                // Otomatik işleme
+                if (_autoProcessFeedback)
+                {
+                    await ProcessFeedbackAsync(feedback.Id);
+                }
+
+                _logger.LogInformation("Feedback submitted: Language={Language}, Category={Category}, Rating={Rating}",
+                    language, category, rating);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to submit feedback");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Senkron geri bildirim gönderme (legacy support)
+        /// </summary>
+        public void SubmitFeedback(string language, string message)
+        {
+            Task.Run(() => SubmitFeedbackAsync(language, message)).Wait();
+        }
+
+        /// <summary>
+        /// Geri bildirimi işler
+        /// </summary>
+        public async Task<bool> ProcessFeedbackAsync(string feedbackId)
+        {
+            try
+            {
+                var feedback = _feedbacks.FirstOrDefault(f => f.Id == feedbackId);
+                if (feedback == null)
+                {
+                    _logger.LogWarning("Feedback not found: {FeedbackId}", feedbackId);
+                    return false;
+                }
+
+                if (feedback.IsProcessed)
+                {
+                    _logger.LogInformation("Feedback already processed: {FeedbackId}", feedbackId);
+                    return true;
+                }
+
+                feedback.IsProcessed = true;
+                feedback.ProcessedDate = DateTime.UtcNow;
+
+                // İşleme mantığı
+                await AnalyzeFeedbackAsync(feedback);
+                await CategorizeFeedbackAsync(feedback);
+                await GenerateResponseAsync(feedback);
+
+                // Güncellenmiş geri bildirimi kaydet
+                await UpdateFeedbackAsync(feedback);
+
+                // Event tetikleme
+                FeedbackProcessed?.Invoke(this, feedback);
+
+                _logger.LogInformation("Feedback processed: {FeedbackId}", feedbackId);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to process feedback: {FeedbackId}", feedbackId);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Geri bildirim istatistiklerini döndürür
+        /// </summary>
+        public async Task<FeedbackStatistics> GetFeedbackStatisticsAsync()
+        {
+            await LoadFeedbacksAsync(); // En güncel veriyi yükle
+
+            var stats = new FeedbackStatistics
+            {
+                TotalFeedbacks = _feedbacks.Count,
+                ProcessedFeedbacks = _feedbacks.Count(f => f.IsProcessed),
+                UnprocessedFeedbacks = _feedbacks.Count(f => !f.IsProcessed)
+            };
+
+            // Dil bazlı istatistikler
+            foreach (var feedback in _feedbacks)
+            {
+                stats.FeedbacksByLanguage[feedback.Language] = stats.FeedbacksByLanguage.GetValueOrDefault(feedback.Language) + 1;
+                stats.FeedbacksByCategory[feedback.Category] = stats.FeedbacksByCategory.GetValueOrDefault(feedback.Category) + 1;
+            }
+
+            // Ortalama rating hesaplama
+            if (_feedbacks.Any())
+            {
+                stats.AverageRating = _feedbacks.Average(f => f.Rating);
+
+                // Dil bazlı ortalama rating
+                var ratingsByLanguage = _feedbacks.GroupBy(f => f.Language)
+                    .ToDictionary(g => g.Key, g => g.Average(f => f.Rating));
+
+                foreach (var kvp in ratingsByLanguage)
+                {
+                    stats.AverageRatingByLanguage[kvp.Key] = kvp.Value;
+                }
+            }
+
+            return stats;
+        }
+
+        /// <summary>
+        /// Dile göre geri bildirimleri filtreler
+        /// </summary>
+        public async Task<IEnumerable<Feedback>> GetFeedbacksByLanguageAsync(string language)
+        {
+            await LoadFeedbacksAsync();
+            return _feedbacks.Where(f => f.Language.Equals(language, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Kategoriye göre geri bildirimleri filtreler
+        /// </summary>
+        public async Task<IEnumerable<Feedback>> GetFeedbacksByCategoryAsync(string category)
+        {
+            await LoadFeedbacksAsync();
+            return _feedbacks.Where(f => f.Category.Equals(category, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// İşlenmemiş geri bildirimleri döndürür
+        /// </summary>
+        public async Task<IEnumerable<Feedback>> GetUnprocessedFeedbacksAsync()
+        {
+            await LoadFeedbacksAsync();
+            return _feedbacks.Where(f => !f.IsProcessed);
+        }
+
+        /// <summary>
+        /// Dili destekleniyor mu kontrol eder
+        /// </summary>
+        private bool IsLanguageSupported(string language)
+        {
+            return _supportedLanguages.Contains(language, StringComparer.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Günlük limit kontrolü
+        /// </summary>
+        private async Task<bool> CheckDailyLimitAsync()
+        {
+            var today = DateTime.UtcNow.Date;
+            var todaysFeedbacks = _feedbacks.Count(f => f.Timestamp.Date == today);
+            return todaysFeedbacks < _maxFeedbacksPerDay;
+        }
+
+        /// <summary>
+        /// Geri bildirimi analiz eder
+        /// </summary>
+        private async Task AnalyzeFeedbackAsync(Feedback feedback)
+        {
+            // Basit sentiment analizi
+            var positiveWords = new[] { "good", "great", "excellent", "awesome", "love", "iyi", "harika", "mükemmel", "güzel" };
+            var negativeWords = new[] { "bad", "poor", "terrible", "hate", "worst", "kötü", "berbat", "rezalet" };
+
+            var message = feedback.Message.ToLower();
+            var positiveCount = positiveWords.Count(word => message.Contains(word));
+            var negativeCount = negativeWords.Count(word => message.Contains(word));
+
+            feedback.Metadata["sentiment_score"] = positiveCount - negativeCount;
+            feedback.Metadata["positive_words"] = positiveCount;
+            feedback.Metadata["negative_words"] = negativeCount;
+
+            // Otomatik kategori belirleme
+            if (message.Contains("bug") || message.Contains("error") || message.Contains("hata"))
+            {
+                feedback.Category = "Bug Report";
+            }
+            else if (message.Contains("feature") || message.Contains("özellik"))
+            {
+                feedback.Category = "Feature Request";
+            }
+            else if (message.Contains("slow") || message.Contains("performance") || message.Contains("yavaş"))
+            {
+                feedback.Category = "Performance";
+            }
+        }
+
+        /// <summary>
+        /// Geri bildirimi kategorize eder
+        /// </summary>
+        private async Task CategorizeFeedbackAsync(Feedback feedback)
+        {
+            // Kategori güvenilirliğini hesapla
+            feedback.Metadata["category_confidence"] = 0.8; // Basit implementasyon
+        }
+
+        /// <summary>
+        /// Otomatik yanıt üretir
+        /// </summary>
+        private async Task GenerateResponseAsync(Feedback feedback)
+        {
+            // Dile göre otomatik yanıt
+            var responses = new Dictionary<string, string>
+            {
+                ["en"] = "Thank you for your feedback! We appreciate your input.",
+                ["tr"] = "Geri bildiriminiz için teşekkür ederiz! Görüşlerinizi değerli buluyoruz.",
+                ["de"] = "Vielen Dank für Ihr Feedback! Wir schätzen Ihre Eingabe.",
+                ["fr"] = "Merci pour votre retour! Nous apprécions vos commentaires.",
+                ["es"] = "¡Gracias por sus comentarios! Apreciamos sus aportes.",
+                ["ar"] = "شكراً لملاحظاتك! نحن نقدر آراءك.",
+                ["zh"] = "感谢您的反馈！我们重视您的意见。",
+                ["ja"] = "フィードバックありがとうございます！あなたの意見を大切にしています。"
+            };
+
+            feedback.Metadata["auto_response"] = responses.GetValueOrDefault(feedback.Language, responses["en"]);
+        }
+
+        /// <summary>
+        /// Geri bildirimi dosyaya kaydeder
+        /// </summary>
+        private async Task SaveFeedbackAsync(Feedback feedback)
+        {
+            try
+            {
+                var fileName = $"feedback_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json";
+                var filePath = Path.Combine(_feedbackDataPath, fileName);
+
+                var json = JsonSerializer.Serialize(feedback, new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+
+                await File.WriteAllTextAsync(filePath, json);
+                _logger.LogInformation("Feedback saved to {FilePath}", filePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save feedback");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Geri bildirimi günceller
+        /// </summary>
+        private async Task UpdateFeedbackAsync(Feedback feedback)
+        {
+            // Güncellenmiş geri bildirimi mevcut dosyaya kaydet
+            await SaveFeedbackAsync(feedback);
+        }
+
+        /// <summary>
+        /// Geri bildirimleri dosyadan yükler
+        /// </summary>
+        private async Task LoadFeedbacksAsync()
+        {
+            try
+            {
+                var feedbackFiles = Directory.GetFiles(_feedbackDataPath, "feedback_*.json");
+                _feedbacks.Clear();
+
+                foreach (var file in feedbackFiles)
+                {
+                    try
+                    {
+                        var json = await File.ReadAllTextAsync(file);
+                        var feedback = JsonSerializer.Deserialize<Feedback>(json);
+                        if (feedback != null)
+                        {
+                            _feedbacks.Add(feedback);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to load feedback from {File}", file);
+                    }
+                }
+
+                _logger.LogInformation("Loaded {Count} feedbacks from files", _feedbacks.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load feedbacks");
+            }
+        }
+
+        /// <summary>
+        /// Örnek geri bildirimler oluşturur (test için)
+        /// </summary>
+        public async Task CreateSampleFeedbacksAsync()
+        {
+            if (!_isTestEnvironment)
+                return;
+
+            var sampleFeedbacks = new[]
+            {
+                new { Lang = "en", Message = "Great app! Love the navigation features.", Category = "General", Rating = 5 },
+                new { Lang = "tr", Message = "Harika uygulama! Navigasyon özellikleri çok iyi.", Category = "General", Rating = 5 },
+                new { Lang = "de", Message = "Tolle App! Die Navigationsfunktionen sind super.", Category = "General", Rating = 4 },
+                new { Lang = "fr", Message = "Excellente application! J'adore les fonctions de navigation.", Category = "General", Rating = 5 },
+                new { Lang = "es", Message = "¡Excelente aplicación! Me encantan las funciones de navegación.", Category = "General", Rating = 4 },
+                new { Lang = "ar", Message = "تطبيق رائع! أحب ميزات التنقل.", Category = "General", Rating = 5 },
+                new { Lang = "zh", Message = "很棒的应用！我喜欢导航功能。", Category = "General", Rating = 4 },
+                new { Lang = "ja", Message = "素晴らしいアプリ！ナビゲーション機能が好きです。", Category = "General", Rating = 5 }
+            };
+
+            foreach (var sample in sampleFeedbacks)
+            {
+                await SubmitFeedbackAsync(sample.Lang, sample.Message, sample.Category, sample.Rating, "SampleUser");
+            }
+
+            _logger.LogInformation("Sample feedbacks created for testing");
+        }
+    }
+}

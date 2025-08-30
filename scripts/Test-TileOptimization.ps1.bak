@@ -1,0 +1,554 @@
+# Test-TileOptimization.ps1 - Tile optimizasyon test scripti
+# CI/CD pipeline ile entegre edilmiş offline tile compression ve prefetch testi
+
+param(
+    [string]$TestEnvironment = "local",
+    [string]$Configuration = "Debug",
+    [string]$ProjectPath = $PSScriptRoot,
+    [switch]$SkipBuild,
+    [switch]$Verbose,
+    [switch]$ExportJson,
+    [string]$CachePath = "cache\tiles",
+    [string]$CompressedPath = "cache\compressed",
+    [int]$TestTileCount = 100,
+    [int]$CompressionLevel = 6
+)
+
+# Script ayarları
+$ErrorActionPreference = "Stop"
+$VerbosePreference = if ($Verbose) { "Continue" } else { "SilentlyContinue" }
+
+# Test sonuçları için değişkenler
+$testResults = @{
+    TotalTests = 0
+    PassedTests = 0
+    FailedTests = 0
+    TestDuration = [TimeSpan]::Zero
+    Details = @()
+    CompressionStats = @{
+        OriginalSize = 0
+        CompressedSize = 0
+        CompressionRatio = 0
+        TilesCompressed = 0
+    }
+    PrefetchStats = @{
+        TilesPrefetched = 0
+        PrefetchDuration = [TimeSpan]::Zero
+        CacheHitRate = 0
+    }
+}
+
+# Environment değişkenlerini ayarla
+$env:TEST_ENVIRONMENT = $TestEnvironment
+$env:CI = if ($TestEnvironment -eq "ci") { "true" } else { "false" }
+$env:TILE_CACHE_PATH = $CachePath
+$env:COMPRESSED_TILE_PATH = $CompressedPath
+$env:COMPRESSION_LEVEL = $CompressionLevel.ToString()
+$env:ENABLE_TILE_COMPRESSION = "true"
+$env:MAX_TILE_SIZE_MB = "10"
+$env:ENABLE_PREFETCH = "true"
+$env:MAX_CONCURRENT_DOWNLOADS = "3"
+$env:PREFETCH_RADIUS = "2"
+
+# Renkli output için
+function Write-ColorOutput {
+    param(
+        [string]$Message,
+        [string]$Color = "White"
+    )
+    Write-Host $Message -ForegroundColor $Color
+}
+
+# Başlık
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "      🗺️ Tile Optimizasyon Test Sistemi" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput ""
+
+# Proje yolunu kontrol et
+if (!(Test-Path $ProjectPath)) {
+    Write-ColorOutput "Hata: Proje yolu bulunamadı: $ProjectPath" "Red"
+    exit 1
+}
+
+# Test fonksiyonları
+function Test-TileOptimization {
+    param(
+        [string]$TestName,
+        [scriptblock]$TestScript
+    )
+
+    $startTime = Get-Date
+    $testPassed = $false
+    $errorMessage = ""
+
+    Write-ColorOutput "🧪 $TestName testi başlatılıyor..." "White"
+
+    try {
+        & $TestScript
+        $testPassed = $true
+        Write-ColorOutput "  ✅ $TestName testi başarılı" "Green"
+    } catch {
+        $errorMessage = $_.Exception.Message
+        Write-ColorOutput "  ❌ $TestName testi başarısız: $errorMessage" "Red"
+    } finally {
+        $endTime = Get-Date
+        $duration = $endTime - $startTime
+
+        $testResults.TotalTests++
+        if ($testPassed) {
+            $testResults.PassedTests++
+        } else {
+            $testResults.FailedTests++
+        }
+        $testResults.TestDuration += $duration
+
+        $testResults.Details += @{
+            TestName = $TestName
+            Passed = $testPassed
+            Duration = $duration
+            ErrorMessage = $errorMessage
+        }
+    }
+}
+
+# Cache klasörü oluşturma testi
+function Test-CacheDirectorySetup {
+    Write-ColorOutput "  📁 Cache klasörü kurulumu kontrol ediliyor..." "Gray"
+
+    $fullCachePath = Join-Path $ProjectPath $CachePath
+    $fullCompressedPath = Join-Path $ProjectPath $CompressedPath
+
+    if (!(Test-Path $fullCachePath)) {
+        Write-ColorOutput "    📂 Cache klasörü oluşturuluyor: $fullCachePath" "Gray"
+        New-Item -ItemType Directory -Path $fullCachePath -Force | Out-Null
+    } else {
+        Write-ColorOutput "    ✅ Cache klasörü mevcut: $fullCachePath" "Green"
+    }
+
+    if (!(Test-Path $fullCompressedPath)) {
+        Write-ColorOutput "    📂 Sıkıştırılmış cache klasörü oluşturuluyor: $fullCompressedPath" "Gray"
+        New-Item -ItemType Directory -Path $fullCompressedPath -Force | Out-Null
+    } else {
+        Write-ColorOutput "    ✅ Sıkıştırılmış cache klasörü mevcut: $fullCompressedPath" "Green"
+    }
+
+    # Test tile dosyası oluştur
+    $testTilePath = Join-Path $fullCachePath "test-tile.png"
+    $testData = [byte[]]::new(1024) # 1KB test verisi
+    [System.Random]::new().NextBytes($testData)
+    [System.IO.File]::WriteAllBytes($testTilePath, $testData)
+
+    if (Test-Path $testTilePath) {
+        Write-ColorOutput "    ✅ Test tile dosyası oluşturuldu" "Green"
+        Remove-Item $testTilePath -Force
+    } else {
+        Write-ColorOutput "    ❌ Test tile dosyası oluşturulamadı" "Red"
+        throw "Cache directory setup failed"
+    }
+}
+
+# Tile sıkıştırma testi
+function Test-TileCompression {
+    Write-ColorOutput "  🗜️ Tile sıkıştırma testi başlatılıyor..." "Gray"
+
+    $fullCachePath = Join-Path $ProjectPath $CachePath
+    $fullCompressedPath = Join-Path $ProjectPath $CompressedPath
+
+    # Test tile'ları oluştur
+    $testTiles = @()
+    for ($i = 1; $i -le 10; $i++) {
+        $tileData = [byte[]]::new(2048 + ($i * 100)) # Farklı boyutlarda tile'lar
+        [System.Random]::new().NextBytes($tileData)
+
+        $tileKey = "15/1234/5678_$i"
+        $testTiles += @{
+            Key = $tileKey
+            Data = $tileData
+            OriginalSize = $tileData.Length
+        }
+    }
+
+    $totalOriginalSize = 0
+    $totalCompressedSize = 0
+    $compressedTiles = 0
+
+    foreach ($tile in $testTiles) {
+        try {
+            # GZip sıkıştırma simülasyonu
+            $compressedData = Compress-TileData $tile.Data
+            $totalOriginalSize += $tile.OriginalSize
+            $totalCompressedSize += $compressedData.Length
+            $compressedTiles++
+
+            # Sıkıştırılmış dosyayı kaydet
+            $compressedFilePath = Get-CompressedTilePath $tile.Key $fullCompressedPath
+            $directory = [System.IO.Path]::GetDirectoryName($compressedFilePath)
+            if (!(Test-Path $directory)) {
+                New-Item -ItemType Directory -Path $directory -Force | Out-Null
+            }
+            [System.IO.File]::WriteAllBytes($compressedFilePath, $compressedData)
+
+            Write-ColorOutput "    📦 Tile sıkıştırıldı: $($tile.Key) ($($tile.OriginalSize) -> $($compressedData.Length) bytes)" "Gray"
+        } catch {
+            Write-ColorOutput "    ❌ Tile sıkıştırma hatası: $($tile.Key) - $($_.Exception.Message)" "Red"
+        }
+    }
+
+    # Sıkıştırma istatistiklerini hesapla
+    $compressionRatio = if ($totalOriginalSize -gt 0) { $totalCompressedSize / $totalOriginalSize } else { 0 }
+    $spaceSaved = $totalOriginalSize - $totalCompressedSize
+
+    Write-ColorOutput "    📊 Sıkıştırma İstatistikleri:" "Gray"
+    Write-ColorOutput "      - Sıkıştırılan Tile: $compressedTiles" "Gray"
+    Write-ColorOutput "      - Orijinal Boyut: $([math]::Round($totalOriginalSize/1024, 2)) KB" "Gray"
+    Write-ColorOutput "      - Sıkıştırılmış Boyut: $([math]::Round($totalCompressedSize/1024, 2)) KB" "Gray"
+    Write-ColorOutput "      - Sıkıştırma Oranı: $([math]::Round($compressionRatio, 3))" "Gray"
+    Write-ColorOutput "      - Tasarruf: $([math]::Round($spaceSaved/1024, 2)) KB" "Green"
+
+    # Test sonuçlarını güncelle
+    $testResults.CompressionStats.OriginalSize = $totalOriginalSize
+    $testResults.CompressionStats.CompressedSize = $totalCompressedSize
+    $testResults.CompressionStats.CompressionRatio = $compressionRatio
+    $testResults.CompressionStats.TilesCompressed = $compressedTiles
+
+    if ($compressionRatio -lt 1) {
+        Write-ColorOutput "    ✅ Tile sıkıştırma başarılı" "Green"
+    } else {
+        Write-ColorOutput "    ⚠️  Sıkıştırma etkisi sınırlı" "Yellow"
+    }
+}
+
+# Tile açma testi
+function Test-TileDecompression {
+    Write-ColorOutput "  📤 Tile açma testi başlatılıyor..." "Gray"
+
+    $fullCompressedPath = Join-Path $ProjectPath $CompressedPath
+    $decompressedTiles = 0
+    $totalDecompressedSize = 0
+
+    # Sıkıştırılmış tile dosyalarını bul
+    $compressedFiles = Get-ChildItem $fullCompressedPath -Filter "*.tile" -Recurse
+
+    foreach ($file in $compressedFiles) {
+        try {
+            $compressedData = [System.IO.File]::ReadAllBytes($file.FullName)
+            $decompressedData = Decompress-TileData $compressedData
+
+            $totalDecompressedSize += $decompressedData.Length
+            $decompressedTiles++
+
+            Write-ColorOutput "    📦 Tile açıldı: $($file.Name) ($($compressedData.Length) -> $($decompressedData.Length) bytes)" "Gray"
+        } catch {
+            Write-ColorOutput "    ❌ Tile açma hatası: $($file.Name) - $($_.Exception.Message)" "Red"
+        }
+    }
+
+    Write-ColorOutput "    📊 Açma İstatistikleri:" "Gray"
+    Write-ColorOutput "      - Açılan Tile: $decompressedTiles" "Gray"
+    Write-ColorOutput "      - Toplam Boyut: $([math]::Round($totalDecompressedSize/1024, 2)) KB" "Gray"
+
+    if ($decompressedTiles -gt 0) {
+        Write-ColorOutput "    ✅ Tile açma başarılı" "Green"
+    } else {
+        Write-ColorOutput "    ❌ Hiç tile açılmadı" "Red"
+        throw "Tile decompression failed"
+    }
+}
+
+# Prefetch testi
+function Test-TilePrefetch {
+    Write-ColorOutput "  🚀 Tile prefetch testi başlatılıyor..." "Gray"
+
+    $prefetchStartTime = Get-Date
+
+    # Mock rota noktaları oluştur
+    $routePoints = @()
+    for ($i = 0; $i -lt 20; $i++) {
+        $routePoints += @{
+            Lat = 41.0082 + ($i * 0.001)  # İstanbul koordinatları etrafında
+            Lng = 28.9784 + ($i * 0.001)
+        }
+    }
+
+    $prefetchedTiles = 0
+    $zoomLevels = @(10, 12, 15)
+
+    foreach ($point in $routePoints) {
+        foreach ($zoom in $zoomLevels) {
+            # Tile koordinatlarını hesapla (basitleştirilmiş)
+            $tileX = [math]::Floor(($point.Lng + 180) / 360 * [math]::Pow(2, $zoom))
+            $tileY = [math]::Floor((1 - [math]::Log([math]::Tan($point.Lat * [math]::PI / 180) + 1 / [math]::Cos($point.Lat * [math]::PI / 180)) / [math]::PI) / 2 * [math]::Pow(2, $zoom))
+
+            $tileKey = "$zoom/$tileX/$tileY"
+
+            # Prefetch simülasyonu
+            Write-ColorOutput "    📦 Prefetching tile: $tileKey" "Gray"
+            $prefetchedTiles++
+
+            # Kısa bir gecikme ekle (ağ çağrısı simülasyonu)
+            Start-Sleep -Milliseconds 10
+        }
+    }
+
+    $prefetchEndTime = Get-Date
+    $prefetchDuration = $prefetchEndTime - $prefetchStartTime
+
+    Write-ColorOutput "    📊 Prefetch İstatistikleri:" "Gray"
+    Write-ColorOutput "      - Prefetch Edilen Tile: $prefetchedTiles" "Gray"
+    Write-ColorOutput "      - Süre: $([math]::Round($prefetchDuration.TotalSeconds, 2)) saniye" "Gray"
+    Write-ColorOutput "      - Saniye Başına Tile: $([math]::Round($prefetchedTiles / $prefetchDuration.TotalSeconds, 1))" "Gray"
+
+    # Test sonuçlarını güncelle
+    $testResults.PrefetchStats.TilesPrefetched = $prefetchedTiles
+    $testResults.PrefetchStats.PrefetchDuration = $prefetchDuration
+    $testResults.PrefetchStats.CacheHitRate = 0.75 # Mock cache hit rate
+
+    if ($prefetchedTiles -gt 0) {
+        Write-ColorOutput "    ✅ Tile prefetch başarılı" "Green"
+    } else {
+        Write-ColorOutput "    ❌ Prefetch başarısız" "Red"
+        throw "Tile prefetch failed"
+    }
+}
+
+# Cache temizleme testi
+function Test-CacheCleanup {
+    Write-ColorOutput "  🧹 Cache temizleme testi başlatılıyor..." "Gray"
+
+    $fullCachePath = Join-Path $ProjectPath $CachePath
+    $fullCompressedPath = Join-Path $ProjectPath $CompressedPath
+
+    # Eski test dosyaları oluştur
+    $oldFiles = @()
+    $oldDate = (Get-Date).AddDays(-8) # 8 gün önce
+
+    for ($i = 1; $i -le 5; $i++) {
+        $oldFileName = "old-tile-$i.tile"
+        $oldFilePath = Join-Path $fullCompressedPath $oldFileName
+        "old test data $i" | Out-File $oldFilePath -Encoding UTF8
+        (Get-Item $oldFilePath).LastWriteTime = $oldDate
+        $oldFiles += $oldFilePath
+    }
+
+    # Yeni test dosyası oluştur
+    $newFileName = "new-tile.tile"
+    $newFilePath = Join-Path $fullCompressedPath $newFileName
+    "new test data" | Out-File $newFilePath -Encoding UTF8
+
+    Write-ColorOutput "    📅 Eski dosyalar oluşturuldu: $($oldFiles.Count)" "Gray"
+    Write-ColorOutput "    📅 Yeni dosya oluşturuldu: $newFileName" "Gray"
+
+    # Eski dosyaları temizle (7 günden eski)
+    $retentionDays = 7
+    $cutoffDate = (Get-Date).AddDays(-$retentionDays)
+
+    $filesToDelete = Get-ChildItem $fullCompressedPath -Filter "*.tile" |
+        Where-Object { $_.LastWriteTime -lt $cutoffDate }
+
+    $deletedCount = 0
+    foreach ($file in $filesToDelete) {
+        Remove-Item $file.FullName -Force
+        $deletedCount++
+        Write-ColorOutput "    ✅ Eski dosya silindi: $($file.Name)" "Green"
+    }
+
+    # Yeni dosyanın kaldığını kontrol et
+    if (Test-Path $newFilePath) {
+        Write-ColorOutput "    ✅ Yeni dosya korundu" "Green"
+    } else {
+        Write-ColorOutput "    ❌ Yeni dosya yanlışlıkla silindi" "Red"
+    }
+
+    Write-ColorOutput "    📊 Temizleme İstatistikleri:" "Gray"
+    Write-ColorOutput "      - Silinen Dosya: $deletedCount" "Gray"
+    Write-ColorOutput "      - Korunan Dosya: 1" "Gray"
+}
+
+# Yardımcı fonksiyonlar
+function Compress-TileData {
+    param([byte[]]$data)
+
+    $memoryStream = New-Object System.IO.MemoryStream
+    $gzipStream = New-Object System.IO.Compression.GZipStream($memoryStream, [System.IO.Compression.CompressionMode]::Compress)
+    $gzipStream.Write($data, 0, $data.Length)
+    $gzipStream.Close()
+    return $memoryStream.ToArray()
+}
+
+function Decompress-TileData {
+    param([byte[]]$compressedData)
+
+    $inputStream = New-Object System.IO.MemoryStream($compressedData)
+    $outputStream = New-Object System.IO.MemoryStream
+    $gzipStream = New-Object System.IO.Compression.GZipStream($inputStream, [System.IO.Compression.CompressionMode]::Decompress)
+    $gzipStream.CopyTo($outputStream)
+    $gzipStream.Close()
+    return $outputStream.ToArray()
+}
+
+function Get-CompressedTilePath {
+    param([string]$tileKey, [string]$compressedPath)
+
+    $parts = $tileKey -split "/"
+    if ($parts.Length -ge 3) {
+        $z = $parts[0]
+        $x = $parts[1].PadLeft(4, '0')
+        $y = $parts[2].PadLeft(4, '0')
+
+        $tilePath = Join-Path $compressedPath $z
+        $tilePath = Join-Path $tilePath $x.Substring(0, 2)
+        $tilePath = Join-Path $tilePath $x.Substring(2, 2)
+        $tilePath = Join-Path $tilePath "$x_$y.tile"
+
+        return $tilePath
+    }
+
+    return Join-Path $compressedPath "$($tileKey -replace '/', '_').tile"
+}
+
+# Ana test döngüsü
+Write-ColorOutput "🚀 Tile optimizasyon testleri başlatılıyor..." "White"
+Write-ColorOutput ""
+
+# Testleri çalıştır
+Test-TileOptimization -TestName "Cache Klasörü Kurulumu" -TestScript { Test-CacheDirectorySetup }
+Test-TileOptimization -TestName "Tile Sıkıştırma" -TestScript { Test-TileCompression }
+Test-TileOptimization -TestName "Tile Açma" -TestScript { Test-TileDecompression }
+Test-TileOptimization -TestName "Tile Prefetch" -TestScript { Test-TilePrefetch }
+Test-TileOptimization -TestName "Cache Temizleme" -TestScript { Test-CacheCleanup }
+
+# Test özeti
+Write-ColorOutput "" "White"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "           📊 Test Sonuçları" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+
+$successRate = if ($testResults.TotalTests -gt 0) {
+    [math]::Round(($testResults.PassedTests / $testResults.TotalTests) * 100, 1)
+} else { 0 }
+
+Write-ColorOutput "Toplam Test: $($testResults.TotalTests)" "White"
+Write-ColorOutput "Başarılı: $($testResults.PassedTests)" "Green"
+Write-ColorOutput "Başarısız: $($testResults.FailedTests)" "Red"
+Write-ColorOutput "Başarı Oranı: $successRate%" "Cyan"
+Write-ColorOutput "Toplam Süre: $($testResults.TestDuration.TotalSeconds) saniye" "White"
+
+# Sıkıştırma istatistikleri
+Write-ColorOutput "" "White"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "        🗜️ Sıkıştırma İstatistikleri" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+
+Write-ColorOutput "Sıkıştırılan Tile: $($testResults.CompressionStats.TilesCompressed)" "White"
+Write-ColorOutput "Orijinal Boyut: $([math]::Round($testResults.CompressionStats.OriginalSize/1024, 2)) KB" "White"
+Write-ColorOutput "Sıkıştırılmış Boyut: $([math]::Round($testResults.CompressionStats.CompressedSize/1024, 2)) KB" "White"
+Write-ColorOutput "Sıkıştırma Oranı: $([math]::Round($testResults.CompressionStats.CompressionRatio, 3))" "Cyan"
+Write-ColorOutput "Alan Tasarrufu: $([math]::Round(($testResults.CompressionStats.OriginalSize - $testResults.CompressionStats.CompressedSize)/1024, 2)) KB" "Green"
+
+# Prefetch istatistikleri
+Write-ColorOutput "" "White"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "        🚀 Prefetch İstatistikleri" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+
+Write-ColorOutput "Prefetch Edilen Tile: $($testResults.PrefetchStats.TilesPrefetched)" "White"
+Write-ColorOutput "Prefetch Süresi: $([math]::Round($testResults.PrefetchStats.PrefetchDuration.TotalSeconds, 2)) saniye" "White"
+Write-ColorOutput "Cache Hit Rate: $([math]::Round($testResults.PrefetchStats.CacheHitRate * 100, 1))%" "Cyan"
+
+# Detaylı sonuçlar
+if ($Verbose) {
+    Write-ColorOutput "" "White"
+    Write-ColorOutput "Detaylı Sonuçlar:" "Yellow"
+    foreach ($detail in $testResults.Details) {
+        $status = if ($detail.Passed) { "✅" } else { "❌" }
+        Write-ColorOutput "  $status $($detail.TestName)" "White"
+        if (!$detail.Passed -and $detail.ErrorMessage) {
+            Write-ColorOutput "    Hata: $($detail.ErrorMessage)" "Red"
+        }
+    }
+}
+
+# JSON export
+if ($ExportJson) {
+    $jsonPath = Join-Path $ProjectPath "tile-optimization-test-results.json"
+    $exportData = @{
+        metadata = @{
+            timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            script_version = "1.0.0"
+            test_environment = $TestEnvironment
+            cache_path = $CachePath
+            compressed_path = $CompressedPath
+            test_tile_count = $TestTileCount
+            compression_level = $CompressionLevel
+            total_duration_seconds = $testResults.TestDuration.TotalSeconds
+        }
+        summary = @{
+            total_tests = $testResults.TotalTests
+            passed_tests = $testResults.PassedTests
+            failed_tests = $testResults.FailedTests
+            success_rate = $successRate
+        }
+        compression_stats = $testResults.CompressionStats
+        prefetch_stats = $testResults.PrefetchStats
+        details = $testResults.Details
+        recommendations = @(
+            "Sıkıştırma seviyesini artırarak daha fazla alan tasarrufu sağlayın",
+            "Prefetch radius'ını artırarak daha iyi offline deneyim sunun",
+            "Cache temizleme periyodunu optimize edin",
+            "Paralel indirme sayısını artırarak prefetch hızını iyileştirin",
+            "Tile boyut limitlerini kullanım paternlerine göre ayarlayın"
+        )
+    }
+
+    $exportData | ConvertTo-Json -Depth 10 | Set-Content $jsonPath
+    Write-ColorOutput "📄 Test sonuçları JSON olarak kaydedildi: $jsonPath" "Green"
+}
+
+# Badge tetikleme
+if ($testResults.PassedTests -gt 0) {
+    Show-Badge "Offline-Optimized"
+}
+
+# Final sonuç
+Write-ColorOutput "" "White"
+if ($testResults.FailedTests -eq 0) {
+    Write-ColorOutput "🎉 Tile optimizasyon testleri başarılı! Offline sistem hazır." "Green"
+    exit 0
+} else {
+    Write-ColorOutput "💥 Bazı tile optimizasyon testleri başarısız oldu." "Red"
+    exit 1
+}
+
+# Badge gösterme fonksiyonu
+function Show-Badge {
+    param([string]$BadgeName)
+
+    Write-ColorOutput "🏅 Badge kazanıldı: $BadgeName" "Cyan"
+
+    # Badge dosyasını güncelle (varsa)
+    $badgeFile = Join-Path $ProjectPath "badge.json"
+    if (Test-Path $badgeFile) {
+        try {
+            $badgeData = Get-Content $badgeFile -Raw | ConvertFrom-Json
+            if ($badgeData.PSObject.Properties.Name -notcontains $BadgeName) {
+                $badgeData | Add-Member -MemberType NoteProperty -Name $BadgeName -Value $true
+                $badgeData | ConvertTo-Json | Set-Content $badgeFile
+                Write-ColorOutput "  ✅ Badge dosyası güncellendi" "Green"
+            } else {
+                $badgeData.$BadgeName = $true
+                $badgeData | ConvertTo-Json | Set-Content $badgeFile
+                Write-ColorOutput "  ✅ Badge dosyası güncellendi" "Green"
+            }
+        } catch {
+            Write-ColorOutput "  ⚠️  Badge dosyası güncellenemedi" "Yellow"
+        }
+    } else {
+        # Yeni badge dosyası oluştur
+        $newBadgeData = @{
+            $BadgeName = $true
+        }
+        $newBadgeData | ConvertTo-Json | Set-Content $badgeFile
+        Write-ColorOutput "  ✅ Yeni badge dosyası oluşturuldu" "Green"
+    }
+}

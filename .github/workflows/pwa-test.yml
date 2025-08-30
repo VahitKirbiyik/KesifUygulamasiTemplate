@@ -1,0 +1,530 @@
+# PWA Test Automation - Enhanced Version
+# Bu workflow haftalık olarak Pazartesi sabah 9'da otomatik çalışır
+# Trend analizi, badge güncellemeleri ve otomatik raporlama içerir
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'Test-PWA.ps1'
+      - 'manifest.json'
+      - 'service-worker.js'
+      - '404.html'
+      - 'index.html'
+      - 'legal.html'
+      - 'privacy-policy.html'
+      - 'pwa-test-results.json'
+      - 'test-history.json'
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - 'Test-PWA.ps1'
+      - 'manifest.json'
+      - 'service-worker.js'
+      - '404.html'
+      - 'index.html'
+      - 'legal.html'
+      - 'privacy-policy.html'
+      - 'pwa-test-results.json'
+      - 'test-history.json'
+  schedule:
+    # Her Pazartesi sabah 9'da haftalık PWA testi çalıştır
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      slack_webhook:
+        description: 'Slack Webhook URL (opsiyonel)'
+        required: false
+        type: string
+      discord_webhook:
+        description: 'Discord Webhook URL (opsiyonel)'
+        required: false
+        type: string
+      test_mode:
+        description: 'Test modu (full/fast)'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - fast
+      test_url:
+        description: 'Test URL (optional)'
+        required: false
+        default: 'https://kesifapp.com'
+      skip_network:
+        description: 'Skip network tests'
+        type: boolean
+        default: false
+      include_legal:
+        description: 'Include legal compliance tests'
+        type: boolean
+        default: true
+      include_seo:
+        description: 'Include SEO tests'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pages: read
+  actions: read
+
+jobs:
+  pwa-test:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup PowerShell
+      uses: actions/setup-powershell@v1
+      with:
+        pwsh: true
+
+    - name: Install required modules
+      shell: pwsh
+      run: |
+        Install-Module -Name PSWriteHTML -Force -SkipPublisherCheck
+        Install-Module -Name ImportExcel -Force -SkipPublisherCheck
+
+    - name: Run PWA Tests
+      shell: pwsh
+      env:
+        PWA_SLACK_WEBHOOK: ${{ secrets.PWA_SLACK_WEBHOOK || inputs.slack_webhook }}
+        PWA_DISCORD_WEBHOOK: ${{ secrets.PWA_DISCORD_WEBHOOK || inputs.discord_webhook }}
+        TEST_MODE: ${{ inputs.test_mode || 'full' }}
+        TEST_URL: ${{ inputs.test_url || 'https://kesifapp.com' }}
+        SKIP_NETWORK: ${{ inputs.skip_network || false }}
+        INCLUDE_LEGAL: ${{ inputs.include_legal || true }}
+        INCLUDE_SEO: ${{ inputs.include_seo || true }}
+      run: |
+        Write-Host "🚀 PWA Test Automation Başlatılıyor..." -ForegroundColor Cyan
+
+        # Test script'ini çalıştır
+        $testArgs = @()
+
+        # Webhook URL'lerini ekle
+        if ($env:PWA_SLACK_WEBHOOK) {
+          $testArgs += "--slack-webhook"
+          $testArgs += $env:PWA_SLACK_WEBHOOK
+        }
+
+        if ($env:PWA_DISCORD_WEBHOOK) {
+          $testArgs += "--discord-webhook"
+          $testArgs += $env:PWA_DISCORD_WEBHOOK
+        }
+
+        # Test modunu ekle
+        if ($env:TEST_MODE -eq 'fast') {
+          $testArgs += "--fast-mode"
+        }
+
+        # Diğer parametreleri ekle
+        if ($env:TEST_URL) {
+          $testArgs += "--url"
+          $testArgs += $env:TEST_URL
+        }
+
+        if ($env:SKIP_NETWORK -eq 'true') {
+          $testArgs += "--skip-network"
+        }
+
+        if ($env:INCLUDE_LEGAL -eq 'true') {
+          $testArgs += "--include-legal"
+        }
+
+        if ($env:INCLUDE_SEO -eq 'true') {
+          $testArgs += "--include-seo"
+        }
+
+        # Script'i çalıştır
+        & ".\Test-PWA.ps1" @testArgs
+
+        Write-Host "✅ PWA Test tamamlandı!" -ForegroundColor Green
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      with:
+        name: pwa-test-results-${{ github.run_number }}
+        path: |
+          pwa-test-results.json
+          test-history.json
+          test-history.csv
+          pwa-dashboard.html
+          pwa-badges.md
+          pwa-test-log.txt
+        retention-days: 30
+
+    - name: Update README with test results and trend analysis
+      shell: pwsh
+      run: |
+        Write-Host "📝 README.md güncelleniyor..." -ForegroundColor Cyan
+
+        # Test sonuçlarını oku
+        if (Test-Path "pwa-test-results.json") {
+          $testResults = Get-Content "pwa-test-results.json" | ConvertFrom-Json
+
+          # Trend analizini oku
+          $trendAnalysis = $null
+          if (Test-Path "test-history.json") {
+            $historyData = Get-Content "test-history.json" | ConvertFrom-Json
+            if ($historyData.trend_analysis) {
+              $trendAnalysis = $historyData.trend_analysis
+            }
+          }
+
+          # README.md'yi oku
+          $readmePath = "README.md"
+          if (Test-Path $readmePath) {
+            $readmeContent = Get-Content $readmePath -Raw
+
+            # Trend rapor bölümü oluştur
+            $trendReport = ""
+            if ($trendAnalysis) {
+              $trendReport = @"
+
+### 📊 Trend Raporu
+- **Trend Yönü:** $($trendAnalysis.direction)
+- **Değişim Oranı:** $($trendAnalysis.change_percent)%
+- **Son 5 Test Ortalaması:** $($trendAnalysis.average_last_5)%
+- **Trend Güvenilirliği:** $($trendAnalysis.confidence)%
+
+"@
+            }
+
+            # Başarısızlık analizi
+            $failureAnalysis = ""
+            if ($testResults.failed_tests -and $testResults.failed_tests.Count -gt 0) {
+              $failureAnalysis = @"
+
+### ❌ Başarısızlık Analizi
+$($testResults.failed_tests | ForEach-Object {
+  "- **$($_.test_name):** $($_.error_message)`n  💡 **Öneri:** $($_.suggestion)"
+} | Out-String)
+
+"@
+            }
+
+            # Test özeti bölümü
+            $testSummary = @"
+
+## 🧪 PWA Test Sonuçları
+
+### Son Test Özeti
+- **Tarih:** $(Get-Date -Format "yyyy-MM-dd HH:mm")
+- **Başarı Oranı:** $($testResults.summary.success_rate)%
+- **Geçen Testler:** $($testResults.summary.passed_tests)
+- **Başarısız Testler:** $($testResults.summary.failed_tests)
+- **Atlanan Testler:** $($testResults.summary.skipped_tests)
+- **Toplam Testler:** $($testResults.summary.total_tests)
+- **Test Süresi:** $($testResults.summary.duration_seconds) saniye
+
+$trendReport$failureAnalysis
+
+### Detaylı Sonuçlar
+```json
+$($testResults.detailed_results | ConvertTo-Json -Depth 3)
+```
+
+---
+*Bu bölüm otomatik olarak güncellenir - $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")*
+*Sonraki haftalık test: $(Get-Date).AddDays(7).ToString("yyyy-MM-dd 09:00"))*
+"@
+
+            # README'yi güncelle (eski test sonuçlarını temizle ve yenisini ekle)
+            $pattern = "(?s)## 🧪 PWA Test Sonuçları.*?\*Bu bölüm otomatik olarak güncellenir.*?\*"
+            if ($readmeContent -match $pattern) {
+              $readmeContent = $readmeContent -replace $pattern, ""
+            }
+
+            # Yeni içeriği ekle
+            $readmeContent + $testSummary | Out-File -FilePath $readmePath -Encoding UTF8
+
+            Write-Host "✅ README.md güncellendi!" -ForegroundColor Green
+          }
+        }
+
+    - name: Commit and push changes
+      shell: pwsh
+      run: |
+        Write-Host "💾 Değişiklikler kaydediliyor..." -ForegroundColor Cyan
+
+        # Git konfigürasyonu
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+        # Değişiklikleri ekle
+        git add pwa-test-results.json
+        git add test-history.json
+        git add test-history.csv
+        git add pwa-dashboard.html
+        git add pwa-badges.md
+        git add pwa-test-log.txt
+        git add README.md
+
+        # Değişiklik varsa commit et
+        if (git diff --staged --quiet) {
+          Write-Host "ℹ️ Yeni değişiklik yok, commit atlanıyor." -ForegroundColor Yellow
+        } else {
+          # Test sonuçlarını al
+          $successRate = "N/A"
+          $trendDirection = "N/A"
+          if (Test-Path 'pwa-test-results.json') {
+            $results = Get-Content 'pwa-test-results.json' | ConvertFrom-Json
+            $successRate = "$($results.summary.success_rate)%"
+          }
+          if (Test-Path 'test-history.json') {
+            $history = Get-Content 'test-history.json' | ConvertFrom-Json
+            if ($history.trend_analysis) {
+              $trendDirection = $history.trend_analysis.direction
+            }
+          }
+
+          git commit -m "🤖 Auto-update PWA test results
+
+📊 Test Summary:
+- Success Rate: $successRate
+- Trend: $trendDirection
+- Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm')
+
+Files updated:
+- pwa-test-results.json
+- test-history.json
+- test-history.csv
+- pwa-dashboard.html
+- pwa-badges.md
+- pwa-test-log.txt
+- README.md"
+
+          # Push işlemi
+          git push
+          Write-Host "✅ Değişiklikler başarıyla kaydedildi!" -ForegroundColor Green
+        }
+
+    - name: Notify on failure
+      if: failure()
+      shell: pwsh
+      run: |
+        Write-Host "❌ Test başarısız oldu, bildirim gönderiliyor..." -ForegroundColor Red
+
+        # Slack webhook'u varsa bildir
+        if ($env:PWA_SLACK_WEBHOOK) {
+          $payload = @{
+            text = "🚨 PWA Test Başarısız!`n📊 Detaylar: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`n🕐 Zaman: $(Get-Date -Format 'yyyy-MM-dd HH:mm')`n🔗 Repo: ${{ github.repository }}"
+          } | ConvertTo-Json
+
+          Invoke-WebRequest -Uri $env:PWA_SLACK_WEBHOOK -Method POST -Body $payload -ContentType "application/json"
+        }
+
+        # Discord webhook'u varsa bildir
+        if ($env:PWA_DISCORD_WEBHOOK) {
+          $payload = @{
+            content = "🚨 PWA Test Başarısız!`n📊 Detaylar: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`n🕐 Zaman: $(Get-Date -Format 'yyyy-MM-dd HH:mm')`n🔗 Repo: ${{ github.repository }}"
+          } | ConvertTo-Json
+
+          Invoke-WebRequest -Uri $env:PWA_DISCORD_WEBHOOK -Method POST -Body $payload -ContentType "application/json"
+        }
+
+jobs:
+  pwa-test:
+    runs-on: windows-latest
+    name: PWA Compatibility Test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PowerShell
+        run: |
+          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+          $PSVersionTable
+
+      - name: Install Pester (if needed for advanced testing)
+        run: |
+          if (!(Get-Module -Name Pester -ListAvailable)) {
+            Install-Module -Name Pester -Force -SkipPublisherCheck
+          }
+
+      - name: Run PWA Tests
+        id: pwa_test
+        run: |
+          $testArgs = @()
+
+          # Custom URL if provided
+          if ("${{ github.event.inputs.test_url }}" -and "${{ github.event.inputs.test_url }}" -ne "") {
+            $testArgs += "${{ github.event.inputs.test_url }}"
+          }
+
+          # Skip network tests if requested
+          if ("${{ github.event.inputs.skip_network }}" -eq "true") {
+            $testArgs += "-SkipNetworkTests"
+          }
+
+          # Include legal tests if requested (default true for workflow_dispatch)
+          if ("${{ github.event.inputs.include_legal }}" -ne "false" -and "${{ github.event_name }}" -eq "workflow_dispatch") {
+            $testArgs += "-IncludeLegalTests"
+          } elseif ("${{ github.event_name }}" -eq "schedule") {
+            # Schedule'da her zaman legal ve SEO testlerini dahil et
+            $testArgs += "-IncludeLegalTests"
+            $testArgs += "-IncludeSEOTests"
+          }
+
+          # Include SEO tests if requested (default true for workflow_dispatch)
+          if ("${{ github.event.inputs.include_seo }}" -ne "false" -and "${{ github.event_name }}" -eq "workflow_dispatch") {
+            $testArgs += "-IncludeSEOTests"
+          }
+
+          # Always run in verbose mode for CI
+          $testArgs += "-Verbose"
+
+          # Enable JSON export for CI
+          $testArgs += "-ExportJson"
+
+          # Run the test script
+          $scriptPath = Join-Path $PWD "Test-PWA.ps1"
+          Write-Host "Running: $scriptPath $($testArgs -join ' ')"
+
+          # Capture output for analysis
+          $output = & $scriptPath @testArgs 2>&1
+          $output | Out-File -FilePath "pwa-test-output.txt" -Encoding UTF8
+
+          # Extract test results for GitHub Actions
+          $testResults = @{
+            timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            commit = "${{ github.sha }}"
+            run_id = "${{ github.run_id }}"
+            repository = "${{ github.repository }}"
+            branch = "${{ github.ref_name }}"
+            test_output = $output -join "`n"
+          }
+
+          # Parse success/failure from output
+          $successCount = ($output | Select-String -Pattern "✅.*BAŞARILI" | Measure-Object).Count
+          $totalTests = ($output | Select-String -Pattern "(✅|❌).*: (BAŞARILI|BAŞARISIZ)" | Measure-Object).Count
+
+          $testResults.success_count = $successCount
+          $testResults.total_tests = $totalTests
+          $testResults.success_rate = if ($totalTests -gt 0) { [math]::Round(($successCount / $totalTests) * 100, 2) } else { 0 }
+
+          # Export results as JSON
+          $testResults | ConvertTo-Json -Depth 10 | Out-File -FilePath "pwa-test-results.json" -Encoding UTF8
+
+          # Set output for other jobs
+          Write-Host "::set-output name=success_count::$successCount"
+          Write-Host "::set-output name=total_tests::$totalTests"
+          Write-Host "::set-output name=success_rate::$($testResults.success_rate)"
+
+          # Display results
+          Write-Host "=== PWA Test Results ==="
+          Write-Host "Success: $successCount/$totalTests ($($testResults.success_rate)%)"
+          Write-Host "Results saved to: pwa-test-results.json"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pwa-test-results-${{ github.run_id }}
+          path: |
+            pwa-test-results.json
+            pwa-test-output.txt
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('pwa-test-results.json', 'utf8'));
+
+            const comment = `
+            ## 🔍 PWA Test Results
+
+            **Test Summary:**
+            - ✅ Passed: ${results.test_results.passed_tests}/${results.test_results.total_tests}
+            - ❌ Failed: ${results.test_results.failed_tests}
+            - ⏭️ Skipped: ${results.test_results.skipped_tests}
+            - 📊 Success Rate: ${results.test_results.success_rate}%
+            - 🏃‍♂️ Run ID: ${{ github.run_id }}
+            - 📅 Timestamp: ${results.metadata.timestamp}
+
+            **Performance Metrics:**
+            - ⏱️ Duration: ${results.performance_metrics.test_duration}
+            - 📈 Tests/sec: ${results.performance_metrics.tests_per_second}
+
+            **Recommendations:**
+            ${results.recommendations.map(rec => `- ${rec}`).join('\n')}
+
+            [📄 Full Results](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            [📊 JSON Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Fail on low success rate
+        if: steps.pwa_test.outputs.success_rate < 70
+        run: |
+          Write-Host "❌ PWA test success rate is below 70%: ${{ steps.pwa_test.outputs.success_rate }}%"
+          exit 1
+
+  lighthouse-pwa-audit:
+    runs-on: ubuntu-latest
+    name: Lighthouse PWA Audit
+    needs: pwa-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Lighthouse
+        run: npm install -g lighthouse
+
+      - name: Run Lighthouse PWA Audit
+        run: |
+          # Create a simple HTTP server for local testing
+          python3 -m http.server 8000 &
+          SERVER_PID=$!
+
+          # Wait for server to start
+          sleep 3
+
+          # Run Lighthouse audit
+          lighthouse http://localhost:8000 \
+            --output json \
+            --output-path lighthouse-results.json \
+            --only-categories pwa \
+            --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage"
+
+          # Kill server
+          kill $SERVER_PID
+
+      - name: Upload Lighthouse results
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-results-${{ github.run_id }}
+          path: lighthouse-results.json
+
+  notify:
+    runs-on: ubuntu-latest
+    name: Notification
+    needs: [pwa-test, lighthouse-pwa-audit]
+    if: always()
+
+    steps:
+      - name: Send notification
+        run: |
+          echo "PWA tests completed"
+          echo "PWA Test Status: ${{ needs.pwa-test.result }}"
+          echo "Lighthouse Audit Status: ${{ needs.lighthouse-pwa-audit.result }}"

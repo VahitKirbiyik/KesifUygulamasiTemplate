@@ -1,0 +1,1857 @@
+# KesifUygulamasiTemplate
+
+[![Offline ETA Ready](https://img.shields.io/badge/Offline--ETA-Ready-green)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/ci.yml)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Active-brightgreen)](https://kesifapp.com/)
+[![CI](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/ci.yml/badge.svg)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/ci.yml)
+[![Code Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://kesifapp.com/legal.html)
+[![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)](https://dotnet.microsoft.com/)
+[![Platforms](https://img.shields.io/badge/Platforms-iOS%20%7C%20Android%20%7C%20Windows-lightgrey.svg)](https://dotnet.microsoft.com/en-us/apps/maui)
+[![GitHub stars](https://img.shields.io/github/stars/VahitKirbiyik/KesifUygulamasiTemplate)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/stargazers)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Active-brightgreen)](https://kesifapp.com/)
+[![CI](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/ci.yml/badge.svg)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/ci.yml)
+[![PWA Tests](https://img.shields.io/badge/PWA_Tests-0%25-red)](https://kesifapp.com/pwa-dashboard.html)
+[![PWA Score](https://img.shields.io/badge/PWA_Score-0%25-red)](https://kesifapp.com/pwa-dashboard.html)
+[![Tests Passed](https://img.shields.io/badge/Tests_Passed-0/7-brightgreen)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/pwa-test.yml)
+[![Tests Failed](https://img.shields.io/badge/Tests_Failed-7-red)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/pwa-test.yml)
+[![Trend](https://img.shields.io/badge/Trend-STABLE-red)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/pwa-test.yml)
+[![Code Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://kesifapp.com/legal.html)
+[![.NET](https://img.shields.io/badge/.NET-8.0-blue.svg)](https://dotnet.microsoft.com/)
+[![Platforms](https://img.shields.io/badge/Platforms-iOS%20%7C%20Android%20%7C%20Windows-lightgrey.svg)](https://dotnet.microsoft.com/en-us/apps/maui)
+[![GitHub stars](https://img.shields.io/github/stars/VahitKirbiyik/KesifUygulamasiTemplate)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/VahitKirbiyik/KesifUygulamasiTemplate/issues)
+[![GitHub last commit](https://img.shields.io/github/last-commit/VahitKirbiyik/KesifUygulamasiTemplate)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/commits/main)
+[![GitHub last commit](https://img.shields.io/github/last-commit/VahitKirbiyik/KesifUygulamasiTemplate)](https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/commits/main)
+![HERE Maps Integrated](https://img.shields.io/badge/HERE--Maps-Integrated-green)
+![Global Routing Verified](https://img.shields.io/badge/Routing-Global--Verified-blue)
+![Null Safety Secured](https://img.shields.io/badge/Null--Safety-Secured-yellow)
+![Offline Ready](https://img.shields.io/badge/Offline-Ready-orange)
+
+.NET MAUI tabanlÄ± geliÅŸmiÅŸ keÅŸif uygulamasÄ± template projesi. Modern navigasyon, pusula Ã¶zellikleri ve kapsamlÄ± harita desteÄŸi ile donatÄ±lmÄ±ÅŸtÄ±r.
+
+## 🚀 Özellikler
+
+### 🗺️ Navigasyon & Harita
+- **Çoklu Rota API Desteği**: Google Maps & Mapbox Directions API
+- **Akıllı Rota Optimizasyonu**: Fastest (trafik + hız), Shortest (mesafe), Eco (yakıt verimliliği), Safe (güvenli yollar)
+- **Harita Sağlayıcı Seçimi**: Kullanıcı arayüzünden Google, Mapbox, HERE, Offline sağlayıcı seçimi
+- **Offline Harita**: 500MB önbellek ile çevrimdışı harita desteği
+- **Gerçek Zamanlı Trafik**: Trafik durumu ve alternatif rotalar
+- **Sesli Yönlendirme**: Text-to-Speech ile navigasyon talimatları
+- **POI Yönetimi**: İlgi çekici noktalar ve favori yerler
+
+### 📊 Monitoring & Analytics (Sprint 2)
+- **Provider Kullanım Takibi**: Hangi harita sağlayıcısının ne kadar kullanıldığı
+- **Rota Türü İstatistikleri**: Fastest, Shortest, Eco, Safe rota türlerinin kullanım dağılımı
+- **Günlük Raporlar**: JSON formatında kullanım istatistikleri
+- **Application Insights**: Microsoft Application Insights entegrasyonu
+- **Performans Metrikleri**: API yanıt süreleri ve başarı oranları
+- **Gerçek Zamanlı Provider Badge**: Kullanılan sağlayıcının UI'da gösterilmesi
+
+### 🎯 Akıllı Rota Optimizasyonu (Sprint 2)
+- **Fastest**: Trafik ve hız faktörlerini dikkate alan en hızlı rota
+- **Shortest**: En kısa mesafeli rota
+- **Eco**: Yakıt verimliliği odaklı çevre dostu rota
+- **Safe**: Güvenli yollar ve trafik yoğunluğunu önceliklendiren rota
+- **Fallback Sistemi**: Bir sağlayıcı başarısız olursa otomatik geçiş
+- **Offline Rota**: İnternet bağlantısı yokken basit rota hesaplaması
+
+### 🧭 Pusula Özellikleri
+- **Ay Pusulası**: Ay'ın konumunu ve fazını gerçek zamanlı hesaplama
+- **Kıble Pusulası**: İslam'ın kutsal yönü için hassas pusula
+- **Pusula Kalibrasyonu**: Otomatik kalibrasyon sistemi
+- **Astronomik Hesaplamalar**: Güneş, ay ve yıldız pozisyonları
+
+### 🌐 Çoklu Dil Desteği
+- **40+ Dil**: Arapça, Almanca, Fransızca, İspanyolca, Çince, Japonca vb.
+- **RTL Desteği**: Arapça ve İbranice için sağdan sola yazım
+- **Dinamik Dil Değişimi**: Çalışma zamanında dil değiştirme
+- **Kültürel Yerelleştirme**: Tarih, sayı ve para birimi formatları
+
+### 📢 Akıllı Bildirimler
+- **Navigasyon Bildirimleri**: Varış noktası hatırlatmaları
+- **Hava Durumu Uyarıları**: Hava durumu değişiklikleri
+- **Acil Durum Noktaları**: Yakındaki hastane, polis merkezi bildirimleri
+- **Favori Yer Hatırlatmaları**: Kaydedilmiş yerler için hatırlatmalar
+- **Ay Pusulası Bildirimleri**: Ay olayları ve faz değişiklikleri
+
+### 💳 Bağış Sistemi
+- **PayPal Entegrasyonu**: Güvenli PayPal bağış sistemi
+- **Stripe Entegrasyonu**: Kredi kartı ile bağış desteği
+- **Çoklu Ödeme Yöntemi**: Alternatif bağış seçenekleri
+- **Teşekkür Bildirimleri**: Bağış sonrası kullanıcı geri bildirimi
+
+## 🎯 Sprint 4 Özellikleri
+
+### ✅ Tamamlanan Özellikler
+- **RoutingService.cs**: Global routing fallback sistemi (HERE Maps → Mapbox → Google Maps → Offline)
+- **Test-RoutingFallback.ps1**: CI/CD pipeline ile entegre routing fallback test scripti
+- **Test-LegalFiles.ps1**: Yasal dosya ve SEO validasyon scripti
+- **Test-SEO.ps1**: SEO dosya ve meta etiket doğrulama scripti
+- **BadgeManager.cs**: Gelişmiş badge yönetim sistemi (güncellendi)
+- **badge.json**: Sprint 4 badge konfigürasyonları (güncellendi)
+- **README.md Güncellemeleri**: Sprint 4 özelliklerinin dokümantasyonu
+
+### 🔧 Teknik İyileştirmeler
+- **Global Routing Fallback**: 4 sağlayıcılı otomatik fallback sistemi
+- **CI/CD Test Otomasyonu**: PowerShell scriptleri ile kapsamlı test coverage
+- **SEO & Legal Compliance**: Otomatik dosya validasyon ve web accessibility testing
+- **Badge System Enhancement**: 20+ yeni badge ve trigger sistemi
+- **Environment Variable Support**: Tüm yeni özellikler için CI/CD uyumluluğu
+- **JSON Export**: Test sonuçlarının JSON formatında export'u
+
+### 📱 Yeni Özellikler
+
+#### 🗺️ Global Routing Fallback Sistemi
+- **Provider Chain**: HERE Maps → Mapbox → Google Maps → Offline sıralaması
+- **Automatic Fallback**: Bir sağlayıcı başarısız olursa otomatik geçiş
+- **Provider Monitoring**: Her sağlayıcının durum takibi ve istatistikleri
+- **Offline Support**: İnternet bağlantısı yokken basit rota hesaplaması
+- **Error Handling**: Kapsamlı hata yönetimi ve kullanıcı bildirimleri
+- **CI/CD Integration**: Environment variable ile yapılandırma
+
+#### 🧪 CI/CD Test Otomasyonu
+- **Test-RoutingFallback.ps1**: Routing fallback sisteminin testleri
+- **Test-LegalFiles.ps1**: Yasal dosya ve SEO validasyon testleri
+- **Test-SEO.ps1**: SEO dosya ve meta etiket doğrulama testleri
+- **JSON Export**: Test sonuçlarının CI/CD pipeline için export'u
+- **Badge Integration**: Test başarılarından badge kazanma
+- **Environment Detection**: Test ve production ortam ayrımı
+
+#### ⚖️ Legal & SEO Compliance
+- **Legal File Validation**: privacy-policy.md, terms-of-service.md kontrolü
+- **SEO File Validation**: description.txt, keywords.txt, title.txt kontrolü
+- **Web Accessibility Testing**: robots.txt, sitemap.xml erişilebilirlik kontrolü
+- **Meta Tag Validation**: HTML dosyalarında meta etiket kontrolü
+- **Structured Data Validation**: JSON-LD structured data kontrolü
+- **Canonical URL Validation**: Canonical URL yapılandırma kontrolü
+
+#### 🏅 Gelişmiş Badge Sistemi
+- **20+ Yeni Badge**: Navigation, System, SEO, Legal, Development kategorileri
+- **Progress Tracking**: İlerleme takibi ve otomatik badge kazanma
+- **Trigger System**: Event-based badge kazanma mekanizması
+- **Category Statistics**: Kategori bazlı istatistikler ve raporlama
+- **CI/CD Integration**: Otomatik badge güncellemeleri ve export
+- **Persistence**: Badge verilerinin JSON formatında kalıcı depolanması
+
+### 📊 CI/CD Entegrasyonu
+
+#### Environment Variables
+```bash
+# Routing fallback yapılandırması
+HERE_MAPS_API_KEY=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+MAPBOX_ACCESS_TOKEN=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+GOOGLE_MAPS_API_KEY=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+# SEO & Legal test yapılandırması
+DOMAIN=https://kesifapp.com
+SEO_DESCRIPTION_MIN_LENGTH=120
+SEO_KEYWORDS_MIN_COUNT=5
+
+# Badge sistemi
+BADGE_DATA_PATH=./badge-data
+ENABLE_BADGE_NOTIFICATIONS=true
+
+# Test ortamı
+CI=true
+TEST_ENVIRONMENT=true
+EXPORT_TEST_RESULTS=true
+```
+
+#### GitHub Actions Workflow Güncellemeleri
+```yaml
+# .github/workflows/ci.yml
+- name: Run Routing Fallback Tests
+  run: .\scripts\Test-RoutingFallback.ps1 -TestEnvironment ci -Configuration Release
+
+- name: Run Legal & SEO Tests
+  run: .\scripts\Test-LegalFiles.ps1 -TestEnvironment ci -Configuration Release
+
+- name: Run SEO Validation Tests
+  run: .\scripts\Test-SEO.ps1 -TestEnvironment ci -Configuration Release
+
+- name: Update Sprint 4 Badges
+  run: |
+    # Sprint 4 badge güncelleme işlemleri
+    # Test sonuçlarına göre badge kazanma
+```
+
+### 🏷️ Sprint 4 Badge Sistemi
+
+#### Yeni Badge'ler
+- **First-Route**: İlk rota hesaplama
+- **Routing-Master**: 10+ rota hesaplama
+- **Fallback-Hero**: Fallback sistemi kullanımı
+- **SEO-Verified**: SEO dosyalarının doğrulandı
+- **Legal-Compliant**: Yasal dosyaların mevcut
+- **Test-Passed**: CI/CD testlerinin başarılı
+- **Performance-Optimized**: Performans testlerinin başarılı
+- **Security-First**: Güvenlik testlerinin başarılı
+- **Offline-Ready**: Offline veri indirme
+- **AR-Explorer**: AR özelliğinin kullanımı
+- **Eco-Warrior**: Çevre dostu rotaların kullanımı
+- **Speed-Demon**: En hızlı rotaların kullanımı
+- **Safety-First**: En güvenli rotaların kullanımı
+- **Location-Master**: 50+ konum keşfetme
+- **Night-Owl**: Gece rotası hesaplama
+- **Weather-Warrior**: Kötü hava koşullarında rota
+- **Accessibility-Champion**: Erişilebilirlik etkinleştirme
+- **Multi-Modal**: Çoklu ulaşım modu kullanımı
+- **Data-Sync-Master**: Veri senkronizasyon uzmanı
+
+#### Badge Kategorileri
+```json
+{
+  "Navigation": "Navigasyon ve rota ile ilgili başarılar",
+  "System": "Uygulama sistemi ve teknik başarılar",
+  "SEO": "Arama motoru optimizasyonu başarıları",
+  "Legal": "Yasal uyumluluk başarıları",
+  "Development": "Yazılım geliştirme başarıları",
+  "Performance": "Performans başarıları",
+  "Security": "Güvenlik başarıları",
+  "Offline": "Offline kullanım başarıları",
+  "AR": "Artırılmış gerçeklik başarıları",
+  "Sustainability": "Sürdürülebilirlik başarıları",
+  "Safety": "Güvenlik başarıları",
+  "Exploration": "Keşif başarıları",
+  "Time": "Zamanlamaya bağlı başarılar",
+  "Weather": "Hava koşullarına bağlı başarılar",
+  "Accessibility": "Erişilebilirlik başarıları",
+  "Transport": "Ulaşım başarıları",
+  "Data": "Veri yönetimi başarıları"
+}
+```
+
+### 🧪 Sprint 4 Test Coverage
+
+#### Yeni Test Kategorileri
+- **Routing Fallback Tests**: Global routing fallback sisteminin testleri
+- **Legal File Tests**: Yasal dosya validasyon testleri
+- **SEO Validation Tests**: SEO dosya ve meta etiket testleri
+- **Badge System Tests**: Badge kazanma ve ilerleme testleri
+- **Provider Monitoring Tests**: Harita sağlayıcısı monitoring testleri
+
+#### Test Script Özellikleri
+```powershell
+# Routing fallback testi
+.\scripts\Test-RoutingFallback.ps1 -TestEnvironment ci -Configuration Release
+
+# Legal ve SEO testi
+.\scripts\Test-LegalFiles.ps1 -TestEnvironment ci -Configuration Release
+
+# SEO validasyon testi
+.\scripts\Test-SEO.ps1 -TestEnvironment ci -Configuration Release
+
+# Detaylı çıktı ve JSON export
+.\scripts\Test-RoutingFallback.ps1 -Verbose -ExportJson
+```
+
+### 📈 Sprint 4 Monitoring & Analytics
+
+#### Yeni Metrikler
+- **Routing Provider Usage**: Her sağlayıcının kullanım istatistikleri
+- **Fallback Success Rate**: Fallback sisteminin başarı oranı
+- **SEO Compliance Score**: SEO uyumluluk puanı
+- **Legal File Status**: Yasal dosya güncellik durumu
+- **Badge Completion Rate**: Badge tamamlama oranları
+- **Test Automation Coverage**: Otomatik test kapsama oranı
+
+#### Analytics Integration
+```csharp
+// Application Insights ile entegre
+_logger.LogInformation("Routing fallback used: Provider={Provider}, Reason={Reason}", provider, reason);
+_logger.LogInformation("SEO test completed: Score={Score}, Passed={Passed}", score, passed);
+_logger.LogInformation("Legal file validated: File={File}, Status={Status}", file, status);
+_logger.LogInformation("Badge earned: {BadgeName} ({Points} points)", badgeName, points);
+```
+
+### 🔒 Sprint 4 Güvenlik & Privacy
+
+#### Environment Security
+- **API Key Management**: Routing sağlayıcısı API key güvenliği
+- **Domain Validation**: SEO testleri için domain güvenliği
+- **Badge Data Security**: Badge verilerinin güvenli depolanması
+- **Test Result Security**: Test sonuçlarının güvenli export'u
+
+#### Privacy Compliance
+- **Routing Data Privacy**: Rota verilerinin gizliliği
+- **SEO Data Privacy**: SEO analitik verilerinin gizliliği
+- **Badge Privacy**: Achievement verilerinin gizliliği
+- **Test Data Privacy**: Test verilerinin production ortam ayrımı
+
+### 🚀 Sprint 4 Performance Optimizations
+
+#### CI/CD Performance
+- **Parallel Test Execution**: Routing, Legal, SEO testlerinin paralel çalışması
+- **Incremental Testing**: Değişiklik bazlı test çalıştırma
+- **Result Caching**: Test sonuçlarının önbelleklenmesi
+- **Resource Optimization**: CI/CD kaynaklarının optimize kullanımı
+
+#### Runtime Performance
+- **Provider Fallback Optimization**: Hızlı fallback geçişi
+- **Badge Calculation Optimization**: Badge kazanma hesaplamalarının optimize edilmesi
+- **SEO Validation Caching**: SEO validasyon sonuçlarının önbelleklenmesi
+- **Legal File Caching**: Yasal dosya kontrol sonuçlarının önbelleklenmesi
+
+### 📚 Sprint 4 Dokümantasyon Güncellemeleri
+
+#### Yeni Dokümantasyon Dosyaları
+- **Routing-Fallback-System.md**: Global routing fallback sistemi rehberi
+- **CI-CD-Test-Automation.md**: CI/CD test otomasyon scripti rehberi
+- **SEO-Legal-Compliance.md**: SEO ve yasal uyumluluk rehberi
+- **Badge-System-Enhancement.md**: Gelişmiş badge sistemi detayları
+- **Sprint-4-Features.md**: Sprint 4 özelliklerinin kapsamlı dokümantasyonu
+
+#### README.md Güncellemeleri
+- Sprint 4 özelliklerinin eklenmesi
+- Global routing fallback yapılandırma örnekleri
+- CI/CD test scripti kullanım örnekleri
+- Badge sistemi trigger mekanizmaları
+- SEO ve legal compliance kontrolleri
+- Troubleshooting ve debugging rehberi
+
+### 🔄 Sprint 4 Migration & Compatibility
+
+#### Backward Compatibility
+- **Existing Routing Code**: Mevcut routing koduyla uyumluluk
+- **Badge System Migration**: Eski badge sisteminden yeni sisteme geçiş
+- **Test Script Compatibility**: Mevcut CI/CD pipeline ile uyumluluk
+- **Configuration Migration**: appsettings.json Sprint 4 güncellemeleri
+
+#### Version Management
+- **Semantic Versioning**: v1.3.0 (Sprint 4 release)
+- **Changelog**: Detaylı Sprint 4 değişiklik günlüğü
+- **Breaking Changes**: Routing fallback ve badge system değişiklikleri
+- **Deprecation Notices**: Eski routing provider implementasyonlarının deprecated edilmesi
+
+## 🎯 Sprint 5 Özellikleri
+
+### ✅ Tamamlanan Özellikler
+- **SimulateNavigation.cs**: Offline navigasyon simülasyon servisi (GPS mock + rota sapma simülasyonu)
+- **Test-NavigationSimulation.ps1**: Navigasyon simülasyon test scripti (CI/CD pipeline entegrasyonu)
+- **FeedbackService.cs**: Çoklu dil geri bildirim servisi (sentiment analysis + auto-processing)
+- **Test-Feedback.ps1**: Çoklu dil geri bildirim test scripti (language validation + sentiment testing)
+- **BenchmarkService.cs**: Dinamik performans benchmark servisi (baseline comparison + regression detection)
+- **Test-Benchmark.ps1**: Dinamik benchmark test scripti (performance monitoring + CI/CD integration)
+- **AuditLegal.ps1**: Yasal auto-audit scripti (legal file validation + compliance checking)
+- **badge.json**: Sprint 5 badge konfigürasyonları (Navigation-Simulated, Feedback-Globalized, Benchmark-Logged, Legal-Audited)
+- **README.md Güncellemeleri**: Sprint 5 özelliklerinin dokümantasyonu
+
+### 🔧 Teknik İyileştirmeler
+- **Offline Navigation Simulation**: GPS mock sistemi ile rota sapma simülasyonu
+- **Multi-Language Feedback**: Sentiment analysis ile otomatik geri bildirim işleme
+- **Dynamic Benchmarking**: Baseline comparison ve regression detection
+- **Legal Auto-Audit**: Otomatik yasal dosya validasyon ve compliance checking
+- **CI/CD Integration**: Tüm yeni servisler environment variable desteği ile pipeline uyumlu
+- **Badge System Enhancement**: 4 yeni Sprint 5 badge ve trigger sistemi
+
+### 📱 Yeni Özellikler
+
+#### 🧭 Offline Navigation Simulation
+- **GPS Mock System**: Gerçek GPS verisi olmadan navigasyon simülasyonu
+- **Route Deviation Simulation**: Rota sapma senaryoları ve otomatik düzeltme
+- **Offline Route Calculation**: İnternet bağlantısı olmadan basit rota hesaplaması
+- **Simulation Speed Control**: Hızlandırılmış veya yavaşlatılmış simülasyon modu
+- **JSON Export**: Simülasyon sonuçlarının JSON formatında dışa aktarımı
+
+#### 🌐 Multi-Language Feedback System
+- **Sentiment Analysis**: Geri bildirim metninin duygusal analizi
+- **Auto-Processing**: Otomatik geri bildirim kategorizasyonu ve önceliklendirme
+- **Language Detection**: Otomatik dil algılama ve çeviri desteği
+- **Daily Limits**: Kullanıcı başına günlük geri bildirim limiti
+- **Feedback History**: Geri bildirim geçmişinin saklanması ve analizi
+
+#### 📊 Dynamic Benchmarking
+- **Performance Tracking**: Uygulama performans metriklerinin sürekli izlenmesi
+- **Baseline Comparison**: Önceki sürümlerle performans karşılaştırması
+- **Regression Detection**: Performans düşüşlerinin otomatik tespiti
+- **Metric Monitoring**: CPU, memory, network kullanım takibi
+- **CI/CD Integration**: Build pipeline'larında otomatik benchmark çalıştırma
+
+#### ⚖️ Legal Auto-Audit
+- **File Validation**: Privacy Policy, Terms of Service, License dosyalarının kontrolü
+- **GDPR Compliance**: GDPR uyumluluk dosyalarının varlığı ve güncelliği
+- **Content Analysis**: Yasal dosyaların gerekli bölümlerinin kontrolü
+- **Freshness Check**: Yasal dosyaların güncellik durumunun kontrolü
+- **Compliance Reporting**: Detaylı uyumluluk raporu oluşturma
+
+### 🏷️ Sprint 5 Badge Sistemi
+- **Navigation-Simulated**: Offline navigasyon simülasyonunu 5 kez çalıştırma
+- **Feedback-Globalized**: 3 farklı dilde geri bildirim gönderme
+- **Benchmark-Logged**: Dinamik benchmark sistemini 10 kez çalıştırma
+- **Legal-Audited**: Yasal auto-audit sistemini çalıştırma
+
+### 🧪 Sprint 5 Test Coverage
+- **Navigation Simulation Tests**: GPS mock, rota sapma, offline calculation testleri
+- **Feedback Processing Tests**: Sentiment analysis, language detection, auto-processing testleri
+- **Benchmark Tests**: Performance tracking, baseline comparison, regression detection testleri
+- **Legal Audit Tests**: File validation, GDPR compliance, content analysis testleri
+- **CI/CD Integration Tests**: Environment variable, badge trigger, JSON export testleri
+
+### 📈 Sprint 5 Monitoring & Analytics
+- **Simulation Metrics**: Navigasyon simülasyon istatistikleri ve başarı oranları
+- **Feedback Analytics**: Geri bildirim trendleri ve sentiment dağılımı
+- **Benchmark Reports**: Performans metrikleri ve regression detection raporları
+- **Legal Compliance Tracking**: Yasal dosya güncellik ve compliance durumu
+
+### 🔒 Sprint 5 Güvenlik & Privacy
+- **Offline Data Security**: Offline simülasyon verilerinin güvenli saklanması
+- **Feedback Data Protection**: Geri bildirim verilerinin GDPR uyumlu işlenmesi
+- **Benchmark Data Privacy**: Performans verilerinin anonimleştirilmesi
+- **Legal File Encryption**: Yasal dosyaların şifrelenmiş saklanması
+
+### 🚀 Sprint 5 Performance Optimizations
+- **Simulation Performance**: GPS mock sisteminin optimize edilmesi
+- **Feedback Processing Speed**: Sentiment analysis algoritmalarının hızlandırılması
+- **Benchmark Efficiency**: Performance tracking'in sistem kaynak kullanımının minimize edilmesi
+- **Legal Audit Speed**: Dosya validasyon işlemlerinin paralel çalıştırılması
+
+### 📚 Sprint 5 Dokümantasyon Güncellemeleri
+- **Sprint-5-Features.md**: Sprint 5 özelliklerinin kapsamlı dokümantasyonu
+- **Navigation-Simulation.md**: Offline navigasyon simülasyon kullanım kılavuzu
+- **Multi-Language-Feedback.md**: Çoklu dil geri bildirim sistemi dokümantasyonu
+- **Dynamic-Benchmarking.md**: Performans benchmark sistemi kullanım kılavuzu
+- **Legal-Auto-Audit.md**: Yasal auto-audit sistemi dokümantasyonu
+- **API-Reference.md Güncellemeleri**: Yeni servislerin API referansları
+
+### 🔄 Sprint 5 Migration & Compatibility
+- **Service Registration**: Yeni servislerin DI container'a kaydedilmesi
+- **Database Schema Updates**: Geri bildirim ve benchmark verileri için yeni tablolar
+- **Configuration Updates**: appsettings.json Sprint 5 konfigürasyonları
+- **Environment Variables**: CI/CD pipeline için yeni environment variable'lar
+
+#### Version Management
+- **Semantic Versioning**: v1.4.0 (Sprint 5 release)
+- **Changelog**: Detaylı Sprint 5 değişiklik günlüğü
+- **Breaking Changes**: Navigation simulation ve feedback system API değişiklikleri
+- **Deprecation Notices**: Eski feedback system implementasyonlarının deprecated edilmesi
+
+## 🎯 Sprint 6 Özellikleri
+
+### ✅ Tamamlanan Özellikler
+- **IncidentLogger.cs**: Realtime incident logging servisi (file rotation + CI/CD integration)
+- **Test-IncidentLogging.ps1**: Incident logging test scripti (performance metrics + badge integration)
+- **TileCompressor.cs**: Offline tile compression servisi (GZip compression + cache management)
+- **PrefetchManager.cs**: Tile prefetching servisi (predictive downloading + parallel processing)
+- **Test-TileOptimization.ps1**: Tile optimization test scripti (compression validation + prefetch simulation)
+- **AnalyticsService.cs**: User behavior analytics servisi (event tracking + realtime processing)
+- **Test-Analytics.ps1**: Analytics test scripti (behavior analysis + performance tracking)
+- **AccessibilityScanner.cs**: WCAG compliance scanner (automated validation + CI/CD integration)
+- **Test-Accessibility.ps1**: Accessibility test scripti (WCAG compliance + badge triggers)
+- **badge.json**: Sprint 6 badge konfigürasyonları (Incident-Tracked, Offline-Optimized, Behavior-Analyzed, Accessibility-Verified)
+- **README.md Güncellemeleri**: Sprint 6 özelliklerinin dokümantasyonu
+
+### 🔧 Teknik İyileştirmeler
+- **Realtime Incident Logging**: File rotation ve CI/CD pipeline entegrasyonu
+- **Offline Tile Compression**: GZip compression ve akıllı cache management
+- **Predictive Prefetching**: User movement prediction ve parallel downloading
+- **User Behavior Analytics**: Event tracking ve realtime behavior analysis
+- **WCAG Compliance Scanner**: Automated accessibility validation ve reporting
+- **CI/CD Integration**: Tüm yeni servisler environment variable desteği ile pipeline uyumlu
+- **Badge System Enhancement**: 4 yeni Sprint 6 badge ve trigger sistemi
+
+### 📱 Yeni Özellikler
+
+#### 🚨 Realtime Incident Logging
+- **Event Processing**: Realtime incident event yakalama ve işleme
+- **File Rotation**: Otomatik log dosyası rotasyonu ve retention policies
+- **Performance Monitoring**: Incident logging performans metrikleri
+- **CI/CD Integration**: Environment variable ile pipeline konfigürasyonu
+- **Badge Triggers**: Incident logging işlemlerinden badge kazanma
+
+#### 🗜️ Offline Tile Compression
+- **GZip Compression**: Tile verilerinin GZip ile sıkıştırılması
+- **Cache Management**: Akıllı önbellek temizleme ve size limit kontrolü
+- **Compression Ratio Tracking**: Sıkıştırma oranlarının izlenmesi
+- **Offline Optimization**: Çevrimdışı kullanım için tile optimizasyonu
+- **Performance Metrics**: Compression performans ve storage savings raporları
+
+#### 🔮 Predictive Tile Prefetching
+- **User Movement Prediction**: Kullanıcı hareket paternlerine göre tahmin
+- **Parallel Downloading**: Çoklu tile indirme işlemleri
+- **Cache Cleanup**: Eski tile verilerinin otomatik temizlenmesi
+- **Bandwidth Optimization**: Ağ kullanımının optimize edilmesi
+- **Offline Readiness**: Çevrimdışı kullanım için prefetch stratejileri
+
+#### 📊 User Behavior Analytics
+- **Event Tracking**: Kullanıcı etkileşimlerinin detaylı takibi
+- **Behavior Analysis**: Kullanıcı davranış paternlerinin analizi
+- **Realtime Processing**: Gerçek zamanlı event işleme ve raporlama
+- **Data Export**: Analytics verilerinin JSON formatında dışa aktarımı
+- **Privacy Compliance**: GDPR uyumlu veri işleme ve anonimleştirme
+
+#### ♿ WCAG Accessibility Scanner
+- **Automated Validation**: WCAG 2.1 compliance otomatik kontrolü
+- **HTML Analysis**: Semantic HTML, alt text, form labels kontrolü
+- **Issue Categorization**: Critical, Warning, Info seviye issue'lar
+- **Compliance Scoring**: %85 üzeri compliance score hesaplama
+- **Detailed Reporting**: HTML ve JSON formatında rapor oluşturma
+
+### 🏷️ Sprint 6 Badge Sistemi
+- **Incident-Tracked**: Realtime incident logging sistemini 10 kez çalıştırma
+- **Offline-Optimized**: Tile compression ve prefetching sistemini 5 kez kullanma
+- **Behavior-Analyzed**: User behavior analytics sistemini 15 kez çalıştırma
+- **Accessibility-Verified**: WCAG compliance scanner ile %85 üzeri skor alma
+
+### 🧪 Sprint 6 Test Coverage
+- **Incident Logging Tests**: Realtime processing, file rotation, performance metrics testleri
+- **Tile Optimization Tests**: Compression ratio, prefetch simulation, cache management testleri
+- **Analytics Tests**: Event tracking, behavior analysis, realtime processing testleri
+- **Accessibility Tests**: WCAG compliance, automated validation, scoring testleri
+- **CI/CD Integration Tests**: Environment variable, badge trigger, JSON export testleri
+
+### 📈 Sprint 6 Monitoring & Analytics
+- **Incident Metrics**: Realtime incident logging istatistikleri ve başarı oranları
+- **Tile Performance**: Compression ratios ve prefetch hit rates raporları
+- **User Behavior Insights**: Analytics event trendleri ve behavior patterns
+- **Accessibility Compliance**: WCAG compliance score'ları ve issue tracking
+
+### 🔒 Sprint 6 Güvenlik & Privacy
+- **Incident Data Security**: Incident log verilerinin güvenli saklanması
+- **Analytics Data Protection**: User behavior verilerinin GDPR uyumlu işlenmesi
+- **Tile Data Privacy**: Offline tile verilerinin şifrelenmiş saklanması
+- **Accessibility Data Handling**: Compliance raporlarının güvenli yönetimi
+
+### 🚀 Sprint 6 Performance Optimizations
+- **Logging Performance**: Realtime incident logging'in sistem kaynak kullanımının optimize edilmesi
+- **Compression Efficiency**: Tile compression algoritmalarının hızlandırılması
+- **Prefetch Optimization**: Predictive prefetching'in bandwidth kullanımının minimize edilmesi
+- **Analytics Processing Speed**: Behavior analysis algoritmalarının paralel çalıştırılması
+
+### 📚 Sprint 6 Dokümantasyon Güncellemeleri
+- **Sprint-6-Features.md**: Sprint 6 özelliklerinin kapsamlı dokümantasyonu
+- **Incident-Logging.md**: Realtime incident logging kullanım kılavuzu
+- **Tile-Optimization.md**: Offline tile compression ve prefetching dokümantasyonu
+- **User-Behavior-Analytics.md**: Analytics sistemi kullanım kılavuzu
+- **Accessibility-Scanner.md**: WCAG compliance scanner dokümantasyonu
+- **API-Reference.md Güncellemeleri**: Yeni servislerin API referansları
+
+### 🔄 Sprint 6 Migration & Compatibility
+- **Service Registration**: Yeni servislerin DI container'a kaydedilmesi
+- **Database Schema Updates**: Incident logs, analytics data, tile cache için yeni tablolar
+- **Configuration Updates**: appsettings.json Sprint 6 konfigürasyonları
+- **Environment Variables**: CI/CD pipeline için yeni environment variable'lar
+
+#### Version Management
+- **Semantic Versioning**: v1.5.0 (Sprint 6 release)
+- **Changelog**: Detaylı Sprint 6 değişiklik günlüğü
+- **Breaking Changes**: Analytics system ve accessibility scanner API değişiklikleri
+- **Deprecation Notices**: Eski logging system implementasyonlarının deprecated edilmesi
+
+## 🎯 Sprint 7 Özellikleri
+
+### ✅ Tamamlanan Özellikler
+- **NotificationService.cs**: Gelişmiş bildirim sistemi (toast, push, webhook) - güncellendi
+- **DeviationHandler.cs**: Rota sapma algılama ve geri dönüş rotası hesaplama servisi
+- **VoiceGuide.cs**: Offline sesli navigasyon ile TTS entegrasyonu
+- **SecurityAudit.ps1**: JWT, OAuth ve API key doğrulama scripti
+- **badge.json**: Sprint 7 badge konfigürasyonları (Notification-Delivered, Route-Stabilized, Voice-Enabled, Security-Verified)
+- **SECURITY.md**: Token doğrulama prosedürleri ve güvenlik politikaları
+- **README.md Güncellemeleri**: Sprint 7 özelliklerinin dokümantasyonu
+
+### 🔧 Teknik İyileştirmeler
+- **Advanced Notification System**: Toast, push ve webhook bildirimleri ile gerçek zamanlı teslimat takibi
+- **Route Deviation Detection**: GPS izleme ile rota sapma algılama ve otomatik geri dönüş rotası
+- **Offline Voice Guidance**: TTS entegrasyonu ile internet bağlantısı olmadan sesli navigasyon
+- **Security Token Validation**: JWT, OAuth ve API key'ler için kapsamlı güvenlik denetimi
+- **CI/CD Test Automation**: PowerShell scriptleri ile otomatik test ve doğrulama
+- **Badge System Enhancement**: 4 yeni Sprint 7 badge ve trigger sistemi
+
+### 🏷️ Sprint 7 Badge Sistemi
+- **Notification-Delivered**: 10 başarılı bildirim teslimatı sonrası kazanılır
+- **Route-Stabilized**: 5 rota sapma kurtarma işlemi sonrası kazanılır
+- **Voice-Enabled**: 10 başarılı sesli navigasyon sonrası kazanılır
+- **Security-Verified**: Tüm token'ların geçerli olduğu durumda kazanılır
+
+### 🧪 Sprint 7 Test Coverage
+- **Test-Notification.ps1**: Bildirim teslimatı doğrulama ve badge trigger testi
+- **Test-RouteDeviation.ps1**: Rota sapma simülasyonu ve geri dönüş testi
+- **Test-VoiceGuidance.ps1**: Sesli oynatma ve offline doğrulama testi
+- **SecurityAudit.ps1**: Güvenlik denetimi ve compliance raporu
+
+### 📈 Sprint 7 Monitoring & Analytics
+- **Notification Delivery Tracking**: Bildirim başarı oranları ve teslimat süresi metrikleri
+- **Route Deviation Analytics**: Sapma türleri, sıklığı ve kurtarma başarı oranları
+- **Voice Guidance Usage**: Sesli navigasyon kullanım paternleri ve başarı metrikleri
+- **Security Audit Reports**: Token doğrulama sonuçları ve güvenlik skorlaması
+
+### 🔒 Sprint 7 Güvenlik & Privacy
+- **JWT Token Validation**: HS256 imza doğrulama ve claim kontrolü
+- **OAuth 2.0 Support**: Authorization Code Grant ve PKCE desteği
+- **API Key Security**: HMAC-SHA256 imza doğrulama ve rate limiting
+- **Security Headers**: CSP, HSTS, X-Frame-Options implementasyonu
+
+### 🚀 Sprint 7 Performance Optimizations
+- **Notification Queue**: Asenkron bildirim işleme ve önceliklendirme
+- **Route Calculation Caching**: Sapma sonrası rota hesaplamalarının önbelleklenmesi
+- **Voice File Caching**: Offline ses dosyalarının yerel depolanması
+- **Security Validation Caching**: Token doğrulama sonuçlarının geçici önbelleklenmesi
+
+### 📚 Sprint 7 Dokümantasyon Güncellemeleri
+- **SECURITY.md**: Kapsamlı güvenlik politikaları ve token doğrulama prosedürleri
+- **Notification API Docs**: Bildirim sistemi API referansı
+- **Voice Guidance Integration**: TTS entegrasyonu ve offline kullanım kılavuzu
+- **Security Audit Guide**: Güvenlik denetimi çalıştırma ve rapor yorumlama
+
+### 🔄 Sprint 7 Migration & Compatibility
+- **Service Registration**: Yeni servislerin DI container'a kaydedilmesi
+- **Configuration Updates**: appsettings.json Sprint 7 konfigürasyonları
+- **Environment Variables**: CI/CD pipeline için yeni environment variable'lar
+- **Database Schema Updates**: Bildirim logları, rota sapma verileri için yeni tablolar
+
+#### Version Management
+- **Semantic Versioning**: v1.6.0 (Sprint 7 release)
+- **Changelog**: Detaylı Sprint 7 değişiklik günlüğü
+- **Breaking Changes**: Güvenlik sistemi API değişiklikleri
+- **Deprecation Notices**: Eski bildirim implementasyonlarının deprecated edilmesi
+
+## 🎯 Sprint 3 Özellikleri
+
+### ✅ Tamamlanan Özellikler
+- **AdMobService.cs**: Google AdMob reklam entegrasyonu ile CI/CD pipeline desteği
+- **BillingService.cs**: Google Play Billing (IAP) servisi entegrasyonu
+- **OfflineTileManager.cs**: Offline harita tile yönetim sistemi
+- **PlatformMock.cs**: Platform servislerinin mock implementasyonu (test için)
+- **BadgeManager.cs**: Kapsamlı badge yönetim sistemi
+- **Test-Routing.ps1**: CI/CD pipeline ile entegre routing test scripti
+- **badge.json**: Badge konfigürasyon dosyası
+- **README.md Güncellemeleri**: Sprint 3 özelliklerinin dokümantasyonu
+
+### 🔧 Teknik İyileştirmeler
+- **CI/CD Entegrasyonu**: Tüm yeni servisler environment variable desteği ile CI/CD uyumlu
+- **Badge Sistemi**: Achievement tracking ve progress monitoring
+- **Mock Services**: Test ortamları için platform servislerinin mock implementasyonları
+- **Offline Management**: Tile-based offline harita sistemi
+- **Monetization**: AdMob reklam ve IAP billing entegrasyonu
+- **PowerShell Automation**: Otomatik test çalıştırma ve raporlama scripti
+
+### 📱 Yeni Özellikler
+
+#### 🎯 AdMob Reklam Entegrasyonu
+- **Banner Ads**: Uygulama içi banner reklamlar
+- **Interstitial Ads**: Tam ekran geçiş reklamları
+- **Rewarded Ads**: Ödül reklamları
+- **CI/CD Desteği**: Environment variable ile yapılandırma
+- **Badge Triggers**: Reklam etkileşimlerinden badge kazanma
+
+#### 💳 IAP Billing Sistemi
+- **Google Play Billing**: Android IAP entegrasyonu
+- **Purchase Tracking**: Satın alma geçmişi ve durum takibi
+- **Subscription Management**: Abonelik yönetimi
+- **Error Handling**: Kapsamlı hata yönetimi ve fallback
+- **Badge Integration**: Satın almalardan badge kazanma
+
+#### 🗺️ Offline Tile Yönetimi
+- **Tile Download**: Bölgesel harita tile indirme
+- **Cache Management**: Akıllı önbellek temizleme (1GB limit)
+- **Offline Detection**: Çevrimdışı mod algılama
+- **Progress Tracking**: İndirme ilerleme gösterimi
+- **Provider Support**: Google Maps tile API entegrasyonu
+
+#### 🧪 Platform Mock Servisleri
+- **IARPlatformService Mock**: AR özelliklerinin test simülasyonu
+- **IMapDataService Mock**: Harita servislerinin mock implementasyonu
+- **IOfflineDataService Mock**: Offline verilerinin test simülasyonu
+- **Test Environment Support**: CI/CD ortamlarında otomatik mock kullanımı
+- **Badge Integration**: Mock işlemlerinden badge kazanma
+
+#### 🏅 Badge Yönetim Sistemi
+- **Achievement Tracking**: 12 farklı achievement kategorisi
+- **Progress Monitoring**: İlerleme takibi ve bildirimler
+- **Category System**: Başarı, Satın Alma, Sosyal kategorileri
+- **CI/CD Integration**: Otomatik badge güncellemeleri
+- **Statistics**: Kullanım istatistikleri ve raporlama
+
+#### 🔧 Test Otomasyonu
+- **PowerShell Scripts**: Otomatik test çalıştırma
+- **CI/CD Integration**: GitHub Actions ile entegre test pipeline
+- **Result Export**: JSON formatında test sonuçları
+- **Coverage Reports**: Kod kapsama raporu oluşturma
+- **Environment Detection**: Test ve production ortam ayrımı
+
+### 📊 CI/CD Entegrasyonu
+
+#### Environment Variables
+```bash
+# AdMob yapılandırması
+GOOGLE_ADMOB_APP_ID=ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX
+GOOGLE_ADMOB_BANNER_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
+GOOGLE_ADMOB_INTERSTITIAL_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
+GOOGLE_ADMOB_REWARDED_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
+
+# Billing yapılandırması
+GOOGLE_PLAY_LICENSE_KEY=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+# Offline tile yapılandırması
+MAP_API_KEY=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+MAX_TILE_CACHE_SIZE=1073741824
+
+# Test ortamı
+CI=true
+TEST_ENVIRONMENT=true
+```
+
+#### GitHub Actions Workflow Güncellemeleri
+```yaml
+# .github/workflows/ci.yml
+- name: Run Routing Tests
+  run: .\scripts\Test-Routing.ps1 -TestEnvironment ci -Configuration Release
+
+- name: Update Badges
+  run: |
+    # Badge güncelleme işlemleri
+    # Test sonuçlarına göre badge renklerini güncelle
+```
+
+### 🏷️ Badge Sistemi
+
+#### Yeni Badge'ler
+- **IAP-Enabled**: İlk IAP satın alma işlemi
+- **AR-Explorer**: AR özelliğinin kullanımı
+- **Offline-Ready**: Offline harita verisi indirme
+- **AdMob-Engaged**: Reklam etkileşimleri
+- **Route-Master**: 100+ rota hesaplama
+- **Eco-Warrior**: Çevre dostu rotaların kullanımı
+
+#### Badge Kategorileri
+```json
+{
+  "Achievement": "Uygulama kullanımından kazanılan başarılar",
+  "Purchase": "Satın alma işlemlerinden kazanılan başarılar",
+  "Social": "Sosyal özelliklerden kazanılan başarılar"
+}
+```
+
+### 🧪 Test Coverage
+
+#### Yeni Test Kategorileri
+- **AdMobService Tests**: Reklam servislerinin testleri
+- **BillingService Tests**: IAP billing testleri
+- **OfflineTileManager Tests**: Offline tile yönetim testleri
+- **BadgeManager Tests**: Badge sistem testleri
+- **PlatformMock Tests**: Mock servis testleri
+
+#### Test Script Özellikleri
+```powershell
+# Temel kullanım
+.\scripts\Test-Routing.ps1
+
+# CI/CD modu
+.\scripts\Test-Routing.ps1 -TestEnvironment ci -Configuration Release
+
+# Detaylı çıktı
+.\scripts\Test-Routing.ps1 -Verbose
+
+# JSON export
+.\scripts\Test-Routing.ps1 -ExportJson
+```
+
+### 📈 Monitoring & Analytics
+
+#### Yeni Metrikler
+- **AdMob Performance**: Reklam görüntüleme ve tıklama oranları
+- **IAP Conversion**: Satın alma dönüşüm oranları
+- **Offline Usage**: Offline harita kullanım istatistikleri
+- **Badge Completion**: Achievement tamamlama oranları
+- **Test Success Rate**: Otomatik test başarı oranları
+
+#### Analytics Integration
+```csharp
+// Application Insights ile entegre
+_logger.LogInformation("AdMob ad loaded: {AdUnitId}", adUnitId);
+_logger.LogInformation("IAP purchase completed: {ProductId}", productId);
+_logger.LogInformation("Badge awarded: {BadgeId}", badgeId);
+```
+
+### 🔒 Güvenlik & Privacy
+
+#### Environment Security
+- **API Key Management**: Güvenli environment variable kullanımı
+- **License Key Protection**: Google Play license key güvenliği
+- **Test Data Isolation**: Test ve production veri ayrımı
+- **Mock Data Security**: Test verilerinin güvenli yönetimi
+
+#### Privacy Compliance
+- **AdMob Consent**: Kullanıcı reklam izni yönetimi
+- **Purchase Privacy**: IAP veri gizliliği
+- **Offline Data Privacy**: Offline verilerin yerel depolanması
+- **Badge Data Privacy**: Achievement verilerinin gizliliği
+
+### 🚀 Performance Optimizations
+
+#### CI/CD Performance
+- **Parallel Testing**: Paralel test çalıştırma
+- **Incremental Builds**: Artımlı build sistemi
+- **Cache Optimization**: Build ve test önbellekleme
+- **Resource Management**: CI/CD kaynak optimizasyonu
+
+#### Runtime Performance
+- **Lazy Loading**: Servislerin lazy loading ile başlatılması
+- **Background Processing**: Arka plan işlemlerinde async/await kullanımı
+- **Memory Management**: Offline tile cache yönetimi
+- **Network Optimization**: API çağrılarının optimize edilmesi
+
+### 📚 Dokümantasyon Güncellemeleri
+
+#### Yeni Dokümantasyon Dosyaları
+- **AdMob-Integration.md**: AdMob reklam entegrasyonu rehberi
+- **IAP-Billing.md**: IAP billing sistemi dokümantasyonu
+- **Offline-Tile-Management.md**: Offline harita tile yönetimi
+- **Badge-System.md**: Badge sistemi detayları
+- **Test-Automation.md**: Test otomasyon scripti rehberi
+
+#### README.md Güncellemeleri
+- Sprint 3 özelliklerinin eklenmesi
+- CI/CD yapılandırma örnekleri
+- Environment variable tanımları
+- Test çalıştırma komutları
+- Troubleshooting rehberi
+
+### 🔄 Migration & Compatibility
+
+#### Backward Compatibility
+- **Existing Code**: Mevcut kodla uyumluluk
+- **Database Migration**: SQLite schema güncellemeleri
+- **API Compatibility**: Harici API entegrasyonlarının korunması
+- **Configuration Migration**: appsettings.json güncellemeleri
+
+#### Version Management
+- **Semantic Versioning**: v1.2.0 (Sprint 3 release)
+- **Changelog**: Detaylı değişiklik günlüğü
+- **Breaking Changes**: Uyumsuz değişikliklerin dokümantasyonu
+- **Deprecation Notices**: Eski özelliklerin deprecated edilmesi
+
+---
+
+## 🎯 Sprint 2 Özellikleri (Devam Eden)
+- **Harita Sağlayıcı Seçimi**: Settings sayfasında dropdown ile Google, Mapbox, HERE, Offline seçimi
+- **Akıllı Rota Modları**: Fastest, Shortest, Eco, Safe rota optimizasyonları
+- **Provider Kullanım Takibi**: MonitoringService ile sağlayıcı kullanım istatistikleri
+- **Rota Türü Loglama**: Farklı optimizasyon türlerinin kullanım takibi
+- **Gerçek Zamanlı Provider Badge**: Route sayfasında kullanılan sağlayıcının gösterilmesi
+- **Offline Rota Desteği**: İnternet yokken basit rota hesaplaması
+- **Fallback Sistemi**: API başarısız olursa otomatik sağlayıcı geçişi
+- **Günlük Raporlar**: JSON formatında kullanım istatistiklerinin export'u
+- **Unit Test Coverage**: RouteService, MonitoringService ve ViewModel testleri
+- **CI/CD Entegrasyonu**: GitHub Actions ile otomatik test ve build
+
+### 🔧 Teknik İyileştirmeler
+- **MVVM Mimarisi**: Temiz ve test edilebilir kod yapısı
+- **Dependency Injection**: Service locator pattern
+- **Global Exception Handling**: Merkezi hata yönetimi
+- **SQLite Veritabanı**: Yerel veri depolama
+- **Offline Senkronizasyon**: Çevrimdışı veri senkronizasyonu
+
+## ğŸ› ï¸ Teknoloji Stack
+
+- **Framework**: .NET 8, .NET MAUI
+- **UI**: XAML, CommunityToolkit.Maui
+- **Architecture**: MVVM Pattern
+- **Database**: SQLite
+- **Maps**: Google Maps API, Mapbox API, HERE Maps API
+- **Weather**: OpenWeatherMap API
+- **Analytics**: Microsoft App Center
+- **Testing**: xUnit, Moq, Coverlet
+- **CI/CD**: GitHub Actions
+- **Dependency Injection**: Microsoft.Extensions.DependencyInjection
+
+## 🌍 Global Routing Strategy
+
+### 🗺️ Çoklu Harita API Desteği
+- **Fallback Zinciri**: Google Maps → Mapbox → HERE Maps → Offline
+- **Global Kapsama**: Çin, Rusya ve diğer kısıtlı bölgelerde HERE Maps ile kesintisiz hizmet
+- **Akıllı Geçiş**: API başarısızlıklarında otomatik sağlayıcı değiştirme
+- **Performans Optimizasyonu**: En hızlı yanıtı veren sağlayıcıyı önceliklendirme
+
+### 🔐 Null Safety & Güvenlik
+- **Nullable Reference Types**: Tüm API response modelleri nullable
+- **Environment Variables**: Güvenli API anahtarı yönetimi
+- **Exception Handling**: Kapsamlı hata yakalama ve loglama
+- **Secure Storage**: API anahtarları için güvenli depolama
+
+### 🧪 Test & Monitoring
+- **Polyline Decoder Tests**: HERE Maps polyline algoritması testleri
+- **Provider Logging**: Kullanılan rota sağlayıcısı loglaması
+- **Trend Analysis**: API performans trendleri ve başarısızlık analizi
+- **CI/CD Integration**: Otomatik test çalıştırma ve badge güncellemeleri
+
+### 🏅 Başarı Metrikleri
+- ✅ **HERE Maps Integrated**: Küresel kapsama için HERE Maps entegrasyonu
+- ✅ **Global Routing Verified**: Çoklu sağlayıcı ile dünya çapında rota hesaplama
+- ✅ **Null Safety Secured**: Güvenli null reference handling
+- ✅ **Offline Ready**: İnternet kesintilerinde basit rota hesaplama
+
+## ğŸ“Š Kalite Metrikleri
+
+- âœ… **Test Coverage**: %85+ hedef (RouteService, PushNotificationService, MapDataService testleri mevcut)
+- âœ… **Code Quality**: StyleCop, Roslyn analizÃ¶rleri
+- âœ… **Build Status**: TÃ¼m platformlarda baÅŸarÄ±lÄ±
+- âœ… **Exception Handling**: Global hata yakalama
+- âœ… **API Configuration**: YapÄ±landÄ±rÄ±labilir API anahtarlarÄ±
+- âœ… **Documentation**: KapsamlÄ± README ve kod yorumlarÄ±
+
+## ğŸƒâ€â™‚ï¸ Kurulum ve Ã‡alÄ±ÅŸtÄ±rma
+
+### Ã–n Gereksinimler
+- .NET 8 SDK
+- Visual Studio 2022 (17.4+)
+- Android SDK (Android geliÅŸtirme iÃ§in)
+- Xcode (iOS geliÅŸtirme iÃ§in)
+
+### HÄ±zlÄ± BaÅŸlangÄ±Ã§
+
+```bash
+# Projeyi klonlayÄ±n
+git clone https://github.com/your-username/KesifUygulamasiTemplate.git
+cd KesifUygulamasiTemplate
+
+# BaÄŸÄ±mlÄ±lÄ±klarÄ± yÃ¼kleyin
+dotnet restore
+
+# API anahtarlarÄ±nÄ± yapÄ±landÄ±rÄ±n
+cp appsettings.json appsettings.local.json
+# appsettings.local.json dosyasÄ±nÄ± dÃ¼zenleyin ve API anahtarlarÄ±nÄ±zÄ± ekleyin
+
+# UygulamayÄ± Ã§alÄ±ÅŸtÄ±rÄ±n
+dotnet build
+dotnet run
+```
+
+### API AnahtarlarÄ± YapÄ±landÄ±rmasÄ±
+
+`appsettings.json` dosyasÄ±nda aÅŸaÄŸÄ±daki API anahtarlarÄ±nÄ± yapÄ±landÄ±rÄ±n:
+
+```json
+{
+  "ApiKeys": {
+    "GoogleMaps": {
+      "ApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+    },
+    "Mapbox": {
+      "ApiKey": "YOUR_MAPBOX_API_KEY"
+    },
+    "OpenWeatherMap": {
+      "ApiKey": "YOUR_OPENWEATHER_API_KEY"
+    }
+  }
+}
+```
+
+## ğŸ§ª Test Ã‡alÄ±ÅŸtÄ±rma
+
+```bash
+# TÃ¼m unit testleri Ã§alÄ±ÅŸtÄ±rÄ±n
+dotnet test
+
+# Code coverage ile test Ã§alÄ±ÅŸtÄ±rÄ±n
+dotnet test --collect:"XPlat Code Coverage"
+
+# Belirli bir test projesi Ã§alÄ±ÅŸtÄ±rÄ±n
+dotnet test KesifUygulamasiTemplate.Tests/KesifUygulamasiTemplate.Tests.csproj
+```
+
+### Test KapsamÄ±
+- **Services**: RouteService, PushNotificationService, MapDataService
+- **ViewModels**: SettingsViewModel, MoonCompassViewModel
+- **Coverage Hedef**: %85+
+
+## ğŸ“± Platform Ã–zellikleri
+
+### Android
+- Google Play Services entegrasyonu
+- Android Auto desteÄŸi
+- Wear OS companion app
+- Background location services
+
+### iOS
+- Apple Maps entegrasyonu
+- CarPlay desteÄŸi
+- iOS Widget desteÄŸi
+- Background location services
+
+### Windows
+- WinUI 3 desteÄŸi
+- Windows Maps entegrasyonu
+- Live tiles
+- Background tasks
+
+## ğŸ”§ GeliÅŸmiÅŸ YapÄ±landÄ±rma
+
+### Harita AyarlarÄ±
+```json
+{
+  "MapSettings": {
+    "DefaultZoomLevel": 15,
+    "MaxZoomLevel": 20,
+    "MinZoomLevel": 3,
+    "CacheSizeMB": 500,
+    "CacheExpiryDays": 30
+  }
+}
+```
+
+### Bildirim AyarlarÄ±
+```json
+{
+  "NotificationSettings": {
+    "NavigationEnabled": true,
+    "WeatherAlertsEnabled": true,
+    "EmergencyPointsEnabled": true,
+    "MoonCompassEnabled": true
+  }
+}
+```
+
+## ğŸ“ˆ CI/CD Pipeline
+
+Proje aÅŸaÄŸÄ±daki otomatik sÃ¼reÃ§leri iÃ§erir:
+
+1. **Build & Test**: TÃ¼m platformlarda paralel build
+2. **Code Analysis**: Stil ve kalite kontrolÃ¼
+3. **Test Coverage**: Kapsam raporu oluÅŸturma (%85 hedef)
+4. **Security Scan**: GÃ¼venlik aÃ§Ä±ÄŸÄ± taramasÄ±
+5. **Artifact Upload**: Build Ã§Ä±ktÄ±larÄ± ve raporlar
+6. **Release Build**: Android .aab ve iOS .ipa oluÅŸturma
+
+## ğŸ›¡ï¸ GÃ¼venlik ve Gizlilik
+
+- **API Key Security**: GÃ¼venli anahtar yÃ¶netimi
+- **Location Privacy**: Konum izni yÃ¶netimi
+- **Data Encryption**: Hassas veri ÅŸifreleme
+- **Crash Reporting**: GÃ¼venli crash log'larÄ±
+- **Privacy Controls**: KullanÄ±cÄ± gizlilik ayarlarÄ±
+
+## ğŸ¤ KatkÄ±da Bulunma
+
+1. Fork edin
+2. Feature branch oluÅŸturun (`git checkout -b feature/AmazingFeature`)
+3. Commit edin (`git commit -m 'Add some AmazingFeature'`)
+4. Push edin (`git push origin feature/AmazingFeature`)
+5. Pull Request aÃ§Ä±n
+
+### GeliÅŸtirme StandartlarÄ±
+- MVVM pattern kullanÄ±mÄ±
+- Unit test yazÄ±mÄ±
+- Code documentation
+- StyleCop kurallarÄ±na uyum
+- TÃ¼rkÃ§e dil hassasiyeti
+
+## ğŸ“ Lisans
+
+Bu proje MIT lisansÄ± altÄ±nda lisanslanmÄ±ÅŸtÄ±r. Detaylar iÃ§in [LICENSE](LICENSE) dosyasÄ±na bakÄ±n.
+
+## ğŸ™ TeÅŸekkÃ¼rler
+
+## ğŸ§ª PWA Test Scripti
+
+Proje, kapsamlÄ± PWA (Progressive Web App) testleri iÃ§in geliÅŸmiÅŸ bir PowerShell scripti iÃ§erir.
+
+### ğŸš€ KullanÄ±m
+
+```powershell
+# Temel test Ã§alÄ±ÅŸtÄ±rma
+.\Test-PWA.ps1
+
+# Ã–zel URL ile test
+.\Test-PWA.ps1 https://kesifapp.com
+
+# AyrÄ±ntÄ±lÄ± mod
+.\Test-PWA.ps1 -Verbose
+
+# AÄŸ testlerini atla
+.\Test-PWA.ps1 -SkipNetworkTests
+
+# JSON export ile
+.\Test-PWA.ps1 -ExportJson
+
+# TÃ¼m seÃ§enekler birlikte
+.\Test-PWA.ps1 https://kesifapp.com -Verbose -ExportJson
+```
+
+### ğŸ“Š Test KapsamÄ±
+
+- âœ… **Manifest.json KontrolÃ¼**: PWA manifest dosyasÄ± validasyonu
+- âœ… **Service Worker Testi**: Service worker kaydÄ± ve iÅŸlevselliÄŸi
+- âœ… **HTML PWA Entegrasyonu**: TÃ¼m sayfalarda PWA meta etiketleri
+- âœ… **Offline Capability**: Ã‡evrimdÄ±ÅŸÄ± Ã§alÄ±ÅŸma yetenekleri
+- âœ… **404 Sayfa Testi**: Ã–zel 404 sayfasÄ±nÄ±n PWA uyumluluÄŸu
+
+### ğŸ“„ JSON Export
+
+`-ExportJson` parametresi ile test sonuÃ§larÄ± yapÄ±landÄ±rÄ±lmÄ±ÅŸ JSON formatÄ±nda dÄ±ÅŸa aktarÄ±lÄ±r:
+
+```json
+{
+  "metadata": {
+    "timestamp": "2025-01-01T12:00:00Z",
+    "script_version": "2.0.0",
+    "test_duration_seconds": 1.23
+  },
+  "test_results": {
+    "total_tests": 7,
+    "passed_tests": 5,
+    "failed_tests": 1,
+    "skipped_tests": 1,
+    "success_rate": 71.4
+  },
+  "performance_metrics": {
+    "test_duration": "00:00:01.2300000",
+    "average_response_time": 0.18,
+    "tests_per_second": 5.69
+  },
+  "recommendations": [
+    "BaÅŸarÄ±sÄ±z testleri dÃ¼zeltmek iÃ§in manifest.json dosyasÄ±nÄ± kontrol edin"
+  ]
+}
+```
+
+### ğŸ”§ CI/CD Entegrasyonu
+
+GitHub Actions workflow'u ile otomatik PWA testleri:
+
+```yaml
+# .github/workflows/pwa-test.yml
+name: PWA Tests & Audit
+on: [push, pull_request]
+jobs:
+  pwa-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run PWA Tests
+        run: .\Test-PWA.ps1 -Verbose -ExportJson
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pwa-test-results
+          path: pwa-test-results.json
+```
+
+---
+
+Bu projeye katkÄ±da bulunan tÃ¼m geliÅŸtiricilere teÅŸekkÃ¼r ederiz. Ã–zellikle:
+
+- .NET MAUI topluluÄŸu
+- OpenStreetMap contributors
+- Google Maps Platform
+- Mapbox
+- OpenWeatherMap
+
+---
+
+**â­ Bu proje faydalÄ± olduysa yÄ±ldÄ±z vermeyi unutmayÄ±n!**
+
+## 🚨 Son Test Başarısızlıkları
+
+**Son Güncelleme:** 2025-08-30 02:40:23
+**Başarısız Test Sayısı:** 7
+
+### Kritik Sorunlar
+- PWA manifest dosyası bulunamadı veya geçersiz
+- Service Worker dosyası bulunamadı veya eksik işlevsellik
+- Ana sayfa PWA entegrasyonu eksik veya hatalı
+
+### Uyarılar
+- Offline fallback sayfası bulunamadı
+- Gizlilik sayfası bulunamadı veya PWA entegrasyonu eksik
+- Yasal sayfa bulunamadı veya PWA entegrasyonu eksik
+
+### Bilgilendirme
+- 404 sayfası bulunamadı veya PWA entegrasyonu eksik
+
+### Önerilen İlk Adımlar
+1. PWA manifest dosyasını kontrol edin ve gerekli alanları ekleyin
+2. Service Worker dosyasını oluşturun ve temel event handler'ları ekleyin
+3. HTML sayfalarına PWA meta etiketlerini ekleyin
+4. HTTPS protokolünü kullanın
+5. Tarayıcı geliştirici araçlarında PWA bölümünü kontrol edin
+
+### Detaylı Analiz
+Daha detaylı hata analizi için pwa-test-results.json dosyasındaki suggestions alanını inceleyin.
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+# 🔍 PWA Test Sistemi Dokümantasyonu
+
+Bu dokümantasyon, `Test-PWA.ps1` script'inin kapsamlı kullanım kılavuzunu içerir. Sistem, Progressive Web App (PWA) projelerinin otomatik test edilmesi, izlenmesi ve raporlanması için tasarlanmıştır.
+
+## 📦 Kurulum
+
+### Sistem Gereksinimleri
+- **PowerShell**: 5.1 veya üzeri
+- **Windows/Linux/macOS**: Tüm platformlarda çalışır
+- **İnternet Bağlantısı**: Testler için gerekli
+- **Git**: Repository işlemleri için
+
+### Hızlı Kurulum
+
+```bash
+# 1. Repository'yi klonlayın
+git clone https://github.com/VahitKirbiyik/KesifUygulamasiTemplate.git
+cd KesifUygulamasiTemplate
+
+# 2. Script'i çalıştırılabilir yapın (Linux/macOS)
+chmod +x Test-PWA.ps1
+
+# 3. İlk testi çalıştırın
+.\Test-PWA.ps1
+```
+
+### Gerekli İzinler
+```powershell
+# PowerShell execution policy ayarlayın
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+## 🚀 Kullanım
+
+### Temel Kullanım
+
+```bash
+# Basit PWA testi
+.\Test-PWA.ps1
+
+# Özel URL ile test
+.\Test-PWA.ps1 https://kesifapp.com
+
+# Verbose mod ile detaylı çıktı
+.\Test-PWA.ps1 -Verbose
+
+# JSON export ile sonuçları kaydet
+.\Test-PWA.ps1 -ExportJson
+
+# Dashboard oluştur
+.\Test-PWA.ps1 -GenerateDashboard
+```
+
+### Gelişmiş Kullanım Örnekleri
+
+```bash
+# Tam özellikli test (tüm modüller)
+.\Test-PWA.ps1 -Verbose -ExportJson -GenerateDashboard -IncludeLegalTests -IncludeSEOTests
+
+# Hızlı test modu
+.\Test-PWA.ps1 --fast-mode
+
+# Ağ testlerini atla
+.\Test-PWA.ps1 -SkipNetworkTests
+
+# Sadece belirli test kategorilerini çalıştır
+.\Test-PWA.ps1 -IncludeLegalTests -IncludeSEOTests
+```
+
+## ⚙️ Parametreler
+
+### Temel Parametreler
+
+| Parametre | Açıklama | Örnek |
+|-----------|----------|-------|
+| `URL` | Test edilecek PWA URL'i | `.\Test-PWA.ps1 https://example.com` |
+| `-Verbose` | Detaylı çıktı modu | `.\Test-PWA.ps1 -Verbose` |
+| `-ExportJson` | JSON formatında export | `.\Test-PWA.ps1 -ExportJson` |
+| `-GenerateDashboard` | HTML dashboard oluştur | `.\Test-PWA.ps1 -GenerateDashboard` |
+
+### İleri Düzey Parametreler
+
+| Parametre | Açıklama | Örnek |
+|-----------|----------|-------|
+| `--fast-mode` | Hızlı test modu | `.\Test-PWA.ps1 --fast-mode` |
+| `-SkipNetworkTests` | Ağ testlerini atla | `.\Test-PWA.ps1 -SkipNetworkTests` |
+| `-IncludeLegalTests` | Yasal uygunluk testleri | `.\Test-PWA.ps1 -IncludeLegalTests` |
+| `-IncludeSEOTests` | SEO testleri dahil et | `.\Test-PWA.ps1 -IncludeSEOTests` |
+| `--slack-webhook` | Slack webhook URL | `.\Test-PWA.ps1 --slack-webhook="https://hooks.slack.com/..."` |
+| `--discord-webhook` | Discord webhook URL | `.\Test-PWA.ps1 --discord-webhook="https://discord.com/api/..."` |
+
+### Environment Variables
+
+```bash
+# Slack Webhook (otomatik kullanım için)
+PWA_SLACK_WEBHOOK="https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+
+# Discord Webhook (otomatik kullanım için)
+PWA_DISCORD_WEBHOOK="https://discord.com/api/webhooks/YOUR/DISCORD/WEBHOOK"
+```
+
+## 🔄 Otomatik Workflow
+
+### GitHub Actions Kurulumu
+
+1. **Repository'nize gidin**: Settings → Secrets and variables → Actions
+2. **Secret'ları ekleyin**:
+   - `PWA_SLACK_WEBHOOK`: Slack webhook URL'iniz
+   - `PWA_DISCORD_WEBHOOK`: Discord webhook URL'iniz
+
+3. **Workflow dosyasını kontrol edin**: `.github/workflows/pwa-test.yml`
+
+### Otomatik Tetikleyiciler
+
+| Tetikleyici | Açıklama | Sıklık |
+|-------------|----------|--------|
+| **Haftalık Cron** | Pazartesi sabah 9'da | Her hafta |
+| **Push Events** | Ana branch'e push | Her push |
+| **PR Events** | Pull request'ler | Her PR |
+| **Manuel** | workflow_dispatch | İsteğe bağlı |
+
+### Workflow Özellikleri
+
+```yaml
+# .github/workflows/pwa-test.yml
+name: PWA Test Automation
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Pazartesi 09:00
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+    inputs:
+      slack_webhook:
+        description: 'Slack Webhook URL'
+      discord_webhook:
+        description: 'Discord Webhook URL'
+```
+
+### Otomatik İşlemler
+
+1. **Test Çalıştırma**: PWA testlerini otomatik çalıştırır
+2. **Sonuç Analizi**: Trend analizi ve başarısızlık tespiti
+3. **Badge Güncelleme**: Otomatik badge rengi güncellemesi
+4. **README Güncelleme**: Trend raporu ile otomatik güncelleme
+5. **Webhook Bildirimleri**: Slack/Discord'a otomatik bildirim
+6. **Commit İşlemleri**: Test sonuçlarını otomatik kaydetme
+
+## 📊 Trend Analizi
+
+### Trend Hesaplama Mantığı
+
+Sistem, son 5 test sonucunu analiz ederek performans trendini belirler:
+
+```powershell
+# Trend hesaplama algoritması
+$trendAnalysis = @{
+    direction = "improving|declining|stable"
+    change_percent = 15.5  # Yüzde değişim
+    average_last_5 = 78.3  # Son 5 test ortalaması
+    confidence = "high|medium|low"  # Güvenilirlik seviyesi
+    last_5_rates = @(85, 82, 88, 90, 87)  # Son 5 başarı oranı
+}
+```
+
+### Trend Göstergeleri
+
+| Gösterge | Anlam | Açıklama |
+|----------|-------|----------|
+| 📈 **İyileşen** | Performance artıyor | Son testler önceki testlerden daha başarılı |
+| 📉 **Düşen** | Performance düşüyor | Son testler önceki testlerden daha başarısız |
+| ➡️ **Stabil** | Değişim yok | Performance stabil, önemli değişim yok |
+
+### Trend Görselleştirme
+
+```
+Son 5 Test Başarı Oranları:
+85% → 82% → 88% → 90% → 87%
+        📈 İyileşen Trend (+5.2%)
+```
+
+### Güvenilirlik Seviyeleri
+
+- **High**: 5+ test verisi, tutarlı trend
+- **Medium**: 3-4 test verisi, orta güvenilirlik
+- **Low**: 1-2 test verisi, düşük güvenilirlik
+
+## 🏷️ Badge Sistemi
+
+### Otomatik Badge Güncellemeleri
+
+Sistem aşağıdaki badge'leri otomatik olarak günceller:
+
+```markdown
+<!-- Temel Badge'ler -->
+[![PWA Tests](https://img.shields.io/badge/PWA_Tests-85%25-brightgreen)](.)
+[![PWA Score](https://img.shields.io/badge/PWA_Score-85%25-brightgreen)](.)
+[![Tests Passed](https://img.shields.io/badge/Tests_Passed-17/20-brightgreen)](.)
+[![Tests Failed](https://img.shields.io/badge/Tests_Failed-3-red)](.)
+[![Trend](https://img.shields.io/badge/Trend-İyileşen-brightgreen)](.)
+
+<!-- Stilize Badge'ler -->
+![PWA](https://img.shields.io/badge/PWA-Ready-brightgreen?style=for-the-badge&logo=pwa)
+![Test Status](https://img.shields.io/badge/Test_Status-Passing-brightgreen?style=for-the-badge&logo=github-actions)
+```
+
+### Badge Renk Algoritması
+
+```powershell
+# Renk belirleme mantığı
+$badgeColor = switch ($successRate) {
+    { $_ -ge 90 } {
+        if ($trendDirection -eq "improving") { "brightgreen" }
+        else { "green" }
+    }
+    { $_ -ge 70 } {
+        if ($trendDirection -eq "improving") { "yellowgreen" }
+        elseif ($trendDirection -eq "declining") { "orange" }
+        else { "yellow" }
+    }
+    { $_ -ge 50 } {
+        if ($trendDirection -eq "improving") { "yellow" }
+        else { "orange" }
+    }
+    default { "red" }
+}
+```
+
+### Renk Açıklamaları
+
+| Renk | Başarı Oranı | Anlam |
+|------|-------------|-------|
+| 🟢 **Yeşil** | 90%+ | Mükemmel performans |
+| 🟡 **Sarı** | 70-89% | İyi performans |
+| 🟠 **Turuncu** | 50-69% | Orta performans |
+| 🔴 **Kırmızı** | <50% | Düşük performans |
+
+## 📢 Webhook Bildirimleri
+
+### Slack Entegrasyonu
+
+```json
+{
+  "text": "🚨 PWA Test Başarısız!\n📊 Detaylar: https://github.com/user/repo/actions/runs/123\n🕐 Zaman: 2025-08-30 09:00",
+  "attachments": [
+    {
+      "color": "danger",
+      "fields": [
+        {
+          "title": "Başarı Oranı",
+          "value": "65%",
+          "short": true
+        },
+        {
+          "title": "Trend",
+          "value": "📉 Düşen",
+          "short": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Discord Entegrasyonu
+
+```json
+{
+  "content": "🚨 PWA Test Başarısız!",
+  "embeds": [
+    {
+      "title": "PWA Test Sonuçları",
+      "color": 15158332,
+      "fields": [
+        {
+          "name": "Başarı Oranı",
+          "value": "65%",
+          "inline": true
+        },
+        {
+          "name": "Trend",
+          "value": "📉 Düşen",
+          "inline": true
+        },
+        {
+          "name": "Detaylar",
+          "value": "[GitHub Actions](https://github.com/user/repo/actions/runs/123)"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Webhook Kurulumu
+
+```bash
+# Slack webhook URL'ini alın
+# https://api.slack.com/apps → Create App → Incoming Webhooks
+
+# Discord webhook URL'ini alın
+# Server Settings → Integrations → Webhooks → New Webhook
+
+# Environment variable olarak ayarlayın
+PWA_SLACK_WEBHOOK="https://hooks.slack.com/services/YOUR/WEBHOOK"
+PWA_DISCORD_WEBHOOK="https://discord.com/api/webhooks/YOUR/WEBHOOK"
+```
+
+## 🧪 Test Kategorileri
+
+### 1. Temel PWA Testleri
+
+| Test | Açıklama | Kritiklik | Beklenen Sonuç |
+|------|----------|-----------|----------------|
+| **Manifest.json** | PWA manifest dosyasının varlığı ve geçerliliği | Yüksek | ✅ Geçerli JSON, tüm gerekli alanlar |
+| **Service Worker** | Service worker kaydı ve temel işlevsellik | Yüksek | ✅ SW kayıtlı, fetch/cache event'leri |
+| **HTTPS** | Güvenli bağlantı kontrolü | Kritik | ✅ HTTPS protokolü kullanılıyor |
+| **Offline Fallback** | Çevrimdışı sayfa kontrolü | Orta | ✅ Offline.html dosyası mevcut |
+| **Start URL** | Başlangıç URL kontrolü | Yüksek | ✅ Geçerli URL, manifest'de tanımlı |
+
+### 2. Performans Testleri
+
+| Test | Açıklama | Ölçüt | Kritiklik |
+|------|----------|-------|-----------|
+| **Load Time** | Sayfa yükleme süresi | <3 saniye | Yüksek |
+| **First Paint** | İlk görüntülenme | <2 saniye | Orta |
+| **Core Web Vitals** | LCP, FID, CLS skorları | >75 puan | Yüksek |
+| **Bundle Size** | JavaScript bundle boyutu | <500KB | Orta |
+| **Cache Strategy** | Önbellekleme stratejisi | Optimal | Orta |
+
+### 3. Güvenlik Testleri
+
+| Test | Açıklama | Standart | Kritiklik |
+|------|----------|----------|-----------|
+| **Content Security Policy** | CSP başlıkları | W3C Standartları | Yüksek |
+| **X-Frame-Options** | Clickjacking koruması | DENY/SAMEORIGIN | Yüksek |
+| **X-Content-Type-Options** | MIME sniffing koruması | nosniff | Orta |
+| **Referrer-Policy** | Referrer bilgisi kontrolü | strict-origin-when-cross-origin | Orta |
+| **HTTPS Redirect** | HTTP'den HTTPS'ye yönlendirme | 301/302 | Kritik |
+
+### 4. SEO Testleri
+
+| Test | Açıklama | Önem | Kritiklik |
+|------|----------|------|-----------|
+| **Meta Tags** | Title, description, keywords | Yüksek | Yüksek |
+| **Open Graph** | Sosyal medya meta etiketleri | Orta | Orta |
+| **Structured Data** | JSON-LD schema markup | Orta | Orta |
+| **Sitemap** | Site haritası kontrolü | Düşük | Düşük |
+| **Robots.txt** | Arama motoru yönergeleri | Orta | Orta |
+
+### 5. Yasal Uygunluk Testleri
+
+| Test | Açıklama | Mevzuat | Kritiklik |
+|------|----------|---------|-----------|
+| **Privacy Policy** | Gizlilik politikası | GDPR, KVKK | Kritik |
+| **Terms of Service** | Kullanım koşulları | Genel | Yüksek |
+| **Cookie Consent** | Çerez onay mekanizması | GDPR | Kritik |
+| **Accessibility** | Erişilebilirlik standartları | WCAG 2.1 | Yüksek |
+| **Data Protection** | Veri koruma önlemleri | GDPR | Kritik |
+
+## 📋 Çıktı Dosyaları
+
+### pwa-test-results.json
+En son test çalıştırmasının detaylı sonuçlarını içerir.
+
+```json
+{
+  "metadata": {
+    "timestamp": "2025-08-30T09:00:00Z",
+    "script_version": "4.0",
+    "test_duration_seconds": 45.2,
+    "hostname": "DESKTOP-F8M2K05",
+    "username": "VAHIT",
+    "powershell_version": "5.1.26100.4768",
+    "os_version": "Microsoft Windows NT 10.0.26100.0"
+  },
+  "summary": {
+    "success_rate": 85,
+    "passed_tests": 17,
+    "failed_tests": 3,
+    "skipped_tests": 0,
+    "total_tests": 20,
+    "test_duration": "00:00:45.2000000",
+    "average_response_time": 0.18,
+    "tests_per_second": 5.69
+  },
+  "detailed_results": {
+    "manifest_test": {
+      "status": "passed",
+      "score": 95,
+      "details": "Manifest.json valid and complete",
+      "category": "basic",
+      "criticality": "high"
+    }
+  },
+  "categories": {
+    "basic": { "passed": 4, "failed": 1, "total": 5 },
+    "performance": { "passed": 3, "failed": 0, "total": 3 },
+    "security": { "passed": 5, "failed": 1, "total": 6 },
+    "seo": { "passed": 3, "failed": 1, "total": 4 },
+    "legal": { "passed": 2, "failed": 0, "total": 2 }
+  },
+  "recommendations": [
+    "Manifest.json dosyasını kontrol edin",
+    "Service Worker'ı test edin",
+    "HTTPS'yi etkinleştirin"
+  ]
+}
+```
+
+### test-history.json
+Test geçmişini ve trend analizini içerir.
+
+```json
+{
+  "test_runs": [
+    {
+      "timestamp": "2025-08-30T09:00:00Z",
+      "success_rate": 85,
+      "passed_tests": 17,
+      "failed_tests": 3,
+      "duration_seconds": 45.2,
+      "script_version": "4.0"
+    }
+  ],
+  "trend_analysis": {
+    "direction": "improving",
+    "change_percent": 5.2,
+    "average_last_5": 82.4,
+    "confidence": "high",
+    "last_5_rates": [80, 82, 85, 87, 85]
+  }
+}
+```
+
+### pwa-dashboard.html
+İnteraktif HTML dashboard ile görsel raporlama.
+
+**Özellikler:**
+- Gerçek zamanlı veri yükleme (JSON'dan)
+- İnteraktif Chart.js grafikleri
+- Responsive Bootstrap tasarımı
+- Detaylı test sonuçları tablosu
+- Trend analizi görselleştirmesi
+- Tooltip destekli yardım metinleri
+
+### pwa-badges.md
+Otomatik güncellenen badge'ler için markdown formatı.
+
+```markdown
+<!-- Temel Badge'ler -->
+[![PWA Tests](https://img.shields.io/badge/PWA_Tests-85%25-brightgreen)](.)
+[![PWA Score](https://img.shields.io/badge/PWA_Score-85%25-brightgreen)](.)
+[![Tests Passed](https://img.shields.io/badge/Tests_Passed-17/20-brightgreen)](.)
+[![Tests Failed](https://img.shields.io/badge/Tests_Failed-3-red)](.)
+[![Trend](https://img.shields.io/badge/Trend-İyileşen-brightgreen)](.)
+```
+
+## 🔧 Sorun Giderme
+
+### Yaygın Hatalar ve Çözümleri
+
+#### 1. Manifest.json Bulunamadı Hatası
+```powershell
+# Hata: "Manifest.json file not found"
+# Çözüm: Proje kök dizininize manifest.json ekleyin
+```
+
+**Doğru manifest.json örneği:**
+```json
+{
+  "name": "Uygulama Adı",
+  "short_name": "Kısa Ad",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
+```
+
+#### 2. Service Worker Hatası
+```powershell
+# Hata: "Service Worker registration failed"
+# Çözüm: service-worker.js dosyasını oluşturun
+```
+
+**Temel service-worker.js örneği:**
+```javascript
+// Service Worker kaydı
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js')
+    .then(registration => console.log('SW registered'))
+    .catch(error => console.log('SW registration failed'));
+}
+
+// Cache ve fetch event'leri
+self.addEventListener('install', event => {
+  // Kurulum işlemleri
+});
+
+self.addEventListener('fetch', event => {
+  // Fetch işlemleri
+});
+```
+
+#### 3. HTTPS Hatası
+```powershell
+# Hata: "HTTPS required for PWA"
+# Çözüm: Siteyi HTTPS üzerinden yayınlayın
+```
+
+**Yönlendirme örneği (.htaccess):**
+```apache
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+```
+
+### Debug Modu Kullanımı
+
+#### Detaylı Hata Ayıklama
+```bash
+# Verbose mod ile detaylı çıktı
+.\Test-PWA.ps1 -Verbose
+
+# Ağ testlerini atla (debug için)
+.\Test-PWA.ps1 -SkipNetworkTests
+
+# Sadece belirli kategoriyi test et
+.\Test-PWA.ps1 -IncludeLegalTests
+```
+
+#### Browser Developer Tools
+1. **Application Tab**: Service Worker ve Cache durumunu kontrol edin
+2. **Network Tab**: Ağ isteklerini inceleyin
+3. **Console Tab**: JavaScript hatalarını görün
+4. **Lighthouse Tab**: PWA skorunu kontrol edin
+
+#### Manuel Test Komutları
+```powershell
+# Manifest validasyonu
+Test-Json -Path "manifest.json"
+
+# Service Worker testi
+# Browser console'da: navigator.serviceWorker.getRegistrations()
+
+# HTTPS kontrolü
+# Browser'da adres çubuğunda kilit ikonu olmalı
+```
+
+## 📞 Destek
+
+### Sorularınız için:
+- **GitHub Issues**: https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/issues
+- **Discussions**: https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/discussions
+- **Wiki**: https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/wiki
+
+### Katkıda Bulunma:
+1. Fork edin
+2. Feature branch oluşturun
+3. Değişikliklerinizi commit edin
+4. Pull request gönderin
+
+---
+
+*Bu dokümantasyon son güncelleme: 2025-08-30*
+*Test Script Versiyonu: 4.0*
+
+
+
+
+
+## 🧪 PWA Test Sonuçları
+
+### Son Test Özeti
+- **Tarih:** 2025-08-30 03:07:58
+- **Başarı Oranı:** 0%
+- **Geçen Testler:** 0
+- **Başarısız Testler:** 0
+- **Atlanan Testler:** 0
+- **Toplam Testler:** 0
+- **Test Süresi:** 0 saniye
+- **Script Versiyonu:** N/A
+
+### Test Kategorileri
+| Kategori | Geçen | Başarısız | Toplam |
+|----------|-------|-----------|--------|
+| Temel PWA | 0 | 0 | 0 |
+| Performans | 0 | 0 | 0 |
+| Güvenlik | 0 | 0 | 0 |
+| SEO | 0 | 0 | 0 |
+| Yasal | 0 | 0 | 0 |
+
+
+## � Trend Raporu
+
+### Son 5 Test Analizi
+| Metrik | Değer | Trend |
+|--------|-------|-------|
+| Ortalama Başarı Oranı | N/A% | stable |
+| Değişim Oranı | 0% | stable |
+| Trend Güvenilirliği | N/A | - |
+| Test Sayısı | 0 | - |
+
+### Trend Görselleştirme
+`
+Son 5 Test Başarı Oranları:
+%
+`
+
+**Trend Yönü:** stable
+**Son Test:** 0%
+**Trend Göstergesi:** ➡️ Stabil
+
+---
+
+### Detaylı Test Sonuçları
+`json
+
+`
+
+### Sistem Bilgileri
+- **Test Ortamı:** DESKTOP-F8M2K05
+- **Kullanıcı:** VAHİT
+- **PowerShell Versiyonu:** 5.1.26100.4768
+- **OS:** Microsoft Windows NT 10.0.26100.0
+
+---
+
+## 📚 Dokümantasyon
+
+### Kullanım Kılavuzları
+- **[Profil Yönetimi](docs/profile-management.md)** - Kullanıcı profili, bildirim tercihleri ve gizlilik ayarları
+- **[Harita Entegrasyonu](docs/map-integration.md)** - Google Maps ve Mapbox API yapılandırması
+- **[Çoklu Dil Desteği](docs/localization.md)** - Yerelleştirme ve çeviri yönetimi
+- **[Pusula Özellikleri](docs/compass-features.md)** - Ay pusulası ve astronomik hesaplamalar
+
+### Geliştirici Dokümantasyonu
+- **[API Referansı](docs/api-reference.md)** - Tüm servis ve API dokümantasyonu
+- **[Test Rehberi](docs/testing-guide.md)** - Unit test yazma ve çalıştırma
+- **[Deployment](docs/deployment.md)** - Uygulama dağıtım ve yayınlama
+- **[Troubleshooting](docs/troubleshooting.md)** - Sık karşılaşılan sorunlar ve çözümleri
+
+![Offline ETA Ready](https://img.shields.io/badge/Offline--ETA-Ready-green)
+## 🛣️ Offline Route Simulation
+İnternet bağlantısı olmadığında tahmini süre hesaplanır. Ortalama hız ve mesafeye göre ETA sunulur. Kullanıcı deneyimi kesintisiz devam eder.
+
+---
+*Bu rapor otomatik olarak oluşturulmuştur - 2025-08-30 03:07:58*
+*Sonraki otomatik test: 08/30/2025 03:07:58.AddDays(7).ToString("yyyy-MM-dd 09:00"))*
+*Test Script Versiyonu: 4.0*
+

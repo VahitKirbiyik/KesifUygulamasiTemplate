@@ -1,17 +1,1 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:maps="clr-namespace:Microsoft.Maui.Controls.Maps;assembly=Microsoft.Maui.Controls.Maps"
-             x:Class="KesifUygulamasiTemplate.Pages.RoutePage"
-             Title="Rota Oluştur">
-    <StackLayout Padding="20" Spacing="16">
-        <Label Text="Başlangıç Noktası (Lat,Lng)"/>
-        <Entry x:Name="StartEntry" Placeholder="Örn: 39.9,32.8"/>
-        <Label Text="Varış Noktası (Lat,Lng)"/>
-        <Entry x:Name="EndEntry" Placeholder="Örn: 41.0,29.0"/>
-        <Button Text="Rota Hesapla" Command="{Binding GetRouteCommand}"/>
-        <maps:Map x:Name="RouteMap" HeightRequest="300" IsShowingUser="True" />
-        <Label Text="{Binding ErrorMessage}" TextColor="Red" IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}" />
-        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
-    </StackLayout>
-</ContentPage>
+<?xml version="1.0" encoding="utf-8" ?>\n<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"\n             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"\n             xmlns:maps="clr-namespace:Microsoft.Maui.Controls.Maps;assembly=Microsoft.Maui.Controls.Maps"\n             x:Class="KesifUygulamasiTemplate.Pages.RoutePage"\n             Title="Rota Olustur">\n    <StackLayout Padding="20" Spacing="16">\n        <Label Text="Baslangic Noktasi (Lat,Lng)"/>\n        <Entry x:Name="StartEntry" Placeholder="Orn: 39.9,32.8"/>\n        <Label Text="Rota Türü:" />\n        <Picker ItemsSource="{Binding OptimizationTypes}"\n                SelectedItem="{Binding SelectedOptimizationTypeString, Mode=TwoWay}"\n                Title="Rota Türü Seçin" />\n\n        <Button Text="Rota Hesapla" Command="{Binding GetRouteCommand}"/>\n\n        <!-- Provider Badge -->\n        <Frame BackgroundColor="LightBlue" CornerRadius="8" Padding="8" Margin="0,8,0,0">\n            <Label Text="{Binding CurrentProvider, StringFormat='Provider: {0}'}"\n                   FontAttributes="Bold"\n                   HorizontalTextAlignment="Center" />\n        </Frame>\n\n        <maps:Map x:Name="RouteMap" HeightRequest="300" IsShowingUser="True" />\n\n        <!-- Route Points List -->\n        <ListView ItemsSource="{Binding RoutePoints}"\n                  HeightRequest="150"\n                  Margin="0,8,0,0">\n            <ListView.ItemTemplate>\n                <DataTemplate>\n                    <ViewCell>\n                        <StackLayout Orientation="Horizontal" Padding="8">\n                            <Label Text="{Binding Latitude, StringFormat='Lat: {0:F4}'}"\n                                   VerticalOptions="Center" />\n                            <Label Text="{Binding Longitude, StringFormat='Lng: {0:F4}'}"\n                                   VerticalOptions="Center"\n                                   Margin="16,0,0,0" />\n                        </StackLayout>\n                    </ViewCell>\n                </DataTemplate>\n            </ListView.ItemTemplate>\n        </ListView>\n        <Label Text="{Binding ErrorMessage}" TextColor="Red" IsVisible="{Binding ErrorMessage, Converter={StaticResource StringNotEmptyConverter}}" />\n        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />\n    </StackLayout>\n</ContentPage>\n

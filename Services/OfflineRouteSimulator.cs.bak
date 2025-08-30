@@ -1,0 +1,13 @@
+using System;
+
+namespace KesifUygulamasiTemplate.Services {
+    public static class OfflineRouteSimulator {
+        public static TimeSpan EstimateDuration(double distanceKm, double averageSpeedKmh = 50) {
+            if (averageSpeedKmh <= 0 || distanceKm <= 0)
+                return TimeSpan.Zero;
+
+            double hours = distanceKm / averageSpeedKmh;
+            return TimeSpan.FromHours(hours);
+        }
+    }
+}

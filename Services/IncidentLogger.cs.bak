@@ -1,0 +1,283 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Realtime incident logging servisi
+    /// CI/CD pipeline ile entegre edilmiş olay loglama sistemi
+    /// </summary>
+    public class IncidentLogger
+    {
+        private readonly ILogger<IncidentLogger> _logger;
+        private readonly string _logPath;
+        private readonly string _environment;
+        private readonly bool _enableRealtimeLogging;
+        private readonly int _maxLogFileSize;
+        private readonly int _retentionDays;
+
+        public IncidentLogger(ILogger<IncidentLogger> logger)
+        {
+            _logger = logger;
+            _logPath = Environment.GetEnvironmentVariable("INCIDENT_LOG_PATH") ?? "logs/incidents";
+            _environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+            _enableRealtimeLogging = bool.Parse(Environment.GetEnvironmentVariable("ENABLE_REALTIME_LOGGING") ?? "true");
+            _maxLogFileSize = int.Parse(Environment.GetEnvironmentVariable("MAX_LOG_FILE_SIZE_MB") ?? "100");
+            _retentionDays = int.Parse(Environment.GetEnvironmentVariable("LOG_RETENTION_DAYS") ?? "30");
+
+            // Log klasörünü oluştur
+            Directory.CreateDirectory(_logPath);
+        }
+
+        /// <summary>
+        /// Kritik olay loglama
+        /// </summary>
+        public async Task LogCritical(string message, string category = "General", Dictionary<string, object> metadata = null)
+        {
+            await Log("Critical", message, category, metadata);
+        }
+
+        /// <summary>
+        /// Hata olay loglama
+        /// </summary>
+        public async Task LogError(string message, string category = "General", Dictionary<string, object> metadata = null)
+        {
+            await Log("Error", message, category, metadata);
+        }
+
+        /// <summary>
+        /// Uyarı olay loglama
+        /// </summary>
+        public async Task LogWarning(string message, string category = "General", Dictionary<string, object> metadata = null)
+        {
+            await Log("Warning", message, category, metadata);
+        }
+
+        /// <summary>
+        /// Bilgi olay loglama
+        /// </summary>
+        public async Task LogInfo(string message, string category = "General", Dictionary<string, object> metadata = null)
+        {
+            await Log("Info", message, category, metadata);
+        }
+
+        /// <summary>
+        /// Genel olay loglama
+        /// </summary>
+        public async Task Log(string level, string message, string category = "General", Dictionary<string, object> metadata = null)
+        {
+            try
+            {
+                var incident = new IncidentLog
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Level = level,
+                    Message = message,
+                    Category = category,
+                    Timestamp = DateTime.UtcNow,
+                    Environment = _environment,
+                    Metadata = metadata ?? new Dictionary<string, object>(),
+                    Source = "KesifUygulamasiTemplate"
+                };
+
+                // JSON formatında log yaz
+                string logEntry = JsonSerializer.Serialize(incident, new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+
+                string fileName = GetLogFileName();
+                string filePath = Path.Combine(_logPath, fileName);
+
+                // Dosya boyutu kontrolü
+                if (File.Exists(filePath) && new FileInfo(filePath).Length > _maxLogFileSize * 1024 * 1024)
+                {
+                    // Yeni dosya oluştur
+                    fileName = GetLogFileName(true);
+                    filePath = Path.Combine(_logPath, fileName);
+                }
+
+                await File.AppendAllTextAsync(filePath, logEntry + Environment.NewLine);
+
+                // Realtime logging aktifse console'a da yaz
+                if (_enableRealtimeLogging)
+                {
+                    string consoleMessage = $"[{incident.Timestamp:yyyy-MM-dd HH:mm:ss}] {level.ToUpper()}: {message}";
+                    switch (level.ToLower())
+                    {
+                        case "critical":
+                        case "error":
+                            _logger.LogError(consoleMessage);
+                            break;
+                        case "warning":
+                            _logger.LogWarning(consoleMessage);
+                            break;
+                        default:
+                            _logger.LogInformation(consoleMessage);
+                            break;
+                    }
+                }
+
+                // Eski log dosyalarını temizle
+                await CleanupOldLogs();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Incident logging failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Log dosyalarını getir
+        /// </summary>
+        public async Task<List<IncidentLog>> GetLogs(DateTime? startDate = null, DateTime? endDate = null, string level = null)
+        {
+            var logs = new List<IncidentLog>();
+
+            try
+            {
+                var logFiles = Directory.GetFiles(_logPath, "incident-*.json")
+                    .OrderByDescending(f => f)
+                    .Take(10); // Son 10 dosyayı al
+
+                foreach (var file in logFiles)
+                {
+                    var content = await File.ReadAllTextAsync(file);
+                    var lines = content.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+
+                    foreach (var line in lines)
+                    {
+                        try
+                        {
+                            var log = JsonSerializer.Deserialize<IncidentLog>(line);
+                            if (log != null)
+                            {
+                                bool includeLog = true;
+
+                                if (startDate.HasValue && log.Timestamp < startDate.Value)
+                                    includeLog = false;
+                                if (endDate.HasValue && log.Timestamp > endDate.Value)
+                                    includeLog = false;
+                                if (!string.IsNullOrEmpty(level) && !log.Level.Equals(level, StringComparison.OrdinalIgnoreCase))
+                                    includeLog = false;
+
+                                if (includeLog)
+                                    logs.Add(log);
+                            }
+                        }
+                        catch
+                        {
+                            // Geçersiz JSON satırını atla
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to read incident logs: {ex.Message}");
+            }
+
+            return logs.OrderByDescending(l => l.Timestamp).ToList();
+        }
+
+        /// <summary>
+        /// Log istatistiklerini getir
+        /// </summary>
+        public async Task<IncidentStats> GetStats(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var logs = await GetLogs(startDate, endDate);
+
+            return new IncidentStats
+            {
+                TotalIncidents = logs.Count,
+                CriticalCount = logs.Count(l => l.Level.Equals("Critical", StringComparison.OrdinalIgnoreCase)),
+                ErrorCount = logs.Count(l => l.Level.Equals("Error", StringComparison.OrdinalIgnoreCase)),
+                WarningCount = logs.Count(l => l.Level.Equals("Warning", StringComparison.OrdinalIgnoreCase)),
+                InfoCount = logs.Count(l => l.Level.Equals("Info", StringComparison.OrdinalIgnoreCase)),
+                Categories = logs.GroupBy(l => l.Category)
+                    .ToDictionary(g => g.Key, g => g.Count()),
+                TimeRange = new TimeRange
+                {
+                    Start = logs.LastOrDefault()?.Timestamp ?? DateTime.MinValue,
+                    End = logs.FirstOrDefault()?.Timestamp ?? DateTime.MaxValue
+                }
+            };
+        }
+
+        private string GetLogFileName(bool forceNew = false)
+        {
+            string dateStr = DateTime.UtcNow.ToString("yyyy-MM-dd");
+            string baseName = $"incident-{dateStr}";
+
+            if (!forceNew)
+            {
+                // Mevcut dosyayı kontrol et
+                string existingFile = Directory.GetFiles(_logPath, $"{baseName}*.json")
+                    .OrderByDescending(f => f)
+                    .FirstOrDefault();
+
+                if (existingFile != null)
+                {
+                    return Path.GetFileName(existingFile);
+                }
+            }
+
+            // Yeni dosya oluştur
+            return $"{baseName}-{DateTime.UtcNow.ToString("HH-mm-ss")}.json";
+        }
+
+        private async Task CleanupOldLogs()
+        {
+            try
+            {
+                var cutoffDate = DateTime.UtcNow.AddDays(-_retentionDays);
+                var oldFiles = Directory.GetFiles(_logPath, "incident-*.json")
+                    .Where(f => File.GetCreationTimeUtc(f) < cutoffDate);
+
+                foreach (var file in oldFiles)
+                {
+                    File.Delete(file);
+                    _logger.LogInformation($"Deleted old incident log: {Path.GetFileName(file)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to cleanup old logs: {ex.Message}");
+            }
+        }
+    }
+
+    public class IncidentLog
+    {
+        public string Id { get; set; }
+        public string Level { get; set; }
+        public string Message { get; set; }
+        public string Category { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string Environment { get; set; }
+        public Dictionary<string, object> Metadata { get; set; }
+        public string Source { get; set; }
+    }
+
+    public class IncidentStats
+    {
+        public int TotalIncidents { get; set; }
+        public int CriticalCount { get; set; }
+        public int ErrorCount { get; set; }
+        public int WarningCount { get; set; }
+        public int InfoCount { get; set; }
+        public Dictionary<string, int> Categories { get; set; }
+        public TimeRange TimeRange { get; set; }
+    }
+
+    public class TimeRange
+    {
+        public DateTime Start { get; set; }
+        public DateTime End { get; set; }
+    }
+}

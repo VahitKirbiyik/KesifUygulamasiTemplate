@@ -1,0 +1,187 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using KesifUygulamasiTemplate.Services;
+using System.Text.Json;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// İnternet bağlantısı olmadığında kullanıcı geri bildirimlerini saklar ve bağlantı geri geldiğinde gönderir
+    /// </summary>
+    public class OfflineFeedbackService
+    {
+        private readonly ILogger<OfflineFeedbackService> _logger;
+        private readonly ConnectivityService _connectivityService;
+        private readonly HttpClient _httpClient;
+        private const string FEEDBACK_STORAGE_KEY = "offline_feedbacks";
+        private const string FEEDBACK_API_URL = "https://api.example.com/feedback"; // Gerçek API URL'i buraya koyun
+
+        public OfflineFeedbackService(
+            ILogger<OfflineFeedbackService> logger,
+            ConnectivityService connectivityService,
+            HttpClient httpClient)
+        {
+            _logger = logger;
+            _connectivityService = connectivityService;
+            _httpClient = httpClient;
+        }
+
+        /// <summary>
+        /// Kullanıcı geri bildirimini gönderir veya offline ise saklar
+        /// </summary>
+        public async Task<bool> SubmitFeedbackAsync(string userId, string feedback, string category = "general")
+        {
+            var feedbackData = new
+            {
+                UserId = userId,
+                Feedback = feedback,
+                Category = category,
+                Timestamp = DateTime.UtcNow,
+                IsOffline = !_connectivityService.IsConnected
+            };
+
+            if (_connectivityService.IsConnected)
+            {
+                // İnternet varsa doğrudan gönder
+                return await SendFeedbackToServerAsync(feedbackData);
+            }
+            else
+            {
+                // Offline ise sakla
+                await StoreFeedbackLocallyAsync(feedbackData);
+                _logger.LogInformation("Geri bildirim offline modda saklandı. Bağlantı sağlandığında gönderilecek.");
+                return true; // Kullanıcıya başarılı gibi göster
+            }
+        }
+
+        /// <summary>
+        /// Saklanan geri bildirimleri sunucuya gönderir
+        /// </summary>
+        public async Task<int> SyncOfflineFeedbacksAsync()
+        {
+            if (!_connectivityService.IsConnected)
+            {
+                _logger.LogWarning("İnternet bağlantısı yok, senkronizasyon yapılamıyor.");
+                return 0;
+            }
+
+            var feedbacks = await GetStoredFeedbacksAsync();
+            int sentCount = 0;
+
+            foreach (var feedback in feedbacks)
+            {
+                if (await SendFeedbackToServerAsync(feedback))
+                {
+                    await RemoveFeedbackFromStorageAsync(feedback);
+                    sentCount++;
+                }
+            }
+
+            if (sentCount > 0)
+            {
+                _logger.LogInformation($"{sentCount} adet offline geri bildirim başarıyla gönderildi.");
+            }
+
+            return sentCount;
+        }
+
+        /// <summary>
+        /// Geri bildirimi sunucuya gönderir
+        /// </summary>
+        private async Task<bool> SendFeedbackToServerAsync(object feedbackData)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(feedbackData);
+                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PostAsync(FEEDBACK_API_URL, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Geri bildirim başarıyla gönderildi.");
+                    return true;
+                }
+                else
+                {
+                    _logger.LogError($"Geri bildirim gönderme hatası: {response.StatusCode}");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Geri bildirim gönderme hatası: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Geri bildirimi yerel olarak saklar
+        /// </summary>
+        private async Task StoreFeedbackLocallyAsync(object feedbackData)
+        {
+            try
+            {
+                var existingFeedbacks = await GetStoredFeedbacksAsync();
+                existingFeedbacks.Add(feedbackData);
+
+                var json = JsonSerializer.Serialize(existingFeedbacks);
+                await SecureStorage.SetAsync(FEEDBACK_STORAGE_KEY, json);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Geri bildirim saklama hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Saklanan geri bildirimleri alır
+        /// </summary>
+        private async Task<List<object>> GetStoredFeedbacksAsync()
+        {
+            try
+            {
+                var json = await SecureStorage.GetAsync(FEEDBACK_STORAGE_KEY);
+                if (string.IsNullOrEmpty(json))
+                    return new List<object>();
+
+                return JsonSerializer.Deserialize<List<object>>(json) ?? new List<object>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Saklanan geri bildirimleri alma hatası: {ex.Message}");
+                return new List<object>();
+            }
+        }
+
+        /// <summary>
+        /// Gönderilen geri bildirimi depodan kaldırır
+        /// </summary>
+        private async Task RemoveFeedbackFromStorageAsync(object feedbackData)
+        {
+            try
+            {
+                var feedbacks = await GetStoredFeedbacksAsync();
+                feedbacks.Remove(feedbackData);
+
+                var json = JsonSerializer.Serialize(feedbacks);
+                await SecureStorage.SetAsync(FEEDBACK_STORAGE_KEY, json);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Geri bildirim silme hatası: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Saklanan geri bildirim sayısını döndürür
+        /// </summary>
+        public async Task<int> GetPendingFeedbackCountAsync()
+        {
+            var feedbacks = await GetStoredFeedbacksAsync();
+            return feedbacks.Count;
+        }
+    }
+}

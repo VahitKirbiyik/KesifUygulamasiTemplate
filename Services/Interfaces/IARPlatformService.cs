@@ -1,8 +1,1 @@
-namespace KesifUygulamasiTemplate.Services.Interfaces
-{
-    public interface IARPlatformService
-    {
-        void StartARSession();
-        void StopARSession();
-    }
-}
+namespace KesifUygulamasiTemplate.Services.Interfaces\n{\n    public interface IARPlatformService\n    {\n        void StartARSession();\n        void StopARSession();\n    }\n}\n

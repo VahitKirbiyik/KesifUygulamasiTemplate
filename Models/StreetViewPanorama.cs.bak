@@ -1,0 +1,117 @@
+using System;
+using System.Collections.Generic;
+
+namespace KesifUygulamasiTemplate.Models
+{
+    /// <summary>
+    /// Google Street View panorama model
+    /// </summary>
+    public class StreetViewPanorama
+    {
+        /// <summary>
+        /// Unique identifier for the panorama
+        /// </summary>
+        public string Id { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Latitude coordinate
+        /// </summary>
+        public double Latitude { get; set; }
+
+        /// <summary>
+        /// Longitude coordinate
+        /// </summary>
+        public double Longitude { get; set; }
+
+        /// <summary>
+        /// Panorama image URL
+        /// </summary>
+        public string ImageUrl { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Panorama description
+        /// </summary>
+        public string Description { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Camera heading in degrees (0 = North, 90 = East)
+        /// </summary>
+        public double Heading { get; set; }
+
+        /// <summary>
+        /// Camera pitch in degrees (-90 to 90)
+        /// </summary>
+        public double Pitch { get; set; }
+
+        /// <summary>
+        /// Copyright information
+        /// </summary>
+        public string Copyright { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Date when the panorama was captured
+        /// </summary>
+        public DateTime? DateCaptured { get; set; }
+
+        /// <summary>
+        /// List of connected panoramas
+        /// </summary>
+        public List<StreetViewLink> Links { get; set; } = new List<StreetViewLink>();
+
+        /// <summary>
+        /// Creates a new StreetViewPanorama instance
+        /// </summary>
+        public StreetViewPanorama() { }
+
+        /// <summary>
+        /// Creates a new StreetViewPanorama instance with basic information
+        /// </summary>
+        public StreetViewPanorama(string id, double latitude, double longitude, string imageUrl, string description)
+        {
+            Id = id;
+            Latitude = latitude;
+            Longitude = longitude;
+            ImageUrl = imageUrl;
+            Description = description;
+        }
+
+        /// <summary>
+        /// Gets the distance to another panorama in meters
+        /// </summary>
+        public double GetDistanceTo(StreetViewPanorama other)
+        {
+            if (other == null) return 0;
+
+            const double EarthRadius = 6371000; // meters
+            var lat1 = Latitude * Math.PI / 180;
+            var lat2 = other.Latitude * Math.PI / 180;
+            var deltaLat = (other.Latitude - Latitude) * Math.PI / 180;
+            var deltaLon = (other.Longitude - Longitude) * Math.PI / 180;
+
+            var a = Math.Sin(deltaLat / 2) * Math.Sin(deltaLat / 2) +
+                    Math.Cos(lat1) * Math.Cos(lat2) *
+                    Math.Sin(deltaLon / 2) * Math.Sin(deltaLon / 2);
+            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+
+            return EarthRadius * c;
+        }
+
+        /// <summary>
+        /// Gets the bearing to another panorama in degrees
+        /// </summary>
+        public double GetBearingTo(StreetViewPanorama other)
+        {
+            if (other == null) return 0;
+
+            var lat1 = Latitude * Math.PI / 180;
+            var lat2 = other.Latitude * Math.PI / 180;
+            var deltaLon = (other.Longitude - Longitude) * Math.PI / 180;
+
+            var y = Math.Sin(deltaLon) * Math.Cos(lat2);
+            var x = Math.Cos(lat1) * Math.Sin(lat2) - Math.Sin(lat1) * Math.Cos(lat2) * Math.Cos(deltaLon);
+
+            var bearing = Math.Atan2(y, x) * 180 / Math.PI;
+            return (bearing + 360) % 360;
+        }
+    }
+}

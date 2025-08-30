@@ -7,16 +7,16 @@
     <value>2.0</value>
   </resheader>
   <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms, ...</value>
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, ...</value>
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Hello" xml:space="preserve">
     <value>Merhaba (TR)</value>
   </data>
   <data name="Exit" xml:space="preserve">
-    <value>Çıkı (TR)</value>
+    <value>Çıkış (TR)</value>
   </data>
   <data name="Settings" xml:space="preserve">
     <value>Ayarlar (TR)</value>
@@ -34,13 +34,13 @@
     <value>AR Navigasyon (TR)</value>
   </data>
   <data name="OfflineMap" xml:space="preserve">
-    <value>Çevrimdıı Harita (TR)</value>
+    <value>Çevrimdışı Harita (TR)</value>
   </data>
   <data name="RouteSelection" xml:space="preserve">
     <value>Rota Seçimi (TR)</value>
   </data>
   <data name="DestinationInput" xml:space="preserve">
-    <value>Hedef Girii (TR)</value>
+    <value>Hedef Girişi (TR)</value>
   </data>
   <data name="MoonCompass" xml:space="preserve">
     <value>Ay Pusulası (TR)</value>
@@ -52,19 +52,19 @@
     <value>POI Gösterimi (TR)</value>
   </data>
   <data name="TransportMode" xml:space="preserve">
-    <value>Ulaım Modu (TR)</value>
+    <value>Ulaşım Modu (TR)</value>
   </data>
   <data name="RealTimeTraffic" xml:space="preserve">
     <value>Anlık Trafik (TR)</value>
   </data>
   <data name="Donate" xml:space="preserve">
-    <value>Baı Yap (TR)</value>
+    <value>Bağış Yap (TR)</value>
   </data>
   <data name="AR" xml:space="preserve">
-    <value>Artırılmı Gerçeklik (TR)</value>
+    <value>Artırılmış Gerçeklik (TR)</value>
   </data>
   <data name="Offline Map" xml:space="preserve">
-    <value>Çevrimdıı Harita (TR)</value>
+    <value>Çevrimdışı Harita (TR)</value>
   </data>
   <data name="Voice Navigation" xml:space="preserve">
     <value>Sesli Navigasyon (TR)</value>
@@ -72,6 +72,10 @@
   <data name="TestKey" xml:space="preserve">
     <value>Test Anahtarı (TR)</value>
   </data>
+  <data name="OfflineETA" xml:space="preserve">
+    <value>Çevrimdışı ETA: {0} dakika</value>
+  </data>
+  <data name="FeedbackSavedOffline" xml:space="preserve">
+    <value>Geri bildiriminiz kaydedildi, bağlantı sağlandığında gönderilecek</value>
+  </data>
 </root>
-
-

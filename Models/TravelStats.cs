@@ -1,11 +1,1 @@
-using System;
-
-namespace KesifUygulamasiTemplate.Models
-{
-    public class TravelStats
-    {
-        public int TotalDistance { get; set; }
-        public int TotalTrips { get; set; }
-        public TimeSpan TotalTime { get; set; }
-    }
-}
+using System;\n\nnamespace KesifUygulamasiTemplate.Models\n{\n    public class TravelStats\n    {\n        public int TotalDistance { get; set; }\n        public int TotalTrips { get; set; }\n        public TimeSpan TotalTime { get; set; }\n    }\n}\n

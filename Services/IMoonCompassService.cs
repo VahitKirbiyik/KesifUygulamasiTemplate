@@ -1,10 +1,1 @@
-using System.Threading.Tasks;
-using KesifUygulamasiTemplate.Models;
-
-namespace KesifUygulamasiTemplate.Services
-{
-    public interface IMoonCompassService
-    {
-        Task<MoonData> GetMoonDataAsync(double latitude, double longitude);
-    }
-}
+using System.Threading.Tasks;\nusing KesifUygulamasiTemplate.Models;\n\nnamespace KesifUygulamasiTemplate.Services\n{\n    public interface IMoonCompassService\n    {\n        Task<MoonData> GetMoonDataAsync(double latitude, double longitude);\n    }\n}\n

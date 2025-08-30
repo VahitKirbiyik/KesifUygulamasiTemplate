@@ -1,0 +1,259 @@
+using System;
+using System.Threading.Tasks;
+using System.Windows.Input;
+using KesifUygulamasiTemplate.Services.Interfaces;
+using KesifUygulamasiTemplate.ViewModels.Base;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.ApplicationModel;
+using KesifUygulamasiTemplate.UI;
+using KesifUygulamasiTemplate.Models;
+using KesifUygulamasiTemplate.Services;
+
+namespace KesifUygulamasiTemplate.ViewModels
+{
+    public class SettingsViewModel : BaseViewModel
+    {
+        private readonly KesifUygulamasiTemplate.Services.Interfaces.IPreferencesService _preferencesService;
+        private readonly ILocationPrivacyService _locationPrivacyService;
+
+        private bool _isDarkMode;
+        private string _language = "en";
+        private bool _isOfflineMode;
+        private Models.AppTheme _selectedTheme;
+        private bool _isPushEnabled;
+        private bool _isVoiceGuidanceEnabled;
+        private string _selectedMapProvider = "Google";
+        private string _selectedRouteOptimization = "Fastest";
+
+        public bool IsDarkMode
+        {
+            get => _isDarkMode;
+            set => SetProperty(ref _isDarkMode, value);
+        }
+
+        public string Language
+        {
+            get => _language;
+            set => SetProperty(ref _language, value);
+        }
+
+        public new bool IsOfflineMode
+        {
+            get => _isOfflineMode;
+            set => SetProperty(ref _isOfflineMode, value);
+        }
+
+        public Models.AppTheme SelectedTheme
+        {
+            get => _selectedTheme;
+            set => SetProperty(ref _selectedTheme, value);
+        }
+
+        public bool IsPushEnabled
+        {
+            get => _isPushEnabled;
+            set => SetProperty(ref _isPushEnabled, value);
+        }
+
+        public bool IsVoiceGuidanceEnabled
+        {
+            get => _isVoiceGuidanceEnabled;
+            set => SetProperty(ref _isVoiceGuidanceEnabled, value);
+        }
+
+        public string SelectedMapProvider
+        {
+            get => _selectedMapProvider;
+            set => SetProperty(ref _selectedMapProvider, value);
+        }
+
+        public string SelectedRouteOptimization
+        {
+            get => _selectedRouteOptimization;
+            set => SetProperty(ref _selectedRouteOptimization, value);
+        }
+
+        public string[] MapProviders => new[] { "Google", "Mapbox", "HERE", "Offline" };
+        public string[] RouteOptimizationTypes => new[] { "Fastest", "Shortest", "Eco", "Safe" };
+        public string[] ThemeOptions => new[] { "Light", "Dark", "System" };
+
+        public bool IsTurkishSelected => Language == "tr";
+        public bool IsEnglishSelected => Language == "en";
+
+        public ICommand SetTurkishCommand { get; }
+        public ICommand SetEnglishCommand { get; }
+        public ICommand SetOfflineModeCommand { get; }
+        public ICommand RequestLocationPermissionCommand { get; }
+        public ICommand CheckLocationPermissionCommand { get; }
+        public ICommand ToggleOfflineModeCommand { get; }
+        public ICommand PayPalDonationCommand { get; }
+        public ICommand StripeDonationCommand { get; }
+        public ICommand ToggleVoiceGuidanceCommand { get; }
+        public ICommand SetLightThemeCommand { get; }
+        public ICommand SetDarkThemeCommand { get; }
+        public ICommand SetCustomThemeCommand { get; }
+        public ICommand GoToProfileCommand { get; }
+
+        public SettingsViewModel(KesifUygulamasiTemplate.Services.Interfaces.IPreferencesService preferencesService, ILocationPrivacyService locationPrivacyService)
+        {
+            _preferencesService = preferencesService ?? throw new ArgumentNullException(nameof(preferencesService));
+            _locationPrivacyService = locationPrivacyService ?? throw new ArgumentNullException(nameof(locationPrivacyService));
+
+            SetTurkishCommand = new Command(() => SetLanguage("tr"));
+            SetEnglishCommand = new Command(() => SetLanguage("en"));
+            SetOfflineModeCommand = new Command<bool>(SetOfflineMode);
+            RequestLocationPermissionCommand = new Command(async () => await RequestLocationPermissionAsync());
+            CheckLocationPermissionCommand = new Command(async () =>
+            {
+                var status = await CheckLocationPermissionAsync();
+                // Handle the status if needed
+            });
+            ToggleOfflineModeCommand = new Command(async () => await ToggleOfflineModeAsync());
+            PayPalDonationCommand = new Command(async () => await OpenPayPalDonationAsync());
+            StripeDonationCommand = new Command(async () => await OpenStripeDonationAsync());
+            ToggleVoiceGuidanceCommand = new Command(async () => await ToggleVoiceGuidanceAsync());
+            SetLightThemeCommand = new Command(() => SetTheme(Models.AppTheme.Light));
+            SetDarkThemeCommand = new Command(() => SetTheme(Models.AppTheme.Dark));
+            SetCustomThemeCommand = new Command(() => SetTheme(Models.AppTheme.Custom));
+            GoToProfileCommand = new Command(async () => await GoToProfileAsync());
+        }
+
+        private void SetLanguage(string language)
+        {
+            Language = language;
+            OnPropertyChanged(nameof(IsTurkishSelected));
+            OnPropertyChanged(nameof(IsEnglishSelected));
+        }
+
+        public async void SetOfflineMode(bool isOffline)
+        {
+            try
+            {
+                if (isOffline)
+                {
+                    await OfflineModeService.Instance.EnableOfflineModeAsync();
+                }
+                else
+                {
+                    await OfflineModeService.Instance.DisableOfflineModeAsync();
+                }
+
+                IsOfflineMode = OfflineModeService.Instance.IsOfflineMode;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to set offline mode: {ex.Message}");
+            }
+        }
+
+        public async Task RequestLocationPermissionAsync()
+        {
+            try
+            {
+                var result = await _locationPrivacyService.RequestLocationPermissionWithPrivacyInfoAsync();
+                if (!result)
+                {
+                    if (Application.Current?.MainPage != null)
+                    {
+                        await Application.Current.MainPage.DisplayAlert("Permission Denied", "Location permission is required for this feature.", "OK");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (Application.Current?.MainPage != null)
+                {
+                    await Application.Current.MainPage.DisplayAlert("Error", $"Failed to request location permission: {ex.Message}", "OK");
+                }
+            }
+        }
+
+        public async Task<string> CheckLocationPermissionAsync()
+        {
+            try
+            {
+                // Implementation for checking location permission
+                // For now, return a mock status
+                return "Permission status checked";
+            }
+            catch (Exception ex)
+            {
+                if (Application.Current?.MainPage != null)
+                {
+                    await Application.Current.MainPage.DisplayAlert("Error", $"Failed to check location permission: {ex.Message}", "OK");
+                }
+                return "Error checking permission";
+            }
+        }
+
+        private async Task ToggleOfflineModeAsync()
+        {
+            try
+            {
+                if (IsOfflineMode)
+                {
+                    await OfflineModeService.Instance.DisableOfflineModeAsync();
+                }
+                else
+                {
+                    await OfflineModeService.Instance.EnableOfflineModeAsync();
+                }
+
+                IsOfflineMode = OfflineModeService.Instance.IsOfflineMode;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to toggle offline mode: {ex.Message}");
+            }
+        }
+
+        private async Task OpenPayPalDonationAsync()
+        {
+            // Open PayPal donation link
+            if (Application.Current?.MainPage != null)
+            {
+                await Application.Current.MainPage.DisplayAlert("PayPal Donation", "Opening PayPal donation page...", "OK");
+            }
+        }
+
+        private async Task OpenStripeDonationAsync()
+        {
+            // Open Stripe donation link
+            if (Application.Current?.MainPage != null)
+            {
+                await Application.Current.MainPage.DisplayAlert("Stripe Donation", "Opening Stripe donation page...", "OK");
+            }
+        }
+
+        private Task ToggleVoiceGuidanceAsync()
+        {
+            IsVoiceGuidanceEnabled = !IsVoiceGuidanceEnabled;
+            return Task.CompletedTask;
+        }
+
+        private void SetTheme(Models.AppTheme theme)
+        {
+            SelectedTheme = theme;
+
+            // Set the application theme
+            var app = Application.Current;
+            if (app != null)
+            {
+                app.UserAppTheme = theme switch
+                {
+                    Models.AppTheme.Dark => Microsoft.Maui.ApplicationModel.AppTheme.Dark,
+                    Models.AppTheme.Light => Microsoft.Maui.ApplicationModel.AppTheme.Light,
+                    _ => Microsoft.Maui.ApplicationModel.AppTheme.Light
+                };
+            }
+
+            // Update IsDarkMode property
+            IsDarkMode = theme == Models.AppTheme.Dark;
+        }
+
+        private async Task GoToProfileAsync()
+        {
+            await Shell.Current.GoToAsync("//ProfilePage");
+        }
+    }
+}

@@ -1,0 +1,23 @@
+{
+  "settings": {
+    "documentationRules": {
+      "documentInterfaces": false,
+      "documentInternalElements": false,
+      "documentPrivateElements": false,
+      "documentExposedElements": true,
+      "fileNamingConvention": "stylecop"
+    },
+    "maintainabilityRules": {
+      "maxLineLength": 120
+    },
+    "orderingRules": {
+      "usingDirectivesPlacement": "outsideNamespace"
+    },
+    "namingRules": {
+      "allowCommonHungarianPrefixes": true
+    },
+    "readabilityRules": {
+      "allowBuiltInTypeAliases": true
+    }
+  }
+}

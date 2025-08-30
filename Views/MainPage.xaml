@@ -1,11 +1,1 @@
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="KesifUygulamasiTemplate.Views.MainPage"
-             Title="Ollama Chat">
-
-    <VerticalStackLayout Padding="20">
-        <Entry x:Name="PromptEntry" Placeholder="Prompt yazın..." />
-        <Button Text="Gönder" Clicked="OnSendClicked"/>
-        <Editor x:Name="OutputBox" HeightRequest="300" IsReadOnly="True"/>
-    </VerticalStackLayout>
-</ContentPage>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"\n             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"\n             x:Class="KesifUygulamasiTemplate.Views.MainPage"\n             Title="Ollama Chat">\n\n    <VerticalStackLayout Padding="20">\n        <Entry x:Name="PromptEntry" Placeholder="Prompt yazin..." />\n        <Button Text="Gonder" Clicked="OnSendClicked"/>\n        <Editor x:Name="OutputBox" HeightRequest="300" IsReadOnly="True"/>\n    </VerticalStackLayout>\n</ContentPage>\n

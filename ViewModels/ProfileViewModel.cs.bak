@@ -1,0 +1,154 @@
+using System;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using System.Windows.Input;
+using KesifUygulamasiTemplate.Services.Interfaces;
+using KesifUygulamasiTemplate.ViewModels.Base;
+using Microsoft.Maui.Controls;
+
+namespace KesifUygulamasiTemplate.ViewModels
+{
+    public class ProfileViewModel : BaseViewModel
+    {
+        private readonly IPreferencesService _preferencesService;
+
+        private string _fullName;
+        private string _email;
+        private string _phone;
+        private bool _isPushNotificationsEnabled;
+        private bool _isEmailNotificationsEnabled;
+        private bool _isSMSNotificationsEnabled;
+        private bool _isLocationTrackingEnabled;
+        private bool _isDataSharingEnabled;
+
+        public string FullName
+        {
+            get => _fullName;
+            set => SetProperty(ref _fullName, value);
+        }
+
+        public string Email
+        {
+            get => _email;
+            set => SetProperty(ref _email, value);
+        }
+
+        public string Phone
+        {
+            get => _phone;
+            set => SetProperty(ref _phone, value);
+        }
+
+        public bool IsPushNotificationsEnabled
+        {
+            get => _isPushNotificationsEnabled;
+            set => SetProperty(ref _isPushNotificationsEnabled, value);
+        }
+
+        public bool IsEmailNotificationsEnabled
+        {
+            get => _isEmailNotificationsEnabled;
+            set => SetProperty(ref _isEmailNotificationsEnabled, value);
+        }
+
+        public bool IsSMSNotificationsEnabled
+        {
+            get => _isSMSNotificationsEnabled;
+            set => SetProperty(ref _isSMSNotificationsEnabled, value);
+        }
+
+        public bool IsLocationTrackingEnabled
+        {
+            get => _isLocationTrackingEnabled;
+            set => SetProperty(ref _isLocationTrackingEnabled, value);
+        }
+
+        public bool IsDataSharingEnabled
+        {
+            get => _isDataSharingEnabled;
+            set => SetProperty(ref _isDataSharingEnabled, value);
+        }
+
+        public ICommand SaveProfileCommand { get; }
+        public ICommand CancelCommand { get; }
+
+        public ProfileViewModel(KesifUygulamasiTemplate.Services.Interfaces.IPreferencesService preferencesService)
+        {
+            _preferencesService = preferencesService;
+
+            SaveProfileCommand = new Command(async () => await SaveProfileAsync());
+            CancelCommand = new Command(async () => await CancelAsync());
+
+            LoadProfileData();
+        }
+
+        private void LoadProfileData()
+        {
+            try
+            {
+                // Local preferences'den verileri yükle
+                FullName = _preferencesService.Get("UserFullName", string.Empty);
+                Email = _preferencesService.Get("UserEmail", string.Empty);
+                Phone = _preferencesService.Get("UserPhone", string.Empty);
+
+                IsPushNotificationsEnabled = _preferencesService.Get("PushNotificationsEnabled", true);
+                IsEmailNotificationsEnabled = _preferencesService.Get("EmailNotificationsEnabled", true);
+                IsSMSNotificationsEnabled = _preferencesService.Get("SMSNotificationsEnabled", false);
+                IsLocationTrackingEnabled = _preferencesService.Get("LocationTrackingEnabled", true);
+                IsDataSharingEnabled = _preferencesService.Get("DataSharingEnabled", false);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to load profile data: {ex.Message}");
+            }
+        }
+
+        private async Task SaveProfileAsync()
+        {
+            try
+            {
+                // Verileri local preferences'e kaydet
+                _preferencesService.Set("UserFullName", FullName ?? string.Empty);
+                _preferencesService.Set("UserEmail", Email ?? string.Empty);
+                _preferencesService.Set("UserPhone", Phone ?? string.Empty);
+
+                _preferencesService.Set("PushNotificationsEnabled", IsPushNotificationsEnabled);
+                _preferencesService.Set("EmailNotificationsEnabled", IsEmailNotificationsEnabled);
+                _preferencesService.Set("SMSNotificationsEnabled", IsSMSNotificationsEnabled);
+                _preferencesService.Set("LocationTrackingEnabled", IsLocationTrackingEnabled);
+                _preferencesService.Set("DataSharingEnabled", IsDataSharingEnabled);
+
+                // Başarı mesajı göster
+                if (Application.Current?.MainPage != null)
+                {
+                    await Application.Current.MainPage.DisplayAlert(
+                        "Başarılı",
+                        "Profil bilgileriniz kaydedildi.",
+                        "Tamam");
+                }
+
+                // Ana sayfaya dön
+                await Shell.Current.GoToAsync("//MainPage");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to save profile: {ex.Message}");
+
+                if (Application.Current?.MainPage != null)
+                {
+                    await Application.Current.MainPage.DisplayAlert(
+                        "Hata",
+                        "Profil kaydedilirken bir hata oluştu.",
+                        "Tamam");
+                }
+            }
+        }
+
+        private async Task CancelAsync()
+        {
+            // Değişiklikleri iptal et ve ana sayfaya dön
+            await Shell.Current.GoToAsync("//MainPage");
+        }
+    }
+}

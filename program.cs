@@ -1,13 +1,1 @@
-using Microsoft.Maui;
-
-namespace KesifUygulamasiTemplate
-{
-    public static class Program
-    {
-        [STAThread]
-        static void Main(string[] args)
-        {
-            MauiProgram.CreateMauiApp();
-        }
-    }
-}
+using Microsoft.Maui;\n\nnamespace KesifUygulamasiTemplate\n{\n    public static class Program\n    {\n        [STAThread]\n        static void Main(string[] args)\n        {\n            MauiProgram.CreateMauiApp();\n        }\n    }\n}\n

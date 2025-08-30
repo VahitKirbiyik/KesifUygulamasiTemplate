@@ -1,0 +1,576 @@
+# Test-Analytics.ps1 - Kullanıcı davranış analizi test scripti
+# CI/CD pipeline ile entegre edilmiş analytics ve tracking testi
+
+param(
+    [string]$TestEnvironment = "local",
+    [string]$Configuration = "Debug",
+    [string]$ProjectPath = $PSScriptRoot,
+    [switch]$SkipBuild,
+    [switch]$Verbose,
+    [switch]$ExportJson,
+    [string]$AnalyticsPath = "analytics",
+    [int]$TestEventCount = 200,
+    [int]$TestUserCount = 10
+)
+
+# Script ayarları
+$ErrorActionPreference = "Stop"
+$VerbosePreference = if ($Verbose) { "Continue" } else { "SilentlyContinue" }
+
+# Test sonuçları için değişkenler
+$testResults = @{
+    TotalTests = 0
+    PassedTests = 0
+    FailedTests = 0
+    TestDuration = [TimeSpan]::Zero
+    Details = @()
+    AnalyticsStats = @{
+        EventsTracked = 0
+        UsersAnalyzed = 0
+        EventTypes = @{}
+        ErrorRate = 0
+        ProcessingTime = [TimeSpan]::Zero
+    }
+}
+
+# Environment değişkenlerini ayarla
+$env:TEST_ENVIRONMENT = $TestEnvironment
+$env:CI = if ($TestEnvironment -eq "ci") { "true" } else { "false" }
+$env:ANALYTICS_PATH = $AnalyticsPath
+$env:ENABLE_ANALYTICS = "true"
+$env:MAX_ANALYTICS_FILE_SIZE_MB = "10"
+$env:ANALYTICS_RETENTION_DAYS = "30"
+$env:ENABLE_REALTIME_ANALYTICS = "true"
+
+# Renkli output için
+function Write-ColorOutput {
+    param(
+        [string]$Message,
+        [string]$Color = "White"
+    )
+    Write-Host $Message -ForegroundColor $Color
+}
+
+# Başlık
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "      📈 Analytics Test Sistemi" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput ""
+
+# Proje yolunu kontrol et
+if (!(Test-Path $ProjectPath)) {
+    Write-ColorOutput "Hata: Proje yolu bulunamadı: $ProjectPath" "Red"
+    exit 1
+}
+
+# Test fonksiyonları
+function Test-Analytics {
+    param(
+        [string]$TestName,
+        [scriptblock]$TestScript
+    )
+
+    $startTime = Get-Date
+    $testPassed = $false
+    $errorMessage = ""
+
+    Write-ColorOutput "🧪 $TestName testi başlatılıyor..." "White"
+
+    try {
+        & $TestScript
+        $testPassed = $true
+        Write-ColorOutput "  ✅ $TestName testi başarılı" "Green"
+    } catch {
+        $errorMessage = $_.Exception.Message
+        Write-ColorOutput "  ❌ $TestName testi başarısız: $errorMessage" "Red"
+    } finally {
+        $endTime = Get-Date
+        $duration = $endTime - $startTime
+
+        $testResults.TotalTests++
+        if ($testPassed) {
+            $testResults.PassedTests++
+        } else {
+            $testResults.FailedTests++
+        }
+        $testResults.TestDuration += $duration
+
+        $testResults.Details += @{
+            TestName = $TestName
+            Passed = $testPassed
+            Duration = $duration
+            ErrorMessage = $errorMessage
+        }
+    }
+}
+
+# Analytics klasörü oluşturma testi
+function Test-AnalyticsDirectorySetup {
+    Write-ColorOutput "  📁 Analytics klasörü kurulumu kontrol ediliyor..." "Gray"
+
+    $fullAnalyticsPath = Join-Path $ProjectPath $AnalyticsPath
+
+    if (!(Test-Path $fullAnalyticsPath)) {
+        Write-ColorOutput "    📂 Analytics klasörü oluşturuluyor: $fullAnalyticsPath" "Gray"
+        New-Item -ItemType Directory -Path $fullAnalyticsPath -Force | Out-Null
+    } else {
+        Write-ColorOutput "    ✅ Analytics klasörü mevcut: $fullAnalyticsPath" "Green"
+    }
+
+    # Test analytics dosyası oluştur
+    $testFile = Join-Path $fullAnalyticsPath "test-analytics.json"
+    $testData = @{
+        test = "Analytics test"
+        timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+    }
+    $testData | ConvertTo-Json | Set-Content $testFile
+
+    if (Test-Path $testFile) {
+        Write-ColorOutput "    ✅ Test analytics dosyası oluşturuldu" "Green"
+        Remove-Item $testFile -Force
+    } else {
+        Write-ColorOutput "    ❌ Test analytics dosyası oluşturulamadı" "Red"
+        throw "Analytics directory setup failed"
+    }
+}
+
+# Olay tracking testi
+function Test-EventTracking {
+    Write-ColorOutput "  📊 Olay tracking testi başlatılıyor..." "Gray"
+
+    $fullAnalyticsPath = Join-Path $ProjectPath $AnalyticsPath
+    $testFile = Join-Path $fullAnalyticsPath "test-events.json"
+
+    # Test olayları
+    $eventTypes = @("page_view", "user_interaction", "route_usage", "error", "performance")
+    $trackedEvents = 0
+    $eventCounts = @{}
+
+    for ($i = 1; $i -le $TestEventCount; $i++) {
+        $userId = "user_$($i % $TestUserCount + 1)"
+        $eventType = $eventTypes[$i % $eventTypes.Count]
+
+        $analyticsEvent = @{
+            Id = [Guid]::NewGuid().ToString()
+            EventName = $eventType
+            UserId = $userId
+            Timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            Environment = $TestEnvironment
+            Properties = @{
+                test_run = $true
+                event_number = $i
+            }
+            SessionId = "$userId`_session_$(Get-Date -Format 'yyyyMMddHHmmss')"
+            Source = "KesifUygulamasiTemplate"
+        }
+
+        # JSON dosyasına ekle
+        $analyticsEvent | ConvertTo-Json -Compress | Out-File $testFile -Append -Encoding UTF8
+
+        $trackedEvents++
+        if ($eventCounts.ContainsKey($eventType)) {
+            $eventCounts[$eventType]++
+        } else {
+            $eventCounts[$eventType] = 1
+        }
+    }
+
+    Write-ColorOutput "    📝 $trackedEvents olay track edildi" "Gray"
+    Write-ColorOutput "    👥 $TestUserCount benzersiz kullanıcı" "Gray"
+
+    foreach ($eventType in $eventTypes) {
+        if ($eventCounts.ContainsKey($eventType)) {
+            Write-ColorOutput "    📊 $eventType : $($eventCounts[$eventType]) olay" "Gray"
+        }
+    }
+
+    # Test sonuçlarını güncelle
+    $testResults.AnalyticsStats.EventsTracked = $trackedEvents
+    $testResults.AnalyticsStats.UsersAnalyzed = $TestUserCount
+    $testResults.AnalyticsStats.EventTypes = $eventCounts
+
+    if ($trackedEvents -eq $TestEventCount) {
+        Write-ColorOutput "    ✅ Olay tracking başarılı" "Green"
+    } else {
+        Write-ColorOutput "    ❌ Olay tracking sayısı uyumsuz" "Red"
+        throw "Event tracking count mismatch"
+    }
+}
+
+# Kullanıcı davranış analizi testi
+function Test-UserBehaviorAnalysis {
+    Write-ColorOutput "  🧠 Kullanıcı davranış analizi testi başlatılıyor..." "Gray"
+
+    $fullAnalyticsPath = Join-Path $ProjectPath $AnalyticsPath
+    $analysisFile = Join-Path $fullAnalyticsPath "behavior-analysis.json"
+
+    # Test için kullanıcı davranış verileri oluştur
+    $userBehaviors = @()
+    $testUsers = 1..$TestUserCount
+
+    foreach ($user in $testUsers) {
+        $userId = "user_$user"
+        $userEvents = @()
+
+        # Her kullanıcı için rastgele olaylar oluştur
+        $userEventCount = Get-Random -Minimum 5 -Maximum 20
+        for ($i = 1; $i -le $userEventCount; $i++) {
+            $eventType = @("page_view", "user_interaction", "route_usage", "error", "performance") | Get-Random
+            $userEvents += @{
+                EventName = $eventType
+                Timestamp = (Get-Date).AddMinutes(-(Get-Random -Minimum 1 -Maximum 1440)).ToString("yyyy-MM-ddTHH:mm:ssZ")
+                Properties = @{
+                    page_name = if ($eventType -eq "page_view") { @("Home", "Map", "Routes", "Settings") | Get-Random } else { "" }
+                    interaction_type = if ($eventType -eq "user_interaction") { @("click", "scroll", "zoom") | Get-Random } else { "" }
+                }
+            }
+        }
+
+        $userBehaviors += @{
+            UserId = $userId
+            TotalEvents = $userEvents.Count
+            SessionCount = [math]::Ceiling($userEvents.Count / 5) # Basit session hesabı
+            InteractionPatterns = $userEvents | Group-Object -Property EventName | ForEach-Object { @{ $_.Name = $_.Count } }
+            PageFlow = $userEvents | Where-Object { $_.EventName -eq "page_view" } | ForEach-Object { $_.Properties.page_name }
+        }
+    }
+
+    # Analiz sonuçlarını JSON'a kaydet
+    $analysisResult = @{
+        AnalysisTimestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+        TotalUsers = $testUsers.Count
+        UserBehaviors = $userBehaviors
+        Summary = @{
+            AverageEventsPerUser = ($userBehaviors | Measure-Object -Property TotalEvents -Average).Average
+            MostCommonEvent = $userBehaviors.InteractionPatterns | Group-Object -Property Keys | Sort-Object -Property Count -Descending | Select-Object -First 1
+        }
+    }
+
+    $analysisResult | ConvertTo-Json -Depth 10 | Set-Content $analysisFile
+
+    Write-ColorOutput "    👥 $($testUsers.Count) kullanıcı davranış analizi tamamlandı" "Gray"
+    Write-ColorOutput "    📊 Ortalama olay sayısı: $([math]::Round($analysisResult.Summary.AverageEventsPerUser, 1))" "Gray"
+
+    if ($userBehaviors.Count -eq $TestUserCount) {
+        Write-ColorOutput "    ✅ Kullanıcı davranış analizi başarılı" "Green"
+    } else {
+        Write-ColorOutput "    ❌ Kullanıcı sayısı uyumsuz" "Red"
+        throw "User behavior analysis count mismatch"
+    }
+}
+
+# Performans tracking testi
+function Test-PerformanceTracking {
+    Write-ColorOutput "  ⚡ Performans tracking testi başlatılıyor..." "Gray"
+
+    $fullAnalyticsPath = Join-Path $ProjectPath $AnalyticsPath
+    $performanceFile = Join-Path $fullAnalyticsPath "performance-metrics.json"
+
+    # Test performans metrikleri
+    $performanceMetrics = @()
+    $metricTypes = @("page_load_time", "api_response_time", "route_calculation_time", "tile_load_time")
+
+    for ($i = 1; $i -le 50; $i++) {
+        $metricType = $metricTypes | Get-Random
+        $value = Get-Random -Minimum 100 -Maximum 10000 # ms cinsinden
+        $userId = "user_$($i % $TestUserCount + 1)"
+
+        $performanceMetrics += @{
+            Id = [Guid]::NewGuid().ToString()
+            EventName = "performance"
+            UserId = $userId
+            Timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            Environment = $TestEnvironment
+            Properties = @{
+                metric_name = $metricType
+                value = $value
+                context = "test_run"
+            }
+        }
+    }
+
+    # Performans metriklerini JSON'a kaydet
+    $performanceMetrics | ConvertTo-Json -Compress | Set-Content $performanceFile
+
+    # Performans analizi
+    $avgPageLoad = ($performanceMetrics | Where-Object { $_.Properties.metric_name -eq "page_load_time" } | Measure-Object -Property { $_.Properties.value } -Average).Average
+    $avgApiResponse = ($performanceMetrics | Where-Object { $_.Properties.metric_name -eq "api_response_time" } | Measure-Object -Property { $_.Properties.value } -Average).Average
+
+    Write-ColorOutput "    📈 Sayfa yükleme süresi ortalaması: $([math]::Round($avgPageLoad, 0)) ms" "Gray"
+    Write-ColorOutput "    📈 API yanıt süresi ortalaması: $([math]::Round($avgApiResponse, 0)) ms" "Gray"
+
+    # Performans eşikleri kontrolü
+    $slowPages = $performanceMetrics | Where-Object { $_.Properties.metric_name -eq "page_load_time" -and $_.Properties.value -gt 3000 }
+    if ($slowPages.Count -gt 0) {
+        Write-ColorOutput "    ⚠️  $($slowPages.Count) yavaş sayfa yüklemesi tespit edildi" "Yellow"
+    } else {
+        Write-ColorOutput "    ✅ Tüm sayfa yüklemeleri kabul edilebilir" "Green"
+    }
+
+    if ($performanceMetrics.Count -gt 0) {
+        Write-ColorOutput "    ✅ Performans tracking başarılı" "Green"
+    } else {
+        Write-ColorOutput "    ❌ Performans metrikleri oluşturulamadı" "Red"
+        throw "Performance tracking failed"
+    }
+}
+
+# Hata tracking testi
+function Test-ErrorTracking {
+    Write-ColorOutput "  🚨 Hata tracking testi başlatılıyor..." "Gray"
+
+    $fullAnalyticsPath = Join-Path $ProjectPath $AnalyticsPath
+    $errorFile = Join-Path $fullAnalyticsPath "error-tracking.json"
+
+    # Test hataları
+    $errorTypes = @("network_error", "api_error", "ui_error", "data_error", "auth_error")
+    $errorMessages = @(
+        "Network connection failed",
+        "API endpoint not found",
+        "UI component render error",
+        "Data parsing failed",
+        "Authentication token expired"
+    )
+
+    $trackedErrors = @()
+    $errorCount = 20
+
+    for ($i = 1; $i -le $errorCount; $i++) {
+        $errorType = $errorTypes | Get-Random
+        $errorMessage = $errorMessages | Get-Random
+        $userId = "user_$($i % $TestUserCount + 1)"
+
+        $errorEvent = @{
+            Id = [Guid]::NewGuid().ToString()
+            EventName = "error"
+            UserId = $userId
+            Timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            Environment = $TestEnvironment
+            Properties = @{
+                error_type = $errorType
+                error_message = $errorMessage
+                stack_trace = "at TestMethod() in TestFile.cs:line 42"
+            }
+        }
+
+        $trackedErrors += $errorEvent
+    }
+
+    # Hata olaylarını JSON'a kaydet
+    $trackedErrors | ConvertTo-Json -Compress | Set-Content $errorFile
+
+    # Hata analizi
+    $errorStats = $trackedErrors | Group-Object -Property { $_.Properties.error_type } | ForEach-Object {
+        @{ $_.Name = $_.Count }
+    }
+
+    Write-ColorOutput "    🚨 $errorCount hata olayı track edildi" "Gray"
+    Write-ColorOutput "    📊 Hata dağılımı:" "Gray"
+    foreach ($errorStat in $errorStats) {
+        foreach ($errorType in $errorStat.Keys) {
+            Write-ColorOutput "      - $errorType : $($errorStat[$errorType])" "Gray"
+        }
+    }
+
+    # Hata oranını hesapla
+    $errorRate = $errorCount / $TestEventCount
+    $testResults.AnalyticsStats.ErrorRate = $errorRate
+
+    Write-ColorOutput "    📈 Hata oranı: $([math]::Round($errorRate * 100, 2))%" "Gray"
+
+    if ($errorRate -lt 0.1) { # %10'dan az hata kabul edilebilir
+        Write-ColorOutput "    ✅ Hata oranı kabul edilebilir" "Green"
+    } else {
+        Write-ColorOutput "    ⚠️  Hata oranı yüksek" "Yellow"
+    }
+}
+
+# Analytics temizleme testi
+function Test-AnalyticsCleanup {
+    Write-ColorOutput "  🧹 Analytics temizleme testi başlatılıyor..." "Gray"
+
+    $fullAnalyticsPath = Join-Path $ProjectPath $AnalyticsPath
+
+    # Eski test dosyaları oluştur
+    $oldFiles = @()
+    $oldDate = (Get-Date).AddDays(-40) # 40 gün önce
+
+    for ($i = 1; $i -le 3; $i++) {
+        $oldFileName = "old-analytics-$i.json"
+        $oldFilePath = Join-Path $fullAnalyticsPath $oldFileName
+        @{ test = "old analytics data $i"; timestamp = $oldDate.ToString("yyyy-MM-ddTHH:mm:ssZ") } | ConvertTo-Json | Set-Content $oldFilePath
+        (Get-Item $oldFilePath).CreationTime = $oldDate
+        $oldFiles += $oldFilePath
+    }
+
+    # Yeni test dosyası oluştur
+    $newFileName = "new-analytics.json"
+    $newFilePath = Join-Path $fullAnalyticsPath $newFileName
+    @{ test = "new analytics data"; timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ") } | ConvertTo-Json | Set-Content $newFilePath
+
+    Write-ColorOutput "    📅 Eski dosyalar oluşturuldu: $($oldFiles.Count)" "Gray"
+    Write-ColorOutput "    📅 Yeni dosya oluşturuldu: $newFileName" "Gray"
+
+    # Eski dosyaları temizle (30 günden eski)
+    $retentionDays = 30
+    $cutoffDate = (Get-Date).AddDays(-$retentionDays)
+
+    $filesToDelete = Get-ChildItem $fullAnalyticsPath -Filter "*.json" |
+        Where-Object { $_.CreationTime -lt $cutoffDate }
+
+    $deletedCount = 0
+    foreach ($file in $filesToDelete) {
+        Remove-Item $file.FullName -Force
+        $deletedCount++
+        Write-ColorOutput "    ✅ Eski dosya silindi: $($file.Name)" "Green"
+    }
+
+    # Yeni dosyanın kaldığını kontrol et
+    if (Test-Path $newFilePath) {
+        Write-ColorOutput "    ✅ Yeni dosya korundu" "Green"
+    } else {
+        Write-ColorOutput "    ❌ Yeni dosya yanlışlıkla silindi" "Red"
+    }
+
+    Write-ColorOutput "    📊 Temizleme İstatistikleri:" "Gray"
+    Write-ColorOutput "      - Silinen Dosya: $deletedCount" "Gray"
+    Write-ColorOutput "      - Korunan Dosya: 1" "Gray"
+}
+
+# Ana test döngüsü
+Write-ColorOutput "🚀 Analytics testleri başlatılıyor..." "White"
+Write-ColorOutput ""
+
+# Testleri çalıştır
+Test-Analytics -TestName "Analytics Klasörü Kurulumu" -TestScript { Test-AnalyticsDirectorySetup }
+Test-Analytics -TestName "Olay Tracking" -TestScript { Test-EventTracking }
+Test-Analytics -TestName "Kullanıcı Davranış Analizi" -TestScript { Test-UserBehaviorAnalysis }
+Test-Analytics -TestName "Performans Tracking" -TestScript { Test-PerformanceTracking }
+Test-Analytics -TestName "Hata Tracking" -TestScript { Test-ErrorTracking }
+Test-Analytics -TestName "Analytics Temizleme" -TestScript { Test-AnalyticsCleanup }
+
+# Test özeti
+Write-ColorOutput "" "White"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "           📊 Test Sonuçları" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+
+$successRate = if ($testResults.TotalTests -gt 0) {
+    [math]::Round(($testResults.PassedTests / $testResults.TotalTests) * 100, 1)
+} else { 0 }
+
+Write-ColorOutput "Toplam Test: $($testResults.TotalTests)" "White"
+Write-ColorOutput "Başarılı: $($testResults.PassedTests)" "Green"
+Write-ColorOutput "Başarısız: $($testResults.FailedTests)" "Red"
+Write-ColorOutput "Başarı Oranı: $successRate%" "Cyan"
+Write-ColorOutput "Toplam Süre: $($testResults.TestDuration.TotalSeconds) saniye" "White"
+
+# Analytics istatistikleri
+Write-ColorOutput "" "White"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "        📈 Analytics İstatistikleri" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+
+Write-ColorOutput "Track Edilen Olay: $($testResults.AnalyticsStats.EventsTracked)" "White"
+Write-ColorOutput "Analiz Edilen Kullanıcı: $($testResults.AnalyticsStats.UsersAnalyzed)" "White"
+Write-ColorOutput "Hata Oranı: $([math]::Round($testResults.AnalyticsStats.ErrorRate * 100, 2))%" "White"
+
+Write-ColorOutput "Olay Türleri Dağılımı:" "Gray"
+foreach ($eventType in $testResults.AnalyticsStats.EventTypes.Keys) {
+    Write-ColorOutput "  - $eventType : $($testResults.AnalyticsStats.EventTypes[$eventType])" "Gray"
+}
+
+# Detaylı sonuçlar
+if ($Verbose) {
+    Write-ColorOutput "" "White"
+    Write-ColorOutput "Detaylı Sonuçlar:" "Yellow"
+    foreach ($detail in $testResults.Details) {
+        $status = if ($detail.Passed) { "✅" } else { "❌" }
+        Write-ColorOutput "  $status $($detail.TestName)" "White"
+        if (!$detail.Passed -and $detail.ErrorMessage) {
+            Write-ColorOutput "    Hata: $($detail.ErrorMessage)" "Red"
+        }
+    }
+}
+
+# JSON export
+if ($ExportJson) {
+    $jsonPath = Join-Path $ProjectPath "analytics-test-results.json"
+    $exportData = @{
+        metadata = @{
+            timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            script_version = "1.0.0"
+            test_environment = $TestEnvironment
+            analytics_path = $AnalyticsPath
+            test_event_count = $TestEventCount
+            test_user_count = $TestUserCount
+            total_duration_seconds = $testResults.TestDuration.TotalSeconds
+        }
+        summary = @{
+            total_tests = $testResults.TotalTests
+            passed_tests = $testResults.PassedTests
+            failed_tests = $testResults.FailedTests
+            success_rate = $successRate
+        }
+        analytics_stats = $testResults.AnalyticsStats
+        details = $testResults.Details
+        recommendations = @(
+            "Analytics retention süresini kullanım paternlerine göre optimize edin",
+            "Real-time processing için event filtering kuralları tanımlayın",
+            "User behavior analysis için segmentation kuralları ekleyin",
+            "Performance metrics için alerting thresholds belirleyin",
+            "Error tracking için automated incident response kurun"
+        )
+    }
+
+    $exportData | ConvertTo-Json -Depth 10 | Set-Content $jsonPath
+    Write-ColorOutput "📄 Test sonuçları JSON olarak kaydedildi: $jsonPath" "Green"
+}
+
+# Badge tetikleme
+if ($testResults.PassedTests -gt 0) {
+    Show-Badge "Behavior-Analyzed"
+}
+
+# Final sonuç
+Write-ColorOutput "" "White"
+if ($testResults.FailedTests -eq 0) {
+    Write-ColorOutput "🎉 Analytics testleri başarılı! Kullanıcı davranış analizi sistemi hazır." "Green"
+    exit 0
+} else {
+    Write-ColorOutput "💥 Bazı analytics testleri başarısız oldu." "Red"
+    exit 1
+}
+
+# Badge gösterme fonksiyonu
+function Show-Badge {
+    param([string]$BadgeName)
+
+    Write-ColorOutput "🏅 Badge kazanıldı: $BadgeName" "Cyan"
+
+    # Badge dosyasını güncelle (varsa)
+    $badgeFile = Join-Path $ProjectPath "badge.json"
+    if (Test-Path $badgeFile) {
+        try {
+            $badgeData = Get-Content $badgeFile -Raw | ConvertFrom-Json
+            if ($badgeData.PSObject.Properties.Name -notcontains $BadgeName) {
+                $badgeData | Add-Member -MemberType NoteProperty -Name $BadgeName -Value $true
+                $badgeData | ConvertTo-Json | Set-Content $badgeFile
+                Write-ColorOutput "  ✅ Badge dosyası güncellendi" "Green"
+            } else {
+                $badgeData.$BadgeName = $true
+                $badgeData | ConvertTo-Json | Set-Content $badgeFile
+                Write-ColorOutput "  ✅ Badge dosyası güncellendi" "Green"
+            }
+        } catch {
+            Write-ColorOutput "  ⚠️  Badge dosyası güncellenemedi" "Yellow"
+        }
+    } else {
+        # Yeni badge dosyası oluştur
+        $newBadgeData = @{
+            $BadgeName = $true
+        }
+        $newBadgeData | ConvertTo-Json | Set-Content $badgeFile
+        Write-ColorOutput "  ✅ Yeni badge dosyası oluşturuldu" "Green"
+    }
+}

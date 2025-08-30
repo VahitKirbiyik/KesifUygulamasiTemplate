@@ -1,4 +1,1 @@
-{
-    "dotnet.preferCSharpExtension": true,
-    "chat.agent.maxRequests": 200
-}
+{\n    "dotnet.preferCSharpExtension": true,\n    "chat.agent.maxRequests": 200\n}

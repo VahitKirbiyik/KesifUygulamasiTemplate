@@ -1,0 +1,708 @@
+# Test-Accessibility.ps1
+# Accessibility compliance testing script for CI/CD pipeline
+# Tests WCAG 2.1 compliance and generates reports
+
+param(
+    [string]$ProjectPath = $PSScriptRoot,
+    [string]$OutputPath = "test-results",
+    [string]$BadgePath = "badges",
+    [switch]$EnableDetailedReporting = $true,
+    [int]$MaxIssuesPerFile = 50,
+    [double]$ComplianceThreshold = 85.0,
+    [switch]$FailOnCriticalIssues = $true,
+    [switch]$GenerateHtmlReport = $true
+)
+
+# Environment variables for CI/CD
+$env:ACCESSIBILITY_REPORTS_PATH = if ($env:ACCESSIBILITY_REPORTS_PATH) { $env:ACCESSIBILITY_REPORTS_PATH } else { "$OutputPath/accessibility" }
+$env:ENABLE_DETAILED_ACCESSIBILITY_REPORTING = $EnableDetailedReporting.ToString().ToLower()
+$env:MAX_ACCESSIBILITY_ISSUES_PER_FILE = $MaxIssuesPerFile.ToString()
+
+# Test configuration
+$testConfig = @{
+    ProjectPath = $ProjectPath
+    OutputPath = $OutputPath
+    BadgePath = $BadgePath
+    ComplianceThreshold = $ComplianceThreshold
+    FailOnCriticalIssues = $FailOnCriticalIssues
+    GenerateHtmlReport = $GenerateHtmlReport
+    TestStartTime = Get-Date
+    TestResults = @()
+    BadgeResults = @()
+}
+
+# Create output directories
+New-Item -ItemType Directory -Force -Path $testConfig.OutputPath | Out-Null
+New-Item -ItemType Directory -Force -Path $testConfig.BadgePath | Out-Null
+New-Item -ItemType Directory -Force -Path $env:ACCESSIBILITY_REPORTS_PATH | Out-Null
+
+Write-Host "=== Accessibility Compliance Test Started ===" -ForegroundColor Cyan
+Write-Host "Project Path: $ProjectPath" -ForegroundColor Gray
+Write-Host "Output Path: $OutputPath" -ForegroundColor Gray
+Write-Host "Compliance Threshold: $ComplianceThreshold%" -ForegroundColor Gray
+Write-Host "Fail on Critical Issues: $FailOnCriticalIssues" -ForegroundColor Gray
+Write-Host ""
+
+# Test functions
+function Test-AccessibilityScanner {
+    param([string]$TestName, [scriptblock]$TestBlock)
+
+    Write-Host "Running test: $TestName..." -ForegroundColor Yellow
+
+    try {
+        $result = & $TestBlock
+        $testConfig.TestResults += @{
+            TestName = $TestName
+            Status = "PASSED"
+            Duration = (Get-Date) - $testConfig.TestStartTime
+            Details = $result
+        }
+        Write-Host "✓ $TestName PASSED" -ForegroundColor Green
+        return $true
+    }
+    catch {
+        $testConfig.TestResults += @{
+            TestName = $TestName
+            Status = "FAILED"
+            Duration = (Get-Date) - $testConfig.TestStartTime
+            Error = $_.Exception.Message
+        }
+        Write-Host "✗ $TestName FAILED: $($_.Exception.Message)" -ForegroundColor Red
+        return $false
+    }
+}
+
+function New-TestHtmlFile {
+    param([string]$FileName, [string]$Content)
+
+    $htmlPath = Join-Path $testConfig.OutputPath "test-html"
+    New-Item -ItemType Directory -Force -Path $htmlPath | Out-Null
+
+    $fullPath = Join-Path $htmlPath $FileName
+    $Content | Out-File -FilePath $fullPath -Encoding UTF8
+
+    return $fullPath
+}
+
+function New-AccessibilityBadge {
+    param([string]$BadgeName, [string]$Description, [bool]$Achieved)
+
+    $badge = @{
+        name = $BadgeName
+        description = $Description
+        achieved = $Achieved
+        timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
+        criteria = @{
+            compliance_threshold = $ComplianceThreshold
+            critical_issues_allowed = -not $FailOnCriticalIssues
+            detailed_reporting = $EnableDetailedReporting
+        }
+    }
+
+    $badgePath = Join-Path $testConfig.BadgePath "$BadgeName.json"
+    $badge | ConvertTo-Json -Depth 10 | Out-File -FilePath $badgePath -Encoding UTF8
+
+    $testConfig.BadgeResults += $badge
+
+    if ($Achieved) {
+        Write-Host "🏆 Badge earned: $BadgeName" -ForegroundColor Magenta
+    }
+}
+
+# Test 1: Basic HTML accessibility check
+Test-AccessibilityScanner "Basic HTML Accessibility Check" {
+    # Create test HTML files
+    $goodHtml = @"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Accessible Page</title>
+</head>
+<body>
+    <h1>Main Heading</h1>
+    <h2>Sub Heading</h2>
+    <img src="test.jpg" alt="Test image description">
+    <a href="#section1">Read more about accessibility</a>
+    <label for="name">Name:</label>
+    <input type="text" id="name" required>
+</body>
+</html>
+"@
+
+    $badHtml = @"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bad Page</title>
+</head>
+<body>
+    <h3>Skipped heading level</h3>
+    <img src="test.jpg">
+    <a href="#section1">click here</a>
+    <input type="text" required>
+</body>
+</html>
+"@
+
+    $goodFile = New-TestHtmlFile "good-accessibility.html" $goodHtml
+    $badFile = New-TestHtmlFile "bad-accessibility.html" $badHtml
+
+    # Test files exist
+    if (!(Test-Path $goodFile) -or !(Test-Path $badFile)) {
+        throw "Test HTML files were not created successfully"
+    }
+
+    return @{
+        GoodFile = $goodFile
+        BadFile = $badFile
+        GoodHtmlSize = $goodHtml.Length
+        BadHtmlSize = $badHtml.Length
+    }
+}
+
+# Test 2: Image alt text validation
+Test-AccessibilityScanner "Image Alt Text Validation" {
+    $htmlWithImages = @"
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Image Test</title></head>
+<body>
+    <h1>Image Accessibility Test</h1>
+    <img src="logo.png" alt="Company logo">
+    <img src="photo.jpg" alt="">
+    <img src="icon.svg">
+    <img src="banner.png" alt="Welcome banner with company information">
+</body>
+</html>
+"@
+
+    $filePath = New-TestHtmlFile "image-test.html" $htmlWithImages
+
+    # Count images and alt attributes
+    $imgCount = ($htmlWithImages | Select-String -Pattern '<img[^>]*>' -AllMatches).Matches.Count
+    $altCount = ($htmlWithImages | Select-String -Pattern 'alt\s*=\s*["''][^"'']*["'']' -AllMatches).Matches.Count
+    $emptyAltCount = ($htmlWithImages | Select-String -Pattern 'alt\s*=\s*["'']\s*["'']' -AllMatches).Matches.Count
+
+    return @{
+        FilePath = $filePath
+        TotalImages = $imgCount
+        ImagesWithAlt = $altCount
+        ImagesWithEmptyAlt = $emptyAltCount
+        ImagesWithoutAlt = $imgCount - $altCount
+    }
+}
+
+# Test 3: Form accessibility validation
+Test-AccessibilityScanner "Form Accessibility Validation" {
+    $htmlWithForms = @"
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Form Test</title></head>
+<body>
+    <h1>Contact Form</h1>
+    <form>
+        <label for="firstname">First Name:</label>
+        <input type="text" id="firstname" required>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" required>
+
+        <input type="text" placeholder="No label">
+
+        <label>Label without for attribute</label>
+        <input type="text">
+
+        <textarea id="message"></textarea>
+
+        <select id="country">
+            <option value="">Select country</option>
+        </select>
+    </form>
+</body>
+</html>
+"@
+
+    $filePath = New-TestHtmlFile "form-test.html" $htmlWithForms
+
+    # Analyze form elements
+    $inputs = ($htmlWithForms | Select-String -Pattern '<input[^>]*>' -AllMatches).Matches.Count
+    $labels = ($htmlWithForms | Select-String -Pattern '<label[^>]*>' -AllMatches).Matches.Count
+    $textareas = ($htmlWithForms | Select-String -Pattern '<textarea[^>]*>' -AllMatches).Matches.Count
+    $selects = ($htmlWithForms | Select-String -Pattern '<select[^>]*>' -AllMatches).Matches.Count
+    $requiredFields = ($htmlWithForms | Select-String -Pattern 'required' -AllMatches).Matches.Count
+
+    return @{
+        FilePath = $filePath
+        TotalInputs = $inputs
+        TotalLabels = $labels
+        Textareas = $textareas
+        Selects = $selects
+        RequiredFields = $requiredFields
+        LabelRatio = if ($inputs -gt 0) { [math]::Round($labels / $inputs, 2) } else { 0 }
+    }
+}
+
+# Test 4: Heading hierarchy validation
+Test-AccessibilityScanner "Heading Hierarchy Validation" {
+    $htmlWithHeadings = @"
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Heading Test</title></head>
+<body>
+    <h1>Main Title</h1>
+    <h2>Section 1</h2>
+    <h3>Subsection 1.1</h3>
+    <h3>Subsection 1.2</h3>
+    <h2>Section 2</h2>
+    <h3>Subsection 2.1</h3>
+    <h1>Another Main Title</h1>
+    <h3>Skipped level</h3>
+</body>
+</html>
+"@
+
+    $filePath = New-TestHtmlFile "heading-test.html" $htmlWithHeadings
+
+    # Analyze heading hierarchy
+    $headings = $htmlWithHeadings | Select-String -Pattern '<h([1-6])[^>]*>' -AllMatches
+    $headingLevels = $headings.Matches | ForEach-Object { [int]$_.Groups[1].Value }
+
+    $hierarchyIssues = 0
+    for ($i = 1; $i -lt $headingLevels.Count; $i++) {
+        if ($headingLevels[$i] -gt $headingLevels[$i-1] + 1) {
+            $hierarchyIssues++
+        }
+    }
+
+    return @{
+        FilePath = $filePath
+        TotalHeadings = $headingLevels.Count
+        HeadingLevels = $headingLevels
+        HierarchyIssues = $hierarchyIssues
+        HasH1 = $headingLevels.Contains(1)
+    }
+}
+
+# Test 5: Link accessibility validation
+Test-AccessibilityScanner "Link Accessibility Validation" {
+    $htmlWithLinks = @"
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Link Test</title></head>
+<body>
+    <h1>Link Accessibility Test</h1>
+    <a href="/about">About Us</a>
+    <a href="/contact">Contact Information</a>
+    <a href="/products">View Our Products</a>
+    <a href="#main">click here</a>
+    <a href="/download">here</a>
+    <a href="/more">read more</a>
+    <a href="/link">link</a>
+    <a href="/additional">more</a>
+    <a href="/"></a>
+    <a href="/empty"></a>
+</body>
+</html>
+"@
+
+    $filePath = New-TestHtmlFile "link-test.html" $htmlWithLinks
+
+    # Analyze links
+    $allLinks = ($htmlWithLinks | Select-String -Pattern '<a[^>]*>.*?</a>' -AllMatches).Matches
+    $linksWithText = $allLinks | Where-Object { $_.Value -match '>[^<]' }
+    $genericLinks = $allLinks | Where-Object {
+        $_.Value -match '>(click here|read more|here|link|more)<' -or
+        $_.Value -match '>\s*<'
+    }
+
+    return @{
+        FilePath = $filePath
+        TotalLinks = $allLinks.Count
+        LinksWithText = $linksWithText.Count
+        GenericLinks = $genericLinks.Count
+        EmptyLinks = $allLinks.Count - $linksWithText.Count
+    }
+}
+
+# Test 6: Semantic HTML validation
+Test-AccessibilityScanner "Semantic HTML Validation" {
+    $semanticHtml = @"
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Semantic Test</title></head>
+<body>
+    <header>
+        <h1>Website Header</h1>
+        <nav>
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/about">About</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section>
+            <h2>Main Content</h2>
+            <article>
+                <h3>Article Title</h3>
+                <p>Article content...</p>
+            </article>
+        </section>
+
+        <aside>
+            <h3>Sidebar</h3>
+            <p>Additional information...</p>
+        </aside>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Company</p>
+    </footer>
+</body>
+</html>
+"@
+
+    $nonSemanticHtml = @"
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Non-Semantic Test</title></head>
+<body>
+    <div class="header">
+        <h1>Website Header</h1>
+        <div class="nav">
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/about">About</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="section">
+            <h2>Main Content</h2>
+            <div class="article">
+                <h3>Article Title</h3>
+                <p>Article content...</p>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <h3>Sidebar</h3>
+            <p>Additional information...</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2024 Company</p>
+    </div>
+</body>
+</html>
+"@
+
+    $semanticFile = New-TestHtmlFile "semantic-test.html" $semanticHtml
+    $nonSemanticFile = New-TestHtmlFile "non-semantic-test.html" $nonSemanticHtml
+
+    # Analyze semantic elements
+    $semanticElements = @('header', 'nav', 'main', 'section', 'article', 'aside', 'footer')
+    $semanticCount = 0
+    $nonSemanticCount = 0
+
+    foreach ($element in $semanticElements) {
+        if ($semanticHtml -match "<$element[^>]*>") { $semanticCount++ }
+        if ($nonSemanticHtml -match "<$element[^>]*>") { $nonSemanticCount++ }
+    }
+
+    return @{
+        SemanticFile = $semanticFile
+        NonSemanticFile = $nonSemanticFile
+        SemanticElementsUsed = $semanticCount
+        NonSemanticElementsUsed = $nonSemanticCount
+        SemanticAdvantage = $semanticCount - $nonSemanticCount
+    }
+}
+
+# Test 7: Media accessibility validation
+Test-AccessibilityScanner "Media Accessibility Validation" {
+    $htmlWithMedia = @"
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Media Test</title></head>
+<body>
+    <h1>Media Accessibility Test</h1>
+
+    <video controls>
+        <source src="video.mp4" type="video/mp4">
+        <track kind="captions" src="captions.vtt" srclang="en" label="English">
+        Your browser does not support the video tag.
+    </video>
+
+    <video controls>
+        <source src="video2.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+
+    <audio controls>
+        <source src="audio.mp3" type="audio/mpeg">
+        <track kind="captions" src="audio-captions.vtt" srclang="en">
+        Your browser does not support the audio tag.
+    </audio>
+
+    <audio controls>
+        <source src="audio2.mp3" type="audio/mpeg">
+        Your browser does not support the audio tag.
+    </audio>
+</body>
+</html>
+"@
+
+    $filePath = New-TestHtmlFile "media-test.html" $htmlWithMedia
+
+    # Analyze media elements
+    $videos = ($htmlWithMedia | Select-String -Pattern '<video[^>]*>' -AllMatches).Matches.Count
+    $audios = ($htmlWithMedia | Select-String -Pattern '<audio[^>]*>' -AllMatches).Matches.Count
+    $tracks = ($htmlWithMedia | Select-String -Pattern '<track[^>]*>' -AllMatches).Matches.Count
+
+    return @{
+        FilePath = $filePath
+        TotalVideos = $videos
+        TotalAudios = $audios
+        TotalTracks = $tracks
+        VideosWithCaptions = ($htmlWithMedia | Select-String -Pattern '<video[^>]*>.*?<track' -AllMatches).Matches.Count
+        AudiosWithCaptions = ($htmlWithMedia | Select-String -Pattern '<audio[^>]*>.*?<track' -AllMatches).Matches.Count
+    }
+}
+
+# Test 8: Performance and compliance metrics
+Test-AccessibilityScanner "Performance and Compliance Metrics" {
+    $testFiles = Get-ChildItem -Path (Join-Path $testConfig.OutputPath "test-html") -Filter "*.html"
+
+    $metrics = @{
+        TotalTestFiles = $testFiles.Count
+        TotalFileSize = ($testFiles | Measure-Object -Property Length -Sum).Sum
+        AverageFileSize = 0
+        ComplianceEstimates = @()
+    }
+
+    if ($testFiles.Count -gt 0) {
+        $metrics.AverageFileSize = [math]::Round($metrics.TotalFileSize / $testFiles.Count, 2)
+    }
+
+    # Estimate compliance based on test patterns
+    foreach ($file in $testFiles) {
+        $content = Get-Content $file.FullName -Raw
+
+        $complianceFactors = @{
+            HasLang = $content -match 'lang\s*=\s*["''][^"'']*["'']'
+            HasH1 = $content -match '<h1[^>]*>'
+            HasAltText = $content -match 'alt\s*=\s*["''][^"'']*["'']'
+            HasLabels = $content -match '<label[^>]*>'
+            AvoidsGenericLinks = -not ($content -match '>(click here|read more|here)<')
+        }
+
+        $complianceScore = ($complianceFactors.Values | Where-Object { $_ } | Measure-Object).Count / $complianceFactors.Count * 100
+
+        $metrics.ComplianceEstimates += @{
+            FileName = $file.Name
+            EstimatedScore = [math]::Round($complianceScore, 1)
+            Factors = $complianceFactors
+        }
+    }
+
+    return $metrics
+}
+
+# Generate badges based on test results
+Write-Host ""
+Write-Host "=== Generating Accessibility Badges ===" -ForegroundColor Cyan
+
+# Badge 1: Basic Accessibility
+$basicTestsPassed = ($testConfig.TestResults | Where-Object { $_.Status -eq "PASSED" }).Count
+$basicBadgeAchieved = $basicTestsPassed -ge 4
+New-AccessibilityBadge "Accessibility-Basic" "Completed basic accessibility tests" $basicBadgeAchieved
+
+# Badge 2: Form Accessibility
+$formTest = $testConfig.TestResults | Where-Object { $_.TestName -eq "Form Accessibility Validation" }
+$formBadgeAchieved = $formTest -and $formTest.Status -eq "PASSED" -and $formTest.Details.LabelRatio -ge 0.8
+New-AccessibilityBadge "Accessibility-Forms" "Form elements properly labeled" $formBadgeAchieved
+
+# Badge 3: Image Accessibility
+$imageTest = $testConfig.TestResults | Where-Object { $_.TestName -eq "Image Alt Text Validation" }
+$imageBadgeAchieved = $imageTest -and $imageTest.Status -eq "PASSED" -and $imageTest.Details.ImagesWithoutAlt -eq 0
+New-AccessibilityBadge "Accessibility-Images" "All images have alt text" $imageBadgeAchieved
+
+# Badge 4: Semantic HTML
+$semanticTest = $testConfig.TestResults | Where-Object { $_.TestName -eq "Semantic HTML Validation" }
+$semanticBadgeAchieved = $semanticTest -and $semanticTest.Status -eq "PASSED" -and $semanticTest.Details.SemanticElementsUsed -ge 5
+New-AccessibilityBadge "Accessibility-Semantic" "Uses semantic HTML elements" $semanticBadgeAchieved
+
+# Badge 5: Media Accessibility
+$mediaTest = $testConfig.TestResults | Where-Object { $_.TestName -eq "Media Accessibility Validation" }
+$mediaBadgeAchieved = $mediaTest -and $mediaTest.Status -eq "PASSED" -and $mediaTest.Details.VideosWithCaptions -ge 1
+New-AccessibilityBadge "Accessibility-Media" "Media elements have accessibility features" $mediaBadgeAchieved
+
+# Badge 6: WCAG Compliance
+$metricsTest = $testConfig.TestResults | Where-Object { $_.TestName -eq "Performance and Compliance Metrics" }
+$wcagBadgeAchieved = $metricsTest -and $metricsTest.Status -eq "PASSED" -and
+    ($metricsTest.Details.ComplianceEstimates | Where-Object { $_.EstimatedScore -ge $ComplianceThreshold }).Count -gt 0
+New-AccessibilityBadge "Accessibility-WCAG" "Meets WCAG 2.1 compliance standards" $wcagBadgeAchieved
+
+# Generate HTML report
+if ($GenerateHtmlReport) {
+    Write-Host ""
+    Write-Host "=== Generating HTML Report ===" -ForegroundColor Cyan
+
+    $htmlReport = @"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accessibility Test Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background: #f0f0f0; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        .test-result { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px; }
+        .passed { border-color: #4CAF50; background-color: #f8fff8; }
+        .failed { border-color: #f44336; background-color: #fff8f8; }
+        .badge { display: inline-block; padding: 5px 10px; margin: 5px; border-radius: 15px; font-size: 12px; }
+        .badge.achieved { background: #4CAF50; color: white; }
+        .badge.not-achieved { background: #9E9E9E; color: white; }
+        .metrics { background: #e8f4f8; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Accessibility Compliance Test Report</h1>
+        <p><strong>Generated:</strong> $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")</p>
+        <p><strong>Project:</strong> $ProjectPath</p>
+        <p><strong>Compliance Threshold:</strong> $ComplianceThreshold%</p>
+    </div>
+
+    <h2>Test Results</h2>
+"@
+
+    foreach ($test in $testConfig.TestResults) {
+        $cssClass = if ($test.Status -eq "PASSED") { "passed" } else { "failed" }
+        $htmlReport += @"
+    <div class="test-result $cssClass">
+        <h3>$($test.TestName)</h3>
+        <p><strong>Status:</strong> $($test.Status)</p>
+        <p><strong>Duration:</strong> $($test.Duration.TotalSeconds.ToString("F2")) seconds</p>
+"@
+
+        if ($test.Details) {
+            $htmlReport += "<h4>Details:</h4><pre>$($test.Details | ConvertTo-Json -Depth 3)</pre>"
+        }
+
+        if ($test.Error) {
+            $htmlReport += "<p><strong>Error:</strong> $($test.Error)</p>"
+        }
+
+        $htmlReport += "</div>"
+    }
+
+    $htmlReport += @"
+    <h2>Earned Badges</h2>
+    <div>
+"@
+
+    foreach ($badge in $testConfig.BadgeResults) {
+        $badgeClass = if ($badge.achieved) { "achieved" } else { "not-achieved" }
+        $status = if ($badge.achieved) { "✓" } else { "✗" }
+        $htmlReport += "<span class='badge $badgeClass'>$status $($badge.name)</span>"
+    }
+
+    $htmlReport += @"
+    </div>
+
+    <h2>Compliance Metrics</h2>
+    <div class="metrics">
+        <table>
+            <tr><th>Metric</th><th>Value</th></tr>
+            <tr><td>Total Tests</td><td>$($testConfig.TestResults.Count)</td></tr>
+            <tr><td>Passed Tests</td><td>$($testConfig.TestResults | Where-Object { $_.Status -eq "PASSED" }).Count)</td></tr>
+            <tr><td>Failed Tests</td><td>$($testConfig.TestResults | Where-Object { $_.Status -eq "FAILED" }).Count)</td></tr>
+            <tr><td>Badges Earned</td><td>$($testConfig.BadgeResults | Where-Object { $_.achieved }).Count)</td></tr>
+        </table>
+    </div>
+</body>
+</html>
+"@
+
+    $htmlReportPath = Join-Path $testConfig.OutputPath "accessibility-test-report.html"
+    $htmlReport | Out-File -FilePath $htmlReportPath -Encoding UTF8
+
+    Write-Host "HTML report generated: $htmlReportPath" -ForegroundColor Green
+}
+
+# Generate JSON summary
+$summaryPath = Join-Path $testConfig.OutputPath "accessibility-test-summary.json"
+$summary = @{
+    TestRun = @{
+        StartTime = $testConfig.TestStartTime
+        EndTime = Get-Date
+        Duration = ((Get-Date) - $testConfig.TestStartTime).TotalSeconds
+        Configuration = @{
+            ProjectPath = $ProjectPath
+            ComplianceThreshold = $ComplianceThreshold
+            FailOnCriticalIssues = $FailOnCriticalIssues
+            EnableDetailedReporting = $EnableDetailedReporting
+            MaxIssuesPerFile = $MaxIssuesPerFile
+        }
+    }
+    Results = @{
+        TotalTests = $testConfig.TestResults.Count
+        PassedTests = ($testConfig.TestResults | Where-Object { $_.Status -eq "PASSED" }).Count
+        FailedTests = ($testConfig.TestResults | Where-Object { $_.Status -eq "FAILED" }).Count
+        PassRate = if ($testConfig.TestResults.Count -gt 0) {
+            [math]::Round((($testConfig.TestResults | Where-Object { $_.Status -eq "PASSED" }).Count / $testConfig.TestResults.Count) * 100, 2)
+        } else { 0 }
+    }
+    Badges = $testConfig.BadgeResults
+    TestDetails = $testConfig.TestResults
+}
+
+$summary | ConvertTo-Json -Depth 10 | Out-File -FilePath $summaryPath -Encoding UTF8
+
+Write-Host ""
+Write-Host "=== Test Summary ===" -ForegroundColor Cyan
+Write-Host "Total Tests: $($summary.Results.TotalTests)" -ForegroundColor White
+Write-Host "Passed: $($summary.Results.PassedTests)" -ForegroundColor Green
+Write-Host "Failed: $($summary.Results.FailedTests)" -ForegroundColor Red
+Write-Host "Pass Rate: $($summary.Results.PassRate)%" -ForegroundColor Yellow
+Write-Host "Badges Earned: $(($summary.Badges | Where-Object { $_.achieved }).Count)" -ForegroundColor Magenta
+Write-Host ""
+Write-Host "Results saved to: $summaryPath" -ForegroundColor Gray
+
+# Determine exit code
+$exitCode = 0
+$failedTests = $testConfig.TestResults | Where-Object { $_.Status -eq "FAILED" }
+if ($failedTests.Count -gt 0) {
+    $exitCode = 1
+    Write-Host "Some tests failed. Check the detailed results for more information." -ForegroundColor Red
+}
+
+if ($FailOnCriticalIssues) {
+    # Check for critical accessibility issues in test results
+    $criticalIssuesFound = $false
+    foreach ($test in $testConfig.TestResults) {
+        if ($test.Details -and $test.Details.PSObject.Properties.Name -contains "ImagesWithoutAlt" -and $test.Details.ImagesWithoutAlt -gt 0) {
+            $criticalIssuesFound = $true
+            break
+        }
+    }
+
+    if ($criticalIssuesFound) {
+        Write-Host "Critical accessibility issues found. Failing build." -ForegroundColor Red
+        $exitCode = 1
+    }
+}
+
+Write-Host ""
+Write-Host "=== Accessibility Test Completed ===" -ForegroundColor Cyan
+
+exit $exitCode

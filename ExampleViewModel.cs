@@ -1,5 +1,1 @@
-using KesifUygulamasiTemplate.ViewModels.Base;
-
-public class ExampleViewModel : BaseViewModel
-{
-}
+using KesifUygulamasiTemplate.ViewModels.Base;\n\npublic class ExampleViewModel : BaseViewModel\n{\n}\n

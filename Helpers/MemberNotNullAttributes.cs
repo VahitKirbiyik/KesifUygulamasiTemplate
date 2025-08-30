@@ -1,3 +1,1 @@
-namespace System.Diagnostics.CodeAnalysis
-{
-}
+namespace System.Diagnostics.CodeAnalysis\n{\n}\n

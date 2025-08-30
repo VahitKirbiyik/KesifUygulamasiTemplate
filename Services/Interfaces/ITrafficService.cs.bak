@@ -1,0 +1,17 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using KesifUygulamasiTemplate.Models;
+
+namespace KesifUygulamasiTemplate.Services.Interfaces
+{
+    public interface ITrafficService
+    {
+        Task<TrafficInfo> GetTrafficInfoAsync(double latitude, double longitude, double radius = 5.0);
+        Task<List<TrafficIncident>> GetTrafficIncidentsAsync(double north, double south, double east, double west);
+        Task<bool> IsTrafficAvailableAsync();
+        Task<Route> GetOptimizedRouteWithTrafficAsync(Location start, Location end, TransportMode mode, RouteOptimizationPreference preference);
+        Task<TrafficDelayInfo> CalculateRouteDelaysAsync(List<LocationModel> routePoints);
+        Task<List<TrafficWarning>> GetTrafficWarningsAsync(List<LocationModel> routePoints);
+    }
+}

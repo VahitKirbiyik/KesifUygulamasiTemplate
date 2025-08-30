@@ -1,11 +1,1 @@
-using Microsoft.Maui.Controls;
-
-namespace KesifUygulamasiTemplate.Views;
-
-public partial class LoginPage : ContentPage
-{
-    public LoginPage()
-    {
-        InitializeComponent();
-    }
-}
+using Microsoft.Maui.Controls;\n\nnamespace KesifUygulamasiTemplate.Views;\n\npublic partial class LoginPage : ContentPage\n{\n    public LoginPage()\n    {\n        InitializeComponent();\n    }\n}\n

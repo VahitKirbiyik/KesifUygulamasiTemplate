@@ -1,0 +1,108 @@
+using System;
+using System.IO;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Moq;
+using Xunit;
+using KesifUygulamasiTemplate.Services;
+
+namespace KesifUygulamasiTemplate.Tests.Services
+{
+    public class MonitoringServiceTests
+    {
+        private readonly Mock<ILogger<MonitoringService>> _mockLogger;
+        private readonly MonitoringService _monitoringService;
+
+        public MonitoringServiceTests()
+        {
+            _mockLogger = new Mock<ILogger<MonitoringService>>();
+            _monitoringService = new MonitoringService(_mockLogger.Object);
+        }
+
+        [Fact]
+        public void LogProviderUsage_IncrementsProviderCount()
+        {
+            // Arrange
+            var provider = "Google";
+
+            // Act
+            _monitoringService.LogProviderUsage(provider);
+            _monitoringService.LogProviderUsage(provider);
+
+            // Assert
+            var stats = _monitoringService.GetCurrentStats();
+            Assert.Equal(2, stats.ProviderStats[provider]);
+        }
+
+        [Fact]
+        public void LogRouteTypeUsage_IncrementsRouteTypeCount()
+        {
+            // Arrange
+            var routeType = "Fastest";
+
+            // Act
+            _monitoringService.LogRouteTypeUsage(routeType);
+            _monitoringService.LogRouteTypeUsage(routeType);
+
+            // Assert
+            var stats = _monitoringService.GetCurrentStats();
+            Assert.Equal(2, stats.RouteStats[routeType]);
+        }
+
+        [Fact]
+        public async Task GenerateDailyReport_CreatesJsonFile()
+        {
+            // Arrange
+            _monitoringService.LogProviderUsage("Google");
+            _monitoringService.LogRouteTypeUsage("Fastest");
+
+            // Act
+            await _monitoringService.GenerateDailyReportAsync();
+
+            // Assert
+            var logFilePath = Path.Combine(FileSystem.AppDataDirectory, "monitoring_logs.json");
+            Assert.True(File.Exists(logFilePath));
+
+            var content = await File.ReadAllTextAsync(logFilePath);
+            Assert.Contains("Google", content);
+            Assert.Contains("Fastest", content);
+        }
+
+        [Fact]
+        public void ResetStats_ClearsAllStatistics()
+        {
+            // Arrange
+            _monitoringService.LogProviderUsage("Google");
+            _monitoringService.LogRouteTypeUsage("Fastest");
+
+            // Act
+            _monitoringService.ResetStats();
+
+            // Assert
+            var stats = _monitoringService.GetCurrentStats();
+            Assert.Empty(stats.ProviderStats);
+            Assert.Empty(stats.RouteStats);
+        }
+
+        [Fact]
+        public void GetCurrentStats_ReturnsCorrectStatistics()
+        {
+            // Arrange
+            _monitoringService.LogProviderUsage("Google");
+            _monitoringService.LogProviderUsage("Mapbox");
+            _monitoringService.LogRouteTypeUsage("Fastest");
+            _monitoringService.LogRouteTypeUsage("Eco");
+
+            // Act
+            var stats = _monitoringService.GetCurrentStats();
+
+            // Assert
+            Assert.Equal(2, stats.ProviderStats.Count);
+            Assert.Equal(2, stats.RouteStats.Count);
+            Assert.Equal(1, stats.ProviderStats["Google"]);
+            Assert.Equal(1, stats.ProviderStats["Mapbox"]);
+            Assert.Equal(1, stats.RouteStats["Fastest"]);
+            Assert.Equal(1, stats.RouteStats["Eco"]);
+        }
+    }
+}

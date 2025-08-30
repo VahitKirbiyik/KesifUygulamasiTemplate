@@ -1,12 +1,1 @@
-using Microsoft.Maui.Controls;
-
-namespace KesifUygulamasi.Pages
-{
-    public partial class OnboardingPage : ContentPage
-    {
-        public OnboardingPage()
-        {
-            InitializeComponent();
-        }
-    }
-}
+using Microsoft.Maui.Controls;\n\nnamespace KesifUygulamasi.Pages\n{\n    public partial class OnboardingPage : ContentPage\n    {\n        public OnboardingPage()\n        {\n            InitializeComponent();\n        }\n    }\n}\n

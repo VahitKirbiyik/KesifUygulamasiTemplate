@@ -1,0 +1,444 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Tile prefetch management servisi
+    /// Harita tile'larını önceden indirme ve cache yönetimi
+    /// </summary>
+    public class PrefetchManager
+    {
+        private readonly ILogger<PrefetchManager> _logger;
+        private readonly TileCompressor _tileCompressor;
+        private readonly string _cachePath;
+        private readonly int _maxConcurrentDownloads;
+        private readonly int _prefetchRadius;
+        private readonly bool _enablePrefetch;
+        private readonly TimeSpan _cacheExpiration;
+
+        public PrefetchManager(ILogger<PrefetchManager> logger, TileCompressor tileCompressor)
+        {
+            _logger = logger;
+            _tileCompressor = tileCompressor;
+            _cachePath = Environment.GetEnvironmentVariable("TILE_CACHE_PATH") ?? "cache/tiles";
+            _maxConcurrentDownloads = int.Parse(Environment.GetEnvironmentVariable("MAX_CONCURRENT_DOWNLOADS") ?? "5");
+            _prefetchRadius = int.Parse(Environment.GetEnvironmentVariable("PREFETCH_RADIUS") ?? "2");
+            _enablePrefetch = bool.Parse(Environment.GetEnvironmentVariable("ENABLE_PREFETCH") ?? "true");
+            _cacheExpiration = TimeSpan.FromHours(int.Parse(Environment.GetEnvironmentVariable("CACHE_EXPIRATION_HOURS") ?? "24"));
+        }
+
+        /// <summary>
+        /// Rota için tile'ları prefetch et
+        /// </summary>
+        public async Task PrefetchTiles(Coordinate[] route)
+        {
+            if (!_enablePrefetch || route == null || route.Length == 0)
+            {
+                _logger.LogInformation("Prefetch disabled or no route provided");
+                return;
+            }
+
+            try
+            {
+                _logger.LogInformation($"Starting prefetch for {route.Length} route points");
+
+                // Rota üzerindeki tile'ları hesapla
+                var routeTiles = CalculateRouteTiles(route);
+
+                // Öncelik sırasına göre tile'ları prefetch et
+                var prioritizedTiles = PrioritizeTiles(routeTiles, route);
+
+                // Paralel indirme ile tile'ları prefetch et
+                await DownloadTilesInParallel(prioritizedTiles);
+
+                _logger.LogInformation($"Prefetch completed for {prioritizedTiles.Count} tiles");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Prefetch failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Belirli bir bölge için tile'ları prefetch et
+        /// </summary>
+        public async Task PrefetchRegion(double centerLat, double centerLng, int zoom, int radius = 2)
+        {
+            if (!_enablePrefetch)
+            {
+                _logger.LogInformation("Prefetch disabled");
+                return;
+            }
+
+            try
+            {
+                _logger.LogInformation($"Starting region prefetch: {centerLat}, {centerLng}, zoom: {zoom}, radius: {radius}");
+
+                // Bölge içindeki tile'ları hesapla
+                var regionTiles = CalculateRegionTiles(centerLat, centerLng, zoom, radius);
+
+                // Tile'ları prefetch et
+                await DownloadTilesInParallel(regionTiles);
+
+                _logger.LogInformation($"Region prefetch completed for {regionTiles.Count} tiles");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Region prefetch failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Kullanıcı hareketine göre predictive prefetch
+        /// </summary>
+        public async Task PredictivePrefetch(Coordinate currentPosition, Coordinate velocity, int zoom)
+        {
+            if (!_enablePrefetch)
+            {
+                return;
+            }
+
+            try
+            {
+                // Kullanıcının hareket yönüne göre gelecekteki pozisyonları tahmin et
+                var predictedPositions = PredictFuturePositions(currentPosition, velocity);
+
+                // Tahmin edilen pozisyonlar için tile'ları prefetch et
+                await PrefetchTiles(predictedPositions.ToArray());
+
+                _logger.LogInformation($"Predictive prefetch completed for {predictedPositions.Count} predicted positions");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Predictive prefetch failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Cache'deki tile'ları temizle
+        /// </summary>
+        public async Task<int> CleanupExpiredTiles()
+        {
+            try
+            {
+                var expiredTiles = 0;
+                var cacheFiles = System.IO.Directory.GetFiles(_cachePath, "*.tile", System.IO.SearchOption.AllDirectories);
+
+                foreach (var file in cacheFiles)
+                {
+                    var fileInfo = new System.IO.FileInfo(file);
+                    if (DateTime.UtcNow - fileInfo.LastAccessTimeUtc > _cacheExpiration)
+                    {
+                        System.IO.File.Delete(file);
+                        expiredTiles++;
+                    }
+                }
+
+                _logger.LogInformation($"Cleaned up {expiredTiles} expired tiles");
+                return expiredTiles;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to cleanup expired tiles: {ex.Message}");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Cache istatistiklerini getir
+        /// </summary>
+        public async Task<PrefetchStats> GetCacheStats()
+        {
+            try
+            {
+                var stats = new PrefetchStats();
+                var cacheFiles = System.IO.Directory.GetFiles(_cachePath, "*.tile", System.IO.SearchOption.AllDirectories);
+
+                stats.TotalTiles = cacheFiles.Length;
+                stats.TotalSize = cacheFiles.Sum(f => new System.IO.FileInfo(f).Length);
+                stats.CacheHitRate = CalculateCacheHitRate();
+
+                // En son erişilen tile'ları bul
+                var recentFiles = cacheFiles
+                    .Select(f => new System.IO.FileInfo(f))
+                    .OrderByDescending(f => f.LastAccessTimeUtc)
+                    .Take(10);
+
+                stats.RecentTiles = recentFiles.Select(f => f.Name).ToList();
+
+                return stats;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to get cache stats: {ex.Message}");
+                return new PrefetchStats();
+            }
+        }
+
+        /// <summary>
+        /// Tile indirme önceliğini belirle
+        /// </summary>
+        private List<TileInfo> PrioritizeTiles(List<TileInfo> tiles, Coordinate[] route)
+        {
+            // Rota üzerindeki tile'lara daha yüksek öncelik ver
+            var routeTileSet = new HashSet<string>(route.SelectMany(p => GetTilesForCoordinate(p.Lat, p.Lng, 15))); // Varsayılan zoom
+
+            return tiles.OrderByDescending(t =>
+            {
+                var priority = 1;
+
+                // Rota üzerindeki tile'lara bonus
+                if (routeTileSet.Contains(t.Key))
+                    priority += 10;
+
+                // Yakınlığa göre öncelik (daha yakın tile'lar önce)
+                // Bu kısım basitleştirilmiş - gerçek implementasyonda daha sofistike olabilir
+
+                return priority;
+            }).ToList();
+        }
+
+        /// <summary>
+        /// Tile'ları paralel olarak indir
+        /// </summary>
+        private async Task DownloadTilesInParallel(List<TileInfo> tiles)
+        {
+            var semaphore = new System.Threading.SemaphoreSlim(_maxConcurrentDownloads);
+            var tasks = new List<Task>();
+
+            foreach (var tile in tiles)
+            {
+                tasks.Add(Task.Run(async () =>
+                {
+                    await semaphore.WaitAsync();
+                    try
+                    {
+                        await DownloadTile(tile);
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
+                }));
+            }
+
+            await Task.WhenAll(tasks);
+        }
+
+        /// <summary>
+        /// Tek bir tile'ı indir
+        /// </summary>
+        private async Task DownloadTile(TileInfo tile)
+        {
+            try
+            {
+                // Bu kısım gerçek harita sağlayıcısı entegrasyonuna göre değişir
+                // Şimdilik mock implementasyon
+                _logger.LogInformation($"📦 Prefetching tile for: {tile.Lat}, {tile.Lng}");
+
+                // Simüle edilmiş tile verisi
+                var tileData = GenerateMockTileData();
+
+                // Tile'ı sıkıştır ve kaydet
+                var success = await _tileCompressor.SaveCompressedTile(tile.Key, tileData);
+
+                if (success)
+                {
+                    _logger.LogInformation($"✅ Tile prefetched: {tile.Key}");
+                }
+                else
+                {
+                    _logger.LogWarning($"❌ Failed to prefetch tile: {tile.Key}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to download tile {tile.Key}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Rota üzerindeki tile'ları hesapla
+        /// </summary>
+        private List<TileInfo> CalculateRouteTiles(Coordinate[] route)
+        {
+            var tiles = new HashSet<TileInfo>();
+            var zoomLevels = new[] { 10, 12, 15 }; // Farklı zoom seviyeleri için
+
+            foreach (var point in route)
+            {
+                foreach (var zoom in zoomLevels)
+                {
+                    var tileKeys = GetTilesForCoordinate(point.Lat, point.Lng, zoom);
+                    foreach (var key in tileKeys)
+                    {
+                        tiles.Add(new TileInfo
+                        {
+                            Key = key,
+                            Lat = point.Lat,
+                            Lng = point.Lng,
+                            Zoom = zoom
+                        });
+                    }
+                }
+            }
+
+            return tiles.ToList();
+        }
+
+        /// <summary>
+        /// Bölge içindeki tile'ları hesapla
+        /// </summary>
+        private List<TileInfo> CalculateRegionTiles(double centerLat, double centerLng, int zoom, int radius)
+        {
+            var tiles = new List<TileInfo>();
+            var centerTile = LatLngToTile(centerLat, centerLng, zoom);
+
+            // Merkez tile'ın etrafındaki tile'ları hesapla
+            for (int x = centerTile.X - radius; x <= centerTile.X + radius; x++)
+            {
+                for (int y = centerTile.Y - radius; y <= centerTile.Y + radius; y++)
+                {
+                    var tileLatLng = TileToLatLng(x, y, zoom);
+                    tiles.Add(new TileInfo
+                    {
+                        Key = $"{zoom}/{x}/{y}",
+                        Lat = tileLatLng.Lat,
+                        Lng = tileLatLng.Lng,
+                        Zoom = zoom
+                    });
+                }
+            }
+
+            return tiles;
+        }
+
+        /// <summary>
+        /// Gelecekteki pozisyonları tahmin et
+        /// </summary>
+        private List<Coordinate> PredictFuturePositions(Coordinate current, Coordinate velocity)
+        {
+            var predictions = new List<Coordinate>();
+            var timeSteps = 5; // 5 adım ileriye tahmin
+            var timeInterval = 10; // 10 saniye aralıklar
+
+            for (int i = 1; i <= timeSteps; i++)
+            {
+                var time = i * timeInterval;
+                var predictedLat = current.Lat + (velocity.Lat * time / 3600); // Saat başına dönüşüm
+                var predictedLng = current.Lng + (velocity.Lng * time / 3600);
+
+                predictions.Add(new Coordinate { Lat = predictedLat, Lng = predictedLng });
+            }
+
+            return predictions;
+        }
+
+        /// <summary>
+        /// Koordinat için tile anahtarlarını getir
+        /// </summary>
+        private List<string> GetTilesForCoordinate(double lat, double lng, int zoom)
+        {
+            var tile = LatLngToTile(lat, lng, zoom);
+            var tiles = new List<string>();
+
+            // Ana tile
+            tiles.Add($"{zoom}/{tile.X}/{tile.Y}");
+
+            // Çevre tile'lar (prefetch radius'a göre)
+            for (int dx = -_prefetchRadius; dx <= _prefetchRadius; dx++)
+            {
+                for (int dy = -_prefetchRadius; dy <= _prefetchRadius; dy++)
+                {
+                    if (dx == 0 && dy == 0) continue; // Ana tile zaten eklendi
+
+                    var neighborX = tile.X + dx;
+                    var neighborY = tile.Y + dy;
+
+                    tiles.Add($"{zoom}/{neighborX}/{neighborY}");
+                }
+            }
+
+            return tiles;
+        }
+
+        /// <summary>
+        /// Cache hit rate hesapla
+        /// </summary>
+        private double CalculateCacheHitRate()
+        {
+            // Bu kısım gerçek implementasyonda daha sofistike olabilir
+            // Şimdilik basit bir oran döndürülüyor
+            return 0.85; // %85 cache hit rate
+        }
+
+        /// <summary>
+        /// Mock tile verisi oluştur
+        /// </summary>
+        private byte[] GenerateMockTileData()
+        {
+            // 256x256 PNG tile simülasyonu
+            var random = new Random();
+            var data = new byte[1024]; // Basitleştirilmiş
+            random.NextBytes(data);
+            return data;
+        }
+
+        /// <summary>
+        /// LatLng'den Tile koordinatına dönüşüm
+        /// </summary>
+        private (int X, int Y) LatLngToTile(double lat, double lng, int zoom)
+        {
+            var x = (int)Math.Floor((lng + 180.0) / 360.0 * Math.Pow(2.0, zoom));
+            var y = (int)Math.Floor((1.0 - Math.Log(Math.Tan(lat * Math.PI / 180.0) + 1.0 / Math.Cos(lat * Math.PI / 180.0)) / Math.PI) / 2.0 * Math.Pow(2.0, zoom));
+            return (x, y);
+        }
+
+        /// <summary>
+        /// Tile koordinatından LatLng'ye dönüşüm
+        /// </summary>
+        private (double Lat, double Lng) TileToLatLng(int x, int y, int zoom)
+        {
+            var n = Math.PI - 2.0 * Math.PI * y / Math.Pow(2.0, zoom);
+            var lat = 180.0 / Math.PI * Math.Atan(0.5 * (Math.Exp(n) - Math.Exp(-n)));
+            var lng = x / Math.Pow(2.0, zoom) * 360.0 - 180.0;
+            return (lat, lng);
+        }
+    }
+
+    public class Coordinate
+    {
+        public double Lat { get; set; }
+        public double Lng { get; set; }
+    }
+
+    public class TileInfo
+    {
+        public string Key { get; set; }
+        public double Lat { get; set; }
+        public double Lng { get; set; }
+        public int Zoom { get; set; }
+    }
+
+    public class PrefetchStats
+    {
+        public int TotalTiles { get; set; }
+        public long TotalSize { get; set; }
+        public double CacheHitRate { get; set; }
+        public List<string> RecentTiles { get; set; } = new List<string>();
+
+        public string GetTotalSizeString()
+        {
+            return $"{TotalSize / 1024 / 1024:F2} MB";
+        }
+
+        public string GetCacheHitRateString()
+        {
+            return $"{CacheHitRate:P2}";
+        }
+    }
+}

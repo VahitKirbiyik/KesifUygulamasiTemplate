@@ -1,0 +1,1 @@
+// LocationReminderService.cs\npublic class LocationReminderService\n{\n    public async Task SetReminderAsync(Location location, string message, DateTime triggerTime)\n    {\n        // Belirli bir konuma yaklaşıldığında veya zamanı geldiğinde \n        // kullanıcıya hatırlatma göster\n    }\n}\n

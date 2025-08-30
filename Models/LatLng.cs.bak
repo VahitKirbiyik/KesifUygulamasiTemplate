@@ -1,0 +1,29 @@
+namespace KesifUygulamasiTemplate.Models
+{
+    public class LatLng
+    {
+        public double Lat { get; set; }
+        public double Lng { get; set; }
+
+        public LatLng() { }
+
+        public LatLng(double lat, double lng)
+        {
+            Lat = lat;
+            Lng = lng;
+        }
+
+        // Ek özellikler - Microsoft.Maui.Devices.Sensors.Location ile uyumluluk için
+        public double Latitude
+        {
+            get => Lat;
+            set => Lat = value;
+        }
+
+        public double Longitude
+        {
+            get => Lng;
+            set => Lng = value;
+        }
+    }
+}

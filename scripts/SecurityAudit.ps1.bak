@@ -1,0 +1,584 @@
+# SecurityAudit.ps1
+# Security audit script for JWT, OAuth, and API key validation
+# Performs comprehensive security checks and generates compliance reports
+
+param(
+    [string]$ProjectPath = $PSScriptRoot,
+    [string]$OutputPath = "security-reports",
+    [string]$ConfigPath = "appsettings.json",
+    [switch]$EnableDetailedAudit,
+    [switch]$CheckEnvironmentVariables,
+    [switch]$ValidateCertificates,
+    [switch]$AuditApiKeys,
+    [switch]$CheckJwtTokens,
+    [switch]$ValidateOAuth,
+    [int]$SecurityScoreThreshold = 80,
+    [switch]$FailOnCriticalIssues,
+    [switch]$GenerateHtmlReport,
+    [switch]$SendNotifications
+)
+
+# Environment variables for security audit
+$env:SECURITY_AUDIT_ENABLED = $EnableDetailedAudit.ToString().ToLower()
+$env:SECURITY_REPORTS_PATH = if ($env:SECURITY_REPORTS_PATH) { $env:SECURITY_REPORTS_PATH } else { "$OutputPath/security" }
+$env:SECURITY_SCORE_THRESHOLD = $SecurityScoreThreshold.ToString()
+
+# Security audit configuration
+$auditConfig = @{
+    ProjectPath = $ProjectPath
+    OutputPath = $OutputPath
+    ConfigPath = $ConfigPath
+    AuditStartTime = Get-Date
+    SecurityIssues = @()
+    ComplianceChecks = @()
+    SecurityScore = 100
+    CriticalIssues = 0
+    WarningIssues = 0
+    InfoIssues = 0
+}
+
+# Create output directories
+New-Item -ItemType Directory -Force -Path $auditConfig.OutputPath | Out-Null
+New-Item -ItemType Directory -Force -Path $env:SECURITY_REPORTS_PATH | Out-Null
+
+Write-Host "=== Security Audit Started ===" -ForegroundColor Cyan
+Write-Host "Project Path: $ProjectPath" -ForegroundColor Gray
+Write-Host "Output Path: $OutputPath" -ForegroundColor Gray
+Write-Host "Security Threshold: $SecurityScoreThreshold%" -ForegroundColor Gray
+Write-Host ""
+
+# Security check functions
+function Test-SecurityIssue {
+    param(
+        [string]$CheckName,
+        [string]$Description,
+        [scriptblock]$CheckBlock,
+        [ValidateSet("Critical", "Warning", "Info")]
+        [string]$Severity = "Info"
+    )
+
+    Write-Host "Checking: $CheckName..." -ForegroundColor Yellow
+
+    try {
+        $result = & $CheckBlock
+        $passed = $result.Passed
+
+        $issue = @{
+            CheckName = $CheckName
+            Description = $Description
+            Severity = $Severity
+            Passed = $passed
+            Details = $result.Details
+            Recommendation = $result.Recommendation
+            Timestamp = Get-Date
+        }
+
+        $auditConfig.SecurityIssues += $issue
+
+        if ($passed) {
+            Write-Host "✓ $CheckName PASSED" -ForegroundColor Green
+        } else {
+            Write-Host "✗ $CheckName FAILED ($Severity)" -ForegroundColor Red
+
+            # Security score'u düşür
+            switch ($Severity) {
+                "Critical" {
+                    $auditConfig.SecurityScore -= 20
+                    $auditConfig.CriticalIssues++
+                }
+                "Warning" {
+                    $auditConfig.SecurityScore -= 10
+                    $auditConfig.WarningIssues++
+                }
+                "Info" {
+                    $auditConfig.SecurityScore -= 5
+                    $auditConfig.InfoIssues++
+                }
+            }
+        }
+
+        return $passed
+    }
+    catch {
+        $issue = @{
+            CheckName = $CheckName
+            Description = $Description
+            Severity = "Critical"
+            Passed = $false
+            Details = "Check execution failed: $($_.Exception.Message)"
+            Recommendation = "Fix the security check implementation"
+            Timestamp = Get-Date
+        }
+
+        $auditConfig.SecurityIssues += $issue
+        $auditConfig.SecurityScore -= 25
+        $auditConfig.CriticalIssues++
+
+        Write-Host "✗ $CheckName ERROR: $($_.Exception.Message)" -ForegroundColor Red
+        return $false
+    }
+}
+
+# JWT Token validation
+Test-SecurityIssue "JWT Token Validation" "Validate JWT tokens for proper signing and expiration" {
+    $jwtIssues = @()
+
+    # Check for JWT configuration in appsettings
+    $configFile = Join-Path $auditConfig.ProjectPath $auditConfig.ConfigPath
+    if (Test-Path $configFile) {
+        $config = Get-Content $configFile -Raw | ConvertFrom-Json
+
+        # Check JWT settings
+        if ($config.Jwt) {
+            if (-not $config.Jwt.SecretKey -or $config.Jwt.SecretKey.Length -lt 32) {
+                $jwtIssues += "JWT SecretKey is too short or missing (minimum 32 characters required)"
+            }
+
+            if (-not $config.Jwt.Issuer) {
+                $jwtIssues += "JWT Issuer is not configured"
+            }
+
+            if (-not $config.Jwt.Audience) {
+                $jwtIssues += "JWT Audience is not configured"
+            }
+
+            if ($config.Jwt.ExpirationMinutes -and $config.Jwt.ExpirationMinutes -gt 1440) {
+                $jwtIssues += "JWT expiration time is too long (maximum 24 hours recommended)"
+            }
+        } else {
+            $jwtIssues += "JWT configuration section is missing"
+        }
+    }
+
+    # Check environment variables for JWT secrets
+    $jwtSecret = $env:JWT_SECRET_KEY
+    if ($jwtSecret) {
+        if ($jwtSecret.Length -lt 32) {
+            $jwtIssues += "JWT_SECRET_KEY environment variable is too short"
+        }
+    } else {
+        $jwtIssues += "JWT_SECRET_KEY environment variable is not set"
+    }
+
+    return @{
+        Passed = $jwtIssues.Count -eq 0
+        Details = if ($jwtIssues.Count -gt 0) { $jwtIssues -join "; " } else { "All JWT validations passed" }
+        Recommendation = "Configure strong JWT secrets, set proper issuer/audience, and use reasonable expiration times"
+    }
+} "Critical"
+
+# API Key validation
+Test-SecurityIssue "API Key Security" "Validate API keys for proper storage and rotation" {
+    $apiKeyIssues = @()
+
+    # Check for hardcoded API keys in source files
+    $sourceFiles = Get-ChildItem -Path $auditConfig.ProjectPath -Include "*.cs", "*.json", "*.config" -Recurse |
+                   Where-Object { $_.FullName -notmatch "\\bin\\|\\.git\\" }
+
+    foreach ($file in $sourceFiles) {
+        $content = Get-Content $file.FullName -Raw
+
+        # Check for common API key patterns
+        $apiKeyPatterns = @(
+            "api[_-]?key\s*[:=]\s*['`"][^'`"]+['`"]",
+            "apikey\s*[:=]\s*['`"][^'`"]+['`"]",
+            "secret[_-]?key\s*[:=]\s*['`"][^'`"]+['`"]",
+            "access[_-]?token\s*[:=]\s*['`"][^'`"]+['`"]"
+        )
+
+        foreach ($pattern in $apiKeyPatterns) {
+            if ($content -match $pattern) {
+                $apiKeyIssues += "Potential hardcoded API key found in $($file.Name)"
+            }
+        }
+    }
+
+    # Check environment variables
+    $apiKeys = @($env:GOOGLE_MAPS_API_KEY, $env:MAPBOX_ACCESS_TOKEN, $env:HERE_API_KEY)
+    foreach ($apiKey in $apiKeys) {
+        if ($apiKey -and $apiKey.Length -lt 20) {
+            $apiKeyIssues += "API key appears to be too short or invalid"
+        }
+    }
+
+    return @{
+        Passed = $apiKeyIssues.Count -eq 0
+        Details = if ($apiKeyIssues.Count -gt 0) { $apiKeyIssues -join "; " } else { "No API key security issues found" }
+        Recommendation = "Store API keys in environment variables, use secret management, and rotate keys regularly"
+    }
+} "Critical"
+
+# OAuth configuration validation
+Test-SecurityIssue "OAuth Configuration" "Validate OAuth settings for secure authentication" {
+    $oauthIssues = @()
+
+    $configFile = Join-Path $auditConfig.ProjectPath $auditConfig.ConfigPath
+    if (Test-Path $configFile) {
+        $config = Get-Content $configFile -Raw | ConvertFrom-Json
+
+        if ($config.OAuth) {
+            if (-not $config.OAuth.ClientId) {
+                $oauthIssues += "OAuth ClientId is not configured"
+            }
+
+            if (-not $config.OAuth.ClientSecret) {
+                $oauthIssues += "OAuth ClientSecret is not configured"
+            }
+
+            if (-not $config.OAuth.Authority) {
+                $oauthIssues += "OAuth Authority is not configured"
+            }
+
+            if ($config.OAuth.RedirectUris -and $config.OAuth.RedirectUris.Count -eq 0) {
+                $oauthIssues += "No OAuth redirect URIs configured"
+            }
+        } else {
+            $oauthIssues += "OAuth configuration section is missing"
+        }
+    }
+
+    # Check for OAuth environment variables
+    if (-not $env:OAUTH_CLIENT_ID) {
+        $oauthIssues += "OAUTH_CLIENT_ID environment variable is not set"
+    }
+
+    if (-not $env:OAUTH_CLIENT_SECRET) {
+        $oauthIssues += "OAUTH_CLIENT_SECRET environment variable is not set"
+    }
+
+    return @{
+        Passed = $oauthIssues.Count -eq 0
+        Details = if ($oauthIssues.Count -gt 0) { $oauthIssues -join "; " } else { "OAuth configuration is properly set" }
+        Recommendation = "Configure OAuth client credentials, set proper redirect URIs, and use secure OAuth flows"
+    }
+} "Warning"
+
+# Certificate validation
+Test-SecurityIssue "SSL/TLS Certificates" "Validate SSL certificates for secure connections" {
+    $certIssues = @()
+
+    try {
+        # Check for certificate files
+        $certFiles = Get-ChildItem -Path $auditConfig.ProjectPath -Include "*.pfx", "*.p12", "*.cer", "*.crt" -Recurse
+
+        if ($certFiles.Count -eq 0) {
+            $certIssues += "No SSL certificate files found in project"
+        }
+
+        # Check certificate configurations
+        $configFile = Join-Path $auditConfig.ProjectPath $auditConfig.ConfigPath
+        if (Test-Path $configFile) {
+            $config = Get-Content $configFile -Raw | ConvertFrom-Json
+
+            if (-not $config.Kestrel -or -not $config.Kestrel.Endpoints -or -not $config.Kestrel.Endpoints.Https) {
+                $certIssues += "HTTPS endpoint not configured in Kestrel"
+            }
+        }
+
+        # Check for certificate environment variables
+        if (-not $env:ASPNETCORE_Kestrel__Certificates__Default__Path) {
+            $certIssues += "Certificate path not configured via environment variables"
+        }
+
+    } catch {
+        $certIssues += "Certificate validation failed: $($_.Exception.Message)"
+    }
+
+    return @{
+        Passed = $certIssues.Count -eq 0
+        Details = if ($certIssues.Count -gt 0) { $certIssues -join "; " } else { "SSL/TLS certificates are properly configured" }
+        Recommendation = "Configure SSL certificates, enable HTTPS, and ensure certificate validity"
+    }
+} "Warning"
+
+# Environment variable security
+Test-SecurityIssue "Environment Variables" "Check for sensitive data in environment variables" {
+    $envIssues = @()
+
+    # Get all environment variables
+    $allEnvVars = Get-ChildItem Env:
+
+    # Check for sensitive patterns
+    $sensitivePatterns = @(
+        "*password*",
+        "*secret*",
+        "*key*",
+        "*token*",
+        "*credential*"
+    )
+
+    foreach ($envVar in $allEnvVars) {
+        foreach ($pattern in $sensitivePatterns) {
+            if ($envVar.Name -like $pattern) {
+                $value = $envVar.Value
+                if ($value -and $value.Length -gt 10) {
+                    # Check if value looks like actual sensitive data
+                    if ($value -notmatch "^[\w\d]{8,}$" -or $value.Length -lt 16) {
+                        $envIssues += "Potentially weak sensitive data in $($envVar.Name)"
+                    }
+                }
+            }
+        }
+    }
+
+    return @{
+        Passed = $envIssues.Count -eq 0
+        Details = if ($envIssues.Count -gt 0) { $envIssues -join "; " } else { "Environment variables are secure" }
+        Recommendation = "Use strong passwords/keys, avoid hardcoded secrets, and use secret management systems"
+    }
+} "Warning"
+
+# CORS configuration
+Test-SecurityIssue "CORS Security" "Validate CORS settings for secure cross-origin requests" {
+    $corsIssues = @()
+
+    $configFile = Join-Path $auditConfig.ProjectPath $auditConfig.ConfigPath
+    if (Test-Path $configFile) {
+        $config = Get-Content $configFile -Raw | ConvertFrom-Json
+
+        if ($config.Cors) {
+            $origins = $config.Cors.AllowedOrigins
+            if ($origins -and $origins -contains "*") {
+                $corsIssues += "CORS allows all origins (*) which is insecure"
+            }
+
+            if (-not $config.Cors.AllowedHeaders -or $config.Cors.AllowedHeaders.Count -eq 0) {
+                $corsIssues += "CORS allowed headers not properly configured"
+            }
+
+            if (-not $config.Cors.AllowedMethods -or $config.Cors.AllowedMethods.Count -eq 0) {
+                $corsIssues += "CORS allowed methods not properly configured"
+            }
+        } else {
+            $corsIssues += "CORS configuration section is missing"
+        }
+    }
+
+    return @{
+        Passed = $corsIssues.Count -eq 0
+        Details = if ($corsIssues.Count -gt 0) { $corsIssues -join "; " } else { "CORS is properly configured" }
+        Recommendation = "Configure specific allowed origins, headers, and methods for CORS"
+    }
+} "Warning"
+
+# Security headers check
+Test-SecurityIssue "Security Headers" "Check for security headers in HTTP responses" {
+    $headerIssues = @()
+
+    # This would typically check actual HTTP responses
+    # For now, we'll check configuration
+    $configFile = Join-Path $auditConfig.ProjectPath $auditConfig.ConfigPath
+    if (Test-Path $configFile) {
+        $config = Get-Content $configFile -Raw | ConvertFrom-Json
+
+        $requiredHeaders = @(
+            "X-Content-Type-Options",
+            "X-Frame-Options",
+            "X-XSS-Protection",
+            "Strict-Transport-Security"
+        )
+
+        if (-not $config.SecurityHeaders) {
+            $headerIssues += "Security headers configuration is missing"
+        } else {
+            foreach ($header in $requiredHeaders) {
+                if (-not $config.SecurityHeaders.$header) {
+                    $headerIssues += "Required security header missing: $header"
+                }
+            }
+        }
+    }
+
+    return @{
+        Passed = $headerIssues.Count -eq 0
+        Details = if ($headerIssues.Count -gt 0) { $headerIssues -join "; " } else { "Security headers are properly configured" }
+        Recommendation = "Implement security headers like CSP, HSTS, X-Frame-Options, and X-Content-Type-Options"
+    }
+} "Info"
+
+# Dependency vulnerability check
+Test-SecurityIssue "Dependency Vulnerabilities" "Check for known vulnerabilities in dependencies" {
+    $vulnIssues = @()
+
+    # Check for package files
+    $packageFiles = @(
+        (Join-Path $auditConfig.ProjectPath "packages.config"),
+        (Join-Path $auditConfig.ProjectPath "Directory.Packages.props"),
+        (Join-Path $auditConfig.ProjectPath "package.json")
+    )
+
+    $hasPackageFile = $false
+    foreach ($file in $packageFiles) {
+        if (Test-Path $file) {
+            $hasPackageFile = $true
+            break
+        }
+    }
+
+    if (-not $hasPackageFile) {
+        $vulnIssues += "No package management files found"
+    }
+
+    # This would typically run vulnerability scanners
+    # For now, we'll check for outdated packages conceptually
+    $vulnIssues += "Automated vulnerability scanning not implemented"
+
+    return @{
+        Passed = $vulnIssues.Count -eq 0
+        Details = if ($vulnIssues.Count -gt 0) { $vulnIssues -join "; " } else { "No dependency vulnerabilities found" }
+        Recommendation = "Run regular dependency vulnerability scans and keep packages updated"
+    }
+} "Info"
+
+# Generate security score
+$auditConfig.SecurityScore = [math]::Max(0, $auditConfig.SecurityScore)
+
+# Generate HTML report
+if ($GenerateHtmlReport) {
+    Write-Host ""
+    Write-Host "=== Generating Security Audit Report ===" -ForegroundColor Cyan
+
+    $htmlReport = @"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Audit Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background: #f0f0f0; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        .score { font-size: 24px; font-weight: bold; text-align: center; margin: 20px 0; }
+        .score.high { color: #4CAF50; }
+        .score.medium { color: #FF9800; }
+        .score.low { color: #f44336; }
+        .issue { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px; }
+        .passed { border-color: #4CAF50; background-color: #f8fff8; }
+        .failed { border-color: #f44336; background-color: #fff8f8; }
+        .critical { border-left: 5px solid #f44336; }
+        .warning { border-left: 5px solid #FF9800; }
+        .info { border-left: 5px solid #2196F3; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Security Audit Report</h1>
+        <p><strong>Generated:</strong> $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")</p>
+        <p><strong>Project:</strong> $ProjectPath</p>
+        <p><strong>Security Threshold:</strong> $SecurityScoreThreshold%</p>
+    </div>
+
+    <div class="score $(if ($auditConfig.SecurityScore -ge 80) { 'high' } elseif ($auditConfig.SecurityScore -ge 60) { 'medium' } else { 'low' })">
+        Security Score: $($auditConfig.SecurityScore)%
+    </div>
+
+    <h2>Security Issues</h2>
+"@
+
+    foreach ($issue in $auditConfig.SecurityIssues) {
+        $cssClass = if ($issue.Passed) { "passed" } else { "failed $($issue.Severity.ToLower())" }
+        $status = if ($issue.Passed) { "✓ PASSED" } else { "✗ FAILED" }
+
+        $htmlReport += @"
+    <div class="issue $cssClass">
+        <h3>$($issue.CheckName) - $status</h3>
+        <p><strong>Description:</strong> $($issue.Description)</p>
+        <p><strong>Severity:</strong> $($issue.Severity)</p>
+        <p><strong>Details:</strong> $($issue.Details)</p>
+        <p><strong>Recommendation:</strong> $($issue.Recommendation)</p>
+    </div>
+"@
+    }
+
+    $htmlReport += @"
+    <h2>Summary</h2>
+    <table>
+        <tr><th>Metric</th><th>Value</th></tr>
+        <tr><td>Total Checks</td><td>$($auditConfig.SecurityIssues.Count)</td></tr>
+        <tr><td>Passed Checks</td><td>$($auditConfig.SecurityIssues | Where-Object { $_.Passed }).Count)</td></tr>
+        <tr><td>Failed Checks</td><td>$($auditConfig.SecurityIssues | Where-Object { -not $_.Passed }).Count)</td></tr>
+        <tr><td>Critical Issues</td><td>$($auditConfig.CriticalIssues)</td></tr>
+        <tr><td>Warning Issues</td><td>$($auditConfig.WarningIssues)</td></tr>
+        <tr><td>Info Issues</td><td>$($auditConfig.InfoIssues)</td></tr>
+        <tr><td>Security Score</td><td>$($auditConfig.SecurityScore)%</td></tr>
+    </table>
+</body>
+</html>
+"@
+
+    $htmlReportPath = Join-Path $auditConfig.OutputPath "security-audit-report.html"
+    $htmlReport | Out-File -FilePath $htmlReportPath -Encoding UTF8
+
+    Write-Host "HTML report generated: $htmlReportPath" -ForegroundColor Green
+}
+
+# Generate JSON summary
+$summaryPath = Join-Path $auditConfig.OutputPath "security-audit-summary.json"
+$summary = @{
+    AuditRun = @{
+        StartTime = $auditConfig.AuditStartTime
+        EndTime = Get-Date
+        Duration = ((Get-Date) - $auditConfig.AuditStartTime).TotalSeconds
+        Configuration = @{
+            ProjectPath = $ProjectPath
+            SecurityScoreThreshold = $SecurityScoreThreshold
+            EnableDetailedAudit = $EnableDetailedAudit
+            CheckEnvironmentVariables = $CheckEnvironmentVariables
+            ValidateCertificates = $ValidateCertificates
+            AuditApiKeys = $AuditApiKeys
+            CheckJwtTokens = $CheckJwtTokens
+            ValidateOAuth = $ValidateOAuth
+        }
+    }
+    Results = @{
+        TotalChecks = $auditConfig.SecurityIssues.Count
+        PassedChecks = ($auditConfig.SecurityIssues | Where-Object { $_.Passed }).Count
+        FailedChecks = ($auditConfig.SecurityIssues | Where-Object { -not $_.Passed }).Count
+        CriticalIssues = $auditConfig.CriticalIssues
+        WarningIssues = $auditConfig.WarningIssues
+        InfoIssues = $auditConfig.InfoIssues
+        SecurityScore = $auditConfig.SecurityScore
+        ScorePercentage = [math]::Round(($auditConfig.SecurityScore / 100) * 100, 1)
+        Passed = $auditConfig.SecurityScore -ge $SecurityScoreThreshold
+    }
+    Issues = $auditConfig.SecurityIssues
+}
+
+$summary | ConvertTo-Json -Depth 10 | Out-File -FilePath $summaryPath -Encoding UTF8
+
+Write-Host ""
+Write-Host "=== Security Audit Summary ===" -ForegroundColor Cyan
+Write-Host "Total Checks: $($summary.Results.TotalChecks)" -ForegroundColor White
+Write-Host "Passed: $($summary.Results.PassedChecks)" -ForegroundColor Green
+Write-Host "Failed: $($summary.Results.FailedChecks)" -ForegroundColor Red
+Write-Host "Critical Issues: $($summary.Results.CriticalIssues)" -ForegroundColor Red
+Write-Host "Security Score: $($summary.Results.SecurityScore)%" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "Results saved to: $summaryPath" -ForegroundColor Gray
+
+# Determine exit code
+$exitCode = 0
+
+if ($auditConfig.SecurityScore -lt $SecurityScoreThreshold) {
+    Write-Host "Security score ($($auditConfig.SecurityScore)%) is below threshold ($SecurityScoreThreshold%)." -ForegroundColor Red
+    $exitCode = 1
+}
+
+if ($FailOnCriticalIssues -and $auditConfig.CriticalIssues -gt 0) {
+    Write-Host "Critical security issues found. Failing audit." -ForegroundColor Red
+    $exitCode = 1
+}
+
+# Send notifications if enabled
+if ($SendNotifications -and $exitCode -ne 0) {
+    Write-Host "Sending security alert notifications..." -ForegroundColor Yellow
+    # Implementation for sending notifications would go here
+}
+
+Write-Host ""
+Write-Host "=== Security Audit Completed ===" -ForegroundColor Cyan
+
+exit $exitCode

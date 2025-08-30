@@ -1,10 +1,1 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="KesifUygulamasiTemplate.Views.DetailPage"
-             Title="Detail">
-    <VerticalStackLayout Spacing="20" Padding="30" VerticalOptions="Center">
-        <Label Text="Detail Page" FontSize="24" HorizontalOptions="Center" />
-        <Label Text="This is a detail page placeholder." />
-    </VerticalStackLayout>
-</ContentPage>
+<?xml version="1.0" encoding="utf-8" ?>\n<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"\n             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"\n             x:Class="KesifUygulamasiTemplate.Views.DetailPage"\n             Title="Detail">\n    <VerticalStackLayout Spacing="20" Padding="30" VerticalOptions="Center">\n        <Label Text="Detail Page" FontSize="24" HorizontalOptions="Center" />\n        <Label Text="This is a detail page placeholder." />\n    </VerticalStackLayout>\n</ContentPage>\n

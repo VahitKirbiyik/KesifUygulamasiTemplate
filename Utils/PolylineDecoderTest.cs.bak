@@ -1,0 +1,85 @@
+using System;
+using System.Collections.Generic;
+using KesifUygulamasiTemplate.Utils;
+using KesifUygulamasiTemplate.Models;
+
+namespace KesifUygulamasiTemplate.Tests
+{
+    /// <summary>
+    /// PolylineDecoder sınıfı için basit test sınıfı
+    /// </summary>
+    public static class PolylineDecoderTest
+    {
+        public static void TestDecode()
+        {
+            Console.WriteLine("PolylineDecoder Test Başlatılıyor...");
+
+            // Basit bir Google Maps polyline örneği
+            // Bu örnek İstanbul'un bazı noktalarını temsil ediyor
+            string encodedPolyline = "_p~iF~ps|U_ulLnnqC_mqNvxq`@";
+
+            try
+            {
+                var decodedPoints = PolylineDecoder.Decode(encodedPolyline);
+
+                Console.WriteLine($"Decode edilen nokta sayısı: {decodedPoints.Count}");
+
+                foreach (var point in decodedPoints)
+                {
+                    Console.WriteLine($"Lat: {point.Lat:F6}, Lng: {point.Lng:F6}");
+                }
+
+                // Encode test
+                var encodedAgain = PolylineDecoder.Encode(decodedPoints);
+                Console.WriteLine($"Tekrar encode edilmiş: {encodedAgain}");
+
+                Console.WriteLine("Test başarılı!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Test hatası: {ex.Message}");
+            }
+        }
+
+        public static void TestWithRealData()
+        {
+            Console.WriteLine("Gerçek veri ile test...");
+
+            // İstanbul Boğazı köprüsü civarı örnek koordinatlar
+            var testPoints = new List<LatLng>
+            {
+                new LatLng(41.0458, 29.0340), // Ortaköy
+                new LatLng(41.0465, 29.0352), // Boğaz köprüsü başlangıç
+                new LatLng(41.0472, 29.0365), // Boğaz köprüsü orta
+                new LatLng(41.0480, 29.0378), // Boğaz köprüsü bitiş
+                new LatLng(41.0485, 29.0390)  // Üsküdar
+            };
+
+            try
+            {
+                string encoded = PolylineDecoder.Encode(testPoints);
+                Console.WriteLine($"Encode edilmiş polyline: {encoded}");
+
+                var decoded = PolylineDecoder.Decode(encoded);
+                Console.WriteLine($"Decode sonrası nokta sayısı: {decoded.Count}");
+
+                // Hassasiyet kontrolü
+                for (int i = 0; i < Math.Min(testPoints.Count, decoded.Count); i++)
+                {
+                    var original = testPoints[i];
+                    var decodedPoint = decoded[i];
+                    var latDiff = Math.Abs(original.Lat - decodedPoint.Lat);
+                    var lngDiff = Math.Abs(original.Lng - decodedPoint.Lng);
+
+                    Console.WriteLine($"Nokta {i}: Fark - Lat: {latDiff:F8}, Lng: {lngDiff:F8}");
+                }
+
+                Console.WriteLine("Gerçek veri testi başarılı!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Gerçek veri testi hatası: {ex.Message}");
+            }
+        }
+    }
+}

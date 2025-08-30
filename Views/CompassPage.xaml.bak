@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="KesifUygulamasiTemplate.Views.CompassPage"
+             Title="Pusula">
+    
+    <Grid RowDefinitions="Auto,*,Auto" Padding="20">
+        <!-- Header -->
+        <Label Grid.Row="0" 
+               Text="Pusula" 
+               FontSize="28" 
+               FontAttributes="Bold"
+               HorizontalOptions="Center" 
+               Margin="0,10,0,20"/>
+
+        <Grid Grid.Row="1">
+            <!-- Compass Visual and Direction -->
+            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center">
+                <!-- Loading Indicator -->
+                <ActivityIndicator IsRunning="{Binding IsBusy}" 
+                                   IsVisible="{Binding IsBusy}"
+                                   HorizontalOptions="Center" 
+                                   VerticalOptions="Center"
+                                   HeightRequest="50" 
+                                   WidthRequest="50" />
+
+                <!-- Error Message -->
+                <Label Text="{Binding ErrorMessage}" 
+                       IsVisible="{Binding ErrorMessage, StringFormat='{0}', TargetNullValue=''}"
+                       TextColor="Red"
+                       HorizontalOptions="Center"
+                       Margin="0,10" />
+                
+                <!-- Compass Image -->
+                <Grid HeightRequest="300" WidthRequest="300">
+                    <Image Source="compass.png" 
+                           HeightRequest="300"
+                           WidthRequest="300"
+                           Rotation="{Binding Heading, Converter={StaticResource NegativeConverter}}" />
+                    
+                    <Image Source="compass_arrow.png" 
+                           HeightRequest="150"
+                           WidthRequest="150"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+                </Grid>
+                
+                <!-- Heading Display -->
+                <Label Text="{Binding Heading, StringFormat='Y�n: {0:F1}�'}" 
+                       FontSize="24"
+                       HorizontalOptions="Center"
+                       Margin="0,20" />
+                
+                <!-- Calibration Status -->
+                <ProgressBar Progress="{Binding CalibrationAccuracy}"
+                             IsVisible="{Binding IsCalibrating}"
+                             WidthRequest="200"
+                             Margin="0,10" />
+                
+                <Label Text="{Binding CalibrationAccuracy, StringFormat='Kalibrasyon: {0:P0}'}"
+                       IsVisible="{Binding IsCalibrating}"
+                       HorizontalOptions="Center" />
+            </VerticalStackLayout>
+        </Grid>
+        
+        <!-- Control Buttons -->
+        <HorizontalStackLayout Grid.Row="2" 
+                               HorizontalOptions="Center" 
+                               Spacing="20"
+                               Margin="0,20,0,10">
+            <Button Text="Ba�lat" 
+                    Command="{Binding StartCompassCommand}"
+                    IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}" />
+            
+            <Button Text="Durdur" 
+                    Command="{Binding StopCompassCommand}"
+                    IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}" />
+            
+            <Button Text="Kalibre Et" 
+                    Command="{Binding CalibrateCommand}"
+                    IsVisible="{Binding NeedsCalibration}" />
+        </HorizontalStackLayout>
+    </Grid>
+</ContentPage>

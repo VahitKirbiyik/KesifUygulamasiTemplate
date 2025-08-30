@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:KesifUygulamasiTemplate.ViewModels"
+             x:Class="KesifUygulamasiTemplate.Views.StreetViewPage"
+             x:Name="StreetViewRoot">
+
+    <ContentPage.BindingContext>
+        <vm:StreetViewViewModel/>
+    </ContentPage.BindingContext>
+
+    <StackLayout Padding="10" Spacing="10">
+        <!-- WebView -->
+        <WebView Source="{Binding StreetViewUrl}" HeightRequest="400"/>
+
+        <!-- Heading, Pitch, FOV sliderlari -->
+        <StackLayout Orientation="Horizontal" Spacing="5">
+            <Label Text="Heading:" VerticalOptions="Center"/>
+            <Slider Minimum="0" Maximum="360" Value="{Binding Heading}" HorizontalOptions="FillAndExpand"/>
+        </StackLayout>
+
+        <StackLayout Orientation="Horizontal" Spacing="5">
+            <Label Text="Pitch:" VerticalOptions="Center"/>
+            <Slider Minimum="-90" Maximum="90" Value="{Binding Pitch}" HorizontalOptions="FillAndExpand"/>
+        </StackLayout>
+
+        <StackLayout Orientation="Horizontal" Spacing="5">
+            <Label Text="FOV:" VerticalOptions="Center"/>
+            <Slider Minimum="10" Maximum="120" Value="{Binding FOV}" HorizontalOptions="FillAndExpand"/>
+        </StackLayout>
+
+        <!-- Linkler -->
+        <CollectionView ItemsSource="{Binding Links}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Button Text="{Binding Title}" 
+                            Command="{Binding Source={x:Reference StreetViewRoot}, Path=BindingContext.LoadPanoramaCommand}"
+                            CommandParameter="{Binding .}"/>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </StackLayout>
+</ContentPage>

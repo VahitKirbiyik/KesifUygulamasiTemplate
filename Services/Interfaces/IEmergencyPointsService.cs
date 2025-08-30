@@ -1,0 +1,1 @@
+namespace KesifUygulamasiTemplate.Services.Interfaces\n{\n    public interface IARService\n    {\n        void StartARSession();\n        void StopARSession();\n        void LoadModel(string modelPath);\n    }\n}\n

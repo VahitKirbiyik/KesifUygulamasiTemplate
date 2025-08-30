@@ -1,0 +1,591 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Route deviation detection and fallback routing service
+    /// Monitors route adherence and provides recovery mechanisms
+    /// </summary>
+    public class DeviationHandler
+    {
+        private readonly ILogger<DeviationHandler> _logger;
+        private readonly string _logsPath;
+        private readonly bool _enableDeviationDetection;
+        private readonly double _deviationThresholdMeters;
+        private readonly int _maxRecoveryAttempts;
+        private readonly int _recoveryDelayMs;
+
+        public DeviationHandler(ILogger<DeviationHandler> logger)
+        {
+            _logger = logger;
+            _logsPath = Environment.GetEnvironmentVariable("DEVIATION_LOGS_PATH") ?? "logs/deviations";
+            _enableDeviationDetection = bool.Parse(Environment.GetEnvironmentVariable("ENABLE_DEVIATION_DETECTION") ?? "true");
+            _deviationThresholdMeters = double.Parse(Environment.GetEnvironmentVariable("DEVIATION_THRESHOLD_METERS") ?? "50");
+            _maxRecoveryAttempts = int.Parse(Environment.GetEnvironmentVariable("MAX_RECOVERY_ATTEMPTS") ?? "3");
+            _recoveryDelayMs = int.Parse(Environment.GetEnvironmentVariable("RECOVERY_DELAY_MS") ?? "2000");
+
+            // Logs klasörünü oluştur
+            Directory.CreateDirectory(_logsPath);
+        }
+
+        /// <summary>
+        /// Rota sapmasını kontrol et
+        /// </summary>
+        public async Task<DeviationResult> CheckDeviation(RoutePoint currentLocation, RouteSegment currentSegment)
+        {
+            try
+            {
+                if (!_enableDeviationDetection)
+                {
+                    return new DeviationResult
+                    {
+                        IsDeviated = false,
+                        DeviationDistance = 0,
+                        Message = "Deviation detection is disabled"
+                    };
+                }
+
+                var deviation = CalculateDeviation(currentLocation, currentSegment);
+                var isDeviated = deviation > _deviationThresholdMeters;
+
+                var result = new DeviationResult
+                {
+                    IsDeviated = isDeviated,
+                    DeviationDistance = deviation,
+                    Threshold = _deviationThresholdMeters,
+                    CurrentLocation = currentLocation,
+                    ExpectedSegment = currentSegment,
+                    Timestamp = DateTime.UtcNow
+                };
+
+                if (isDeviated)
+                {
+                    result.Message = $"Route deviation detected: {deviation:F1}m from planned route";
+                    _logger.LogWarning($"Route deviation: {deviation:F1}m at {currentLocation.Latitude:F6}, {currentLocation.Longitude:F6}");
+
+                    // Sapma olayını logla
+                    await LogDeviation(result);
+                }
+                else
+                {
+                    result.Message = $"On route: {deviation:F1}m from planned route";
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Deviation check failed: {ex.Message}");
+                return new DeviationResult
+                {
+                    IsDeviated = false,
+                    DeviationDistance = 0,
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        /// <summary>
+        /// Rota sapması için kurtarma stratejisi uygula
+        /// </summary>
+        public async Task<RecoveryResult> ApplyRecoveryStrategy(DeviationResult deviation, List<RouteSegment> alternativeRoutes)
+        {
+            try
+            {
+                if (!deviation.IsDeviated)
+                {
+                    return new RecoveryResult
+                    {
+                        Success = true,
+                        Strategy = RecoveryStrategy.NoAction,
+                        Message = "No deviation detected, no recovery needed"
+                    };
+                }
+
+                var recoveryStrategies = new List<RecoveryStrategy>
+                {
+                    RecoveryStrategy.RerouteToNearest,
+                    RecoveryStrategy.RecalculateRoute,
+                    RecoveryStrategy.ContinueWithWarning
+                };
+
+                foreach (var strategy in recoveryStrategies)
+                {
+                    var result = await ExecuteRecoveryStrategy(strategy, deviation, alternativeRoutes);
+
+                    if (result.Success)
+                    {
+                        await LogRecovery(result);
+                        return result;
+                    }
+
+                    if (result.AttemptCount >= _maxRecoveryAttempts)
+                    {
+                        break;
+                    }
+
+                    // Kısa bir gecikme ile bir sonraki stratejiyi dene
+                    await Task.Delay(_recoveryDelayMs);
+                }
+
+                // Tüm stratejiler başarısız oldu
+                var failureResult = new RecoveryResult
+                {
+                    Success = false,
+                    Strategy = RecoveryStrategy.Failed,
+                    Message = "All recovery strategies failed",
+                    AttemptCount = recoveryStrategies.Count
+                };
+
+                await LogRecovery(failureResult);
+                return failureResult;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Recovery strategy failed: {ex.Message}");
+                return new RecoveryResult
+                {
+                    Success = false,
+                    Strategy = RecoveryStrategy.Failed,
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        /// <summary>
+        /// Sapma geçmişini al
+        /// </summary>
+        public async Task<List<DeviationLog>> GetDeviationHistory(string? routeId = null, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            try
+            {
+                var logFiles = Directory.GetFiles(_logsPath, "deviation-*.json")
+                    .Where(f => !startDate.HasValue || File.GetCreationTime(f) >= startDate.Value)
+                    .Where(f => !endDate.HasValue || File.GetCreationTime(f) <= endDate.Value)
+                    .OrderByDescending(f => File.GetCreationTime(f))
+                    .Take(100);
+
+                var history = new List<DeviationLog>();
+
+                foreach (var logFile in logFiles)
+                {
+                    try
+                    {
+                        var content = await File.ReadAllTextAsync(logFile);
+                        var logs = JsonSerializer.Deserialize<List<DeviationLog>>(content);
+
+                        if (logs != null)
+                        {
+                            var filteredLogs = logs.Where(l => routeId == null || l.RouteId == routeId).ToList();
+                            history.AddRange(filteredLogs);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning($"Failed to read deviation log {logFile}: {ex.Message}");
+                    }
+                }
+
+                return history.OrderByDescending(l => l.Timestamp).Take(1000).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to get deviation history: {ex.Message}");
+                return new List<DeviationLog>();
+            }
+        }
+
+        /// <summary>
+        /// Kurtarma geçmişini al
+        /// </summary>
+        public async Task<List<RecoveryLog>> GetRecoveryHistory(string? routeId = null, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            try
+            {
+                var logFiles = Directory.GetFiles(_logsPath, "recovery-*.json")
+                    .Where(f => !startDate.HasValue || File.GetCreationTime(f) >= startDate.Value)
+                    .Where(f => !endDate.HasValue || File.GetCreationTime(f) <= endDate.Value)
+                    .OrderByDescending(f => File.GetCreationTime(f))
+                    .Take(100);
+
+                var history = new List<RecoveryLog>();
+
+                foreach (var logFile in logFiles)
+                {
+                    try
+                    {
+                        var content = await File.ReadAllTextAsync(logFile);
+                        var logs = JsonSerializer.Deserialize<List<RecoveryLog>>(content);
+
+                        if (logs != null)
+                        {
+                            var filteredLogs = logs.Where(l => routeId == null || l.RouteId == routeId).ToList();
+                            history.AddRange(filteredLogs);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning($"Failed to read recovery log {logFile}: {ex.Message}");
+                    }
+                }
+
+                return history.OrderByDescending(l => l.Timestamp).Take(1000).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to get recovery history: {ex.Message}");
+                return new List<RecoveryLog>();
+            }
+        }
+
+        /// <summary>
+        /// Sapma istatistiklerini al
+        /// </summary>
+        public async Task<DeviationStats> GetDeviationStats(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var deviationHistory = await GetDeviationHistory(null, startDate, endDate);
+            var recoveryHistory = await GetRecoveryHistory(null, startDate, endDate);
+
+            return new DeviationStats
+            {
+                TotalDeviations = deviationHistory.Count,
+                SuccessfulRecoveries = recoveryHistory.Count(l => l.Success),
+                FailedRecoveries = recoveryHistory.Count(l => !l.Success),
+                AverageDeviationDistance = deviationHistory.Count > 0 ? deviationHistory.Average(d => d.DeviationDistance) : 0,
+                MaxDeviationDistance = deviationHistory.Count > 0 ? deviationHistory.Max(d => d.DeviationDistance) : 0,
+                RecoveryRate = recoveryHistory.Count > 0 ? (double)recoveryHistory.Count(l => l.Success) / recoveryHistory.Count * 100 : 0,
+                PeriodStart = startDate ?? deviationHistory.Min(l => l.Timestamp),
+                PeriodEnd = endDate ?? deviationHistory.Max(l => l.Timestamp)
+            };
+        }
+
+        /// <summary>
+        /// Sapma mesafesini hesapla
+        /// </summary>
+        private double CalculateDeviation(RoutePoint currentLocation, RouteSegment segment)
+        {
+            // Haversine formülü ile iki nokta arası mesafe
+            var dLat = ToRadians(currentLocation.Latitude - segment.StartPoint.Latitude);
+            var dLon = ToRadians(currentLocation.Longitude - segment.StartPoint.Longitude);
+
+            var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                    Math.Cos(ToRadians(segment.StartPoint.Latitude)) * Math.Cos(ToRadians(currentLocation.Latitude)) *
+                    Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+
+            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+
+            // Dünya yarıçapı (metre cinsinden)
+            const double EarthRadius = 6371000;
+            return EarthRadius * c;
+        }
+
+        /// <summary>
+        /// Dereceyi radyana çevir
+        /// </summary>
+        private double ToRadians(double degrees)
+        {
+            return degrees * Math.PI / 180.0;
+        }
+
+        /// <summary>
+        /// Kurtarma stratejisini çalıştır
+        /// </summary>
+        private async Task<RecoveryResult> ExecuteRecoveryStrategy(RecoveryStrategy strategy, DeviationResult deviation, List<RouteSegment> alternativeRoutes)
+        {
+            var result = new RecoveryResult
+            {
+                Strategy = strategy,
+                AttemptCount = 1,
+                Timestamp = DateTime.UtcNow
+            };
+
+            try
+            {
+                switch (strategy)
+                {
+                    case RecoveryStrategy.RerouteToNearest:
+                        result = await ExecuteRerouteToNearest(deviation, alternativeRoutes);
+                        break;
+                    case RecoveryStrategy.RecalculateRoute:
+                        result = await ExecuteRecalculateRoute(deviation);
+                        break;
+                    case RecoveryStrategy.ContinueWithWarning:
+                        result = await ExecuteContinueWithWarning(deviation);
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// En yakın rotaya yönlendirme stratejisi
+        /// </summary>
+        private async Task<RecoveryResult> ExecuteRerouteToNearest(DeviationResult deviation, List<RouteSegment> alternativeRoutes)
+        {
+            await Task.Delay(500); // Simüle edilmiş işlem süresi
+
+            if (alternativeRoutes.Count == 0)
+            {
+                return new RecoveryResult
+                {
+                    Success = false,
+                    Strategy = RecoveryStrategy.RerouteToNearest,
+                    Message = "No alternative routes available"
+                };
+            }
+
+            // En yakın alternatifi bul (basit implementasyon)
+            var nearestRoute = alternativeRoutes.OrderBy(r =>
+                CalculateDeviation(deviation.CurrentLocation, r)).First();
+
+            return new RecoveryResult
+            {
+                Success = true,
+                Strategy = RecoveryStrategy.RerouteToNearest,
+                Message = "Rerouted to nearest alternative route",
+                NewRoute = nearestRoute
+            };
+        }
+
+        /// <summary>
+        /// Rota yeniden hesaplama stratejisi
+        /// </summary>
+        private async Task<RecoveryResult> ExecuteRecalculateRoute(DeviationResult deviation)
+        {
+            await Task.Delay(1000); // Simüle edilmiş API çağrısı
+
+            // Rota yeniden hesaplama simülasyonu
+            var success = new Random().NextDouble() > 0.2; // %80 başarı oranı
+
+            return new RecoveryResult
+            {
+                Success = success,
+                Strategy = RecoveryStrategy.RecalculateRoute,
+                Message = success ? "Route recalculated successfully" : "Route recalculation failed",
+                NewRoute = success ? new RouteSegment
+                {
+                    StartPoint = deviation.CurrentLocation,
+                    EndPoint = deviation.ExpectedSegment.EndPoint
+                } : null
+            };
+        }
+
+        /// <summary>
+        /// Uyarı ile devam etme stratejisi
+        /// </summary>
+        private async Task<RecoveryResult> ExecuteContinueWithWarning(DeviationResult deviation)
+        {
+            await Task.Delay(200); // Simüle edilmiş işlem süresi
+
+            return new RecoveryResult
+            {
+                Success = true,
+                Strategy = RecoveryStrategy.ContinueWithWarning,
+                Message = "Continuing with route deviation warning",
+                WarningIssued = true
+            };
+        }
+
+        /// <summary>
+        /// Sapmayı logla
+        /// </summary>
+        private async Task LogDeviation(DeviationResult deviation)
+        {
+            try
+            {
+                var logEntry = new DeviationLog
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    RouteId = deviation.ExpectedSegment?.RouteId,
+                    DeviationDistance = deviation.DeviationDistance,
+                    Threshold = deviation.Threshold,
+                    CurrentLocation = deviation.CurrentLocation,
+                    ExpectedSegment = deviation.ExpectedSegment,
+                    Timestamp = deviation.Timestamp,
+                    Message = deviation.Message
+                };
+
+                var logFile = Path.Combine(_logsPath, $"deviation-{DateTime.UtcNow:yyyy-MM-dd}.json");
+
+                List<DeviationLog> existingLogs = new List<DeviationLog>();
+
+                if (File.Exists(logFile))
+                {
+                    try
+                    {
+                        var content = await File.ReadAllTextAsync(logFile);
+                        existingLogs = JsonSerializer.Deserialize<List<DeviationLog>>(content) ?? new List<DeviationLog>();
+                    }
+                    catch
+                    {
+                        // Log dosyası bozuk ise yeni liste oluştur
+                    }
+                }
+
+                existingLogs.Add(logEntry);
+
+                var json = JsonSerializer.Serialize(existingLogs, new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+
+                await File.WriteAllTextAsync(logFile, json);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to log deviation: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Kurtarmayı logla
+        /// </summary>
+        private async Task LogRecovery(RecoveryResult recovery)
+        {
+            try
+            {
+                var logEntry = new RecoveryLog
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    RouteId = recovery.NewRoute?.RouteId,
+                    Strategy = recovery.Strategy,
+                    Success = recovery.Success,
+                    AttemptCount = recovery.AttemptCount,
+                    Timestamp = recovery.Timestamp,
+                    Message = recovery.Message,
+                    ErrorMessage = recovery.ErrorMessage
+                };
+
+                var logFile = Path.Combine(_logsPath, $"recovery-{DateTime.UtcNow:yyyy-MM-dd}.json");
+
+                List<RecoveryLog> existingLogs = new List<RecoveryLog>();
+
+                if (File.Exists(logFile))
+                {
+                    try
+                    {
+                        var content = await File.ReadAllTextAsync(logFile);
+                        existingLogs = JsonSerializer.Deserialize<List<RecoveryLog>>(content) ?? new List<RecoveryLog>();
+                    }
+                    catch
+                    {
+                        // Log dosyası bozuk ise yeni liste oluştur
+                    }
+                }
+
+                existingLogs.Add(logEntry);
+
+                var json = JsonSerializer.Serialize(existingLogs, new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+
+                await File.WriteAllTextAsync(logFile, json);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to log recovery: {ex.Message}");
+            }
+        }
+    }
+
+    public class RoutePoint
+    {
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public double? Altitude { get; set; }
+        public DateTime? Timestamp { get; set; }
+    }
+
+    public class RouteSegment
+    {
+        public string? RouteId { get; set; }
+        public RoutePoint StartPoint { get; set; } = new RoutePoint();
+        public RoutePoint EndPoint { get; set; } = new RoutePoint();
+        public double Distance { get; set; }
+        public TimeSpan? EstimatedDuration { get; set; }
+    }
+
+    public class DeviationResult
+    {
+        public bool IsDeviated { get; set; }
+        public double DeviationDistance { get; set; }
+        public double Threshold { get; set; }
+        public RoutePoint? CurrentLocation { get; set; }
+        public RouteSegment? ExpectedSegment { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string? Message { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    public class RecoveryResult
+    {
+        public bool Success { get; set; }
+        public RecoveryStrategy Strategy { get; set; }
+        public int AttemptCount { get; set; }
+        public RouteSegment? NewRoute { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string? Message { get; set; }
+        public string? ErrorMessage { get; set; }
+        public bool WarningIssued { get; set; }
+    }
+
+    public class DeviationStats
+    {
+        public int TotalDeviations { get; set; }
+        public int SuccessfulRecoveries { get; set; }
+        public int FailedRecoveries { get; set; }
+        public double AverageDeviationDistance { get; set; }
+        public double MaxDeviationDistance { get; set; }
+        public double RecoveryRate { get; set; }
+        public DateTime PeriodStart { get; set; }
+        public DateTime PeriodEnd { get; set; }
+    }
+
+    public class DeviationLog
+    {
+        public string? Id { get; set; }
+        public string? RouteId { get; set; }
+        public double DeviationDistance { get; set; }
+        public double Threshold { get; set; }
+        public RoutePoint? CurrentLocation { get; set; }
+        public RouteSegment? ExpectedSegment { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string? Message { get; set; }
+    }
+
+    public class RecoveryLog
+    {
+        public string? Id { get; set; }
+        public string? RouteId { get; set; }
+        public RecoveryStrategy Strategy { get; set; }
+        public bool Success { get; set; }
+        public int AttemptCount { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string? Message { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    public enum RecoveryStrategy
+    {
+        NoAction,
+        RerouteToNearest,
+        RecalculateRoute,
+        ContinueWithWarning,
+        Failed
+    }
+}

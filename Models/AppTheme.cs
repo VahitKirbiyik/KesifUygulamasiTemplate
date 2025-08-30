@@ -1,9 +1,1 @@
-namespace KesifUygulamasiTemplate.Models
-{
-    public enum AppTheme
-    {
-        Light,
-        Dark,
-        Custom
-    }
-}
+namespace KesifUygulamasiTemplate.Models\n{\n    public enum AppTheme\n    {\n        Light,\n        Dark,\n        Custom\n    }\n}\n

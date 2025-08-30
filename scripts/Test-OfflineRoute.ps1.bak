@@ -1,0 +1,26 @@
+Write-Host "Testing OfflineRouteSimulator..."
+# Ana dizine git
+$rootDir = "c:\Users\VAHİT\KesifUygulamasiTemplate"
+Set-Location $rootDir
+
+# TestResults dizini oluştur
+if (!(Test-Path "TestResults")) {
+    New-Item -ItemType Directory -Path "TestResults" | Out-Null
+}
+
+# Test projesi dizinine git
+$testDir = "$rootDir\KesifUygulamasiTemplate.Tests"
+Set-Location $testDir
+dotnet test --no-build --verbosity normal --filter "OfflineRouteSimulator" --logger trx --results-directory ../TestResults
+Set-Location $rootDir
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "SUCCESS: Offline ETA calculation test passed!"
+    "# ✅ Offline ETA Test Passed" | Out-File -FilePath "TestResults/badge-status.md" -Encoding UTF8
+    Write-Host "Badge status updated: TestResults/badge-status.md"
+} else {
+    Write-Host "ERROR: Offline ETA calculation test failed!"
+    "# ❌ Offline ETA Test Failed" | Out-File -FilePath "TestResults/badge-status.md" -Encoding UTF8
+    Write-Host "Badge status updated: TestResults/badge-status.md"
+    exit 1
+}

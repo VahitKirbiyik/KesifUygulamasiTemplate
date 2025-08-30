@@ -1,0 +1,542 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using Microsoft.Maui.Networking;
+using Microsoft.Maui.Storage;
+using KesifUygulamasiTemplate.Services;
+using KesifUygulamasiTemplate.Services.Interfaces;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Offline mod yönetimi ve cache optimizasyonu sağlayan servis
+    /// </summary>
+    public class OfflineModeService : INotifyPropertyChanged
+    {
+        private static OfflineModeService? _instance;
+        private readonly ConnectivityService _connectivityService;
+        private readonly DatabaseService _databaseService;
+        private readonly NavigationService _navigationService;
+        private readonly SearchHistoryService _searchHistoryService;
+
+        private bool _isOfflineMode;
+        private bool _isOnlineMode;
+        private string _offlineStatusMessage = string.Empty;
+        private int _cachedItemsCount;
+        private long _cacheSizeBytes;
+
+        // Cache anahtarları
+        private const string OfflineModeKey = "IsOfflineMode";
+        private const string CacheSizeKey = "CacheSize";
+        private const string LastSyncKey = "LastSyncTime";
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public event EventHandler<OfflineModeChangedEventArgs>? OfflineModeChanged;
+
+        /// <summary>
+        /// Singleton instance
+        /// </summary>
+        public static OfflineModeService Instance => _instance ??= new OfflineModeService();
+
+        /// <summary>
+        /// Offline mod aktif mi?
+        /// </summary>
+        public bool IsOfflineMode
+        {
+            get => _isOfflineMode;
+            private set
+            {
+                if (_isOfflineMode != value)
+                {
+                    _isOfflineMode = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsOnlineMode));
+                    OfflineModeChanged?.Invoke(this, new OfflineModeChangedEventArgs(value));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Online mod aktif mi?
+        /// </summary>
+        public bool IsOnlineMode => !IsOfflineMode;
+
+        /// <summary>
+        /// Offline durum mesajı
+        /// </summary>
+        public string OfflineStatusMessage
+        {
+            get => _offlineStatusMessage;
+            private set => SetProperty(ref _offlineStatusMessage, value);
+        }
+
+        /// <summary>
+        /// Önbellekteki öğe sayısı
+        /// </summary>
+        public int CachedItemsCount
+        {
+            get => _cachedItemsCount;
+            private set => SetProperty(ref _cachedItemsCount, value);
+        }
+
+        /// <summary>
+        /// Önbellek boyutu (bytes)
+        /// </summary>
+        public long CacheSizeBytes
+        {
+            get => _cacheSizeBytes;
+            private set => SetProperty(ref _cacheSizeBytes, value);
+        }
+
+        /// <summary>
+        /// Önbellek boyutu okunabilir formatta
+        /// </summary>
+        public string CacheSizeFormatted => FormatBytes(_cacheSizeBytes);
+
+        private OfflineModeService()
+        {
+            // Servisleri al
+            _connectivityService = MauiProgram.Services.GetService<ConnectivityService>()
+                ?? throw new InvalidOperationException("ConnectivityService not registered");
+            _databaseService = MauiProgram.Services.GetService<DatabaseService>()
+                ?? throw new InvalidOperationException("DatabaseService not registered");
+            _navigationService = MauiProgram.Services.GetService<NavigationService>()
+                ?? throw new InvalidOperationException("NavigationService not registered");
+            _searchHistoryService = MauiProgram.Services.GetService<SearchHistoryService>()
+                ?? throw new InvalidOperationException("SearchHistoryService not registered");
+
+            // Bağlantı değişikliklerini dinle
+            _connectivityService.ConnectivityChanged += OnConnectivityChanged;
+
+            // Başlangıç durumunu yükle
+            LoadOfflineModeState();
+            UpdateOfflineStatus();
+            UpdateCacheInfo();
+        }
+
+        /// <summary>
+        /// Offline moda geçiş
+        /// </summary>
+        public async Task EnableOfflineModeAsync()
+        {
+            if (IsOfflineMode) return;
+
+            try
+            {
+                IsOfflineMode = true;
+                await SaveOfflineModeStateAsync();
+
+                // Service Worker cache'ini optimize et
+                await OptimizeCacheForOfflineAsync();
+
+                UpdateOfflineStatus();
+                System.Diagnostics.Debug.WriteLine("Offline mode enabled");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to enable offline mode: {ex.Message}");
+                IsOfflineMode = false;
+            }
+        }
+
+        /// <summary>
+        /// Online moda geçiş
+        /// </summary>
+        public async Task DisableOfflineModeAsync()
+        {
+            if (!IsOfflineMode) return;
+
+            try
+            {
+                IsOfflineMode = false;
+                await SaveOfflineModeStateAsync();
+
+                // Cache'i temizle ve senkronizasyon başlat
+                await ClearExpiredCacheAsync();
+                await SyncDataAsync();
+
+                UpdateOfflineStatus();
+                System.Diagnostics.Debug.WriteLine("Offline mode disabled");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to disable offline mode: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Temel navigasyon verilerini önbelleğe al
+        /// </summary>
+        public async Task CacheNavigationDataAsync()
+        {
+            try
+            {
+                // Favori yerleri önbelleğe al
+                var favoritePlacesService = MauiProgram.Services.GetService<IFavoritePlacesService>();
+                if (favoritePlacesService != null)
+                {
+                    var favorites = await favoritePlacesService.GetAllFavoritePlacesAsync();
+                    await CacheDataAsync("favorites", favorites);
+                }
+
+                // Acil durum noktalarını önbelleğe al
+                var emergencyService = MauiProgram.Services.GetService<IEmergencyPointsService>();
+                if (emergencyService != null)
+                {
+                    var emergencyPoints = await emergencyService.GetAllEmergencyPointsAsync();
+                    await CacheDataAsync("emergency_points", emergencyPoints);
+                }
+
+                // Arama geçmişini önbelleğe al
+                var searchHistoryService = MauiProgram.Services.GetService<ISearchHistoryService>();
+                if (searchHistoryService != null)
+                {
+                    var searchHistory = await searchHistoryService.GetRecentSearchesAsync(50);
+                    await CacheDataAsync("search_history", searchHistory);
+                }
+
+                UpdateCacheInfo();
+                System.Diagnostics.Debug.WriteLine("Navigation data cached successfully");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to cache navigation data: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Önbellekten temel navigasyon verilerini al
+        /// </summary>
+        public async Task<T?> GetCachedNavigationDataAsync<T>(string key)
+        {
+            try
+            {
+                return await GetCachedDataAsync<T>(key);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to get cached navigation data: {ex.Message}");
+                return default;
+            }
+        }
+
+        /// <summary>
+        /// Service Worker üzerinden cache optimizasyonu
+        /// </summary>
+        private async Task OptimizeCacheForOfflineAsync()
+        {
+            try
+            {
+                // Kritik kaynakları öncelikli olarak önbelleğe al
+                var criticalResources = new[]
+                {
+                    "/index.html",
+                    "/css/app.css",
+                    "/js/app.js",
+                    "/api/navigation/basic",
+                    "/api/search/history"
+                };
+
+                foreach (var resource in criticalResources)
+                {
+                    await CacheResourceAsync(resource);
+                }
+
+                // Eski cache'leri temizle
+                await ClearExpiredCacheAsync();
+
+                System.Diagnostics.Debug.WriteLine("Cache optimized for offline mode");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to optimize cache: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Verileri önbelleğe al
+        /// </summary>
+        private async Task CacheDataAsync<T>(string key, T data)
+        {
+            try
+            {
+                var cacheKey = $"offline_cache_{key}";
+                var jsonData = System.Text.Json.JsonSerializer.Serialize(data);
+                await SecureStorage.SetAsync(cacheKey, jsonData);
+
+                // Cache boyutunu güncelle
+                UpdateCacheInfo();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to cache data: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Önbellekten veri al
+        /// </summary>
+        private async Task<T?> GetCachedDataAsync<T>(string key)
+        {
+            try
+            {
+                var cacheKey = $"offline_cache_{key}";
+                var jsonData = await SecureStorage.GetAsync(cacheKey);
+
+                if (!string.IsNullOrEmpty(jsonData))
+                {
+                    return System.Text.Json.JsonSerializer.Deserialize<T>(jsonData);
+                }
+
+                return default;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to get cached data: {ex.Message}");
+                return default;
+            }
+        }
+
+        /// <summary>
+        /// Kaynak önbelleğe al (Service Worker benzetimi)
+        /// </summary>
+        private async Task CacheResourceAsync(string resourceUrl)
+        {
+            try
+            {
+                // Bu kısım gerçek bir Service Worker implementasyonu için genişletilebilir
+                // Şimdilik sadece metadata saklıyoruz
+                var cacheKey = $"resource_cache_{resourceUrl.GetHashCode()}";
+                var metadata = new
+                {
+                    Url = resourceUrl,
+                    CachedAt = DateTime.UtcNow,
+                    ExpiresAt = DateTime.UtcNow.AddDays(7)
+                };
+
+                var jsonMetadata = System.Text.Json.JsonSerializer.Serialize(metadata);
+                await SecureStorage.SetAsync(cacheKey, jsonMetadata);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to cache resource: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Süresi dolmuş cache'leri temizle
+        /// </summary>
+        private async Task ClearExpiredCacheAsync()
+        {
+            try
+            {
+                // Bu kısım gerçek cache temizleme mantığı için genişletilebilir
+                var keys = await SecureStorage.GetAsync("cache_keys");
+                if (!string.IsNullOrEmpty(keys))
+                {
+                    var cacheKeys = System.Text.Json.JsonSerializer.Deserialize<List<string>>(keys);
+                    if (cacheKeys != null)
+                    {
+                        foreach (var key in cacheKeys.ToList())
+                        {
+                            try
+                            {
+                                SecureStorage.Remove(key);
+                                cacheKeys.Remove(key);
+                            }
+                            catch
+                            {
+                                // Key bulunamadıysa devam et
+                            }
+                        }
+
+                        var updatedKeys = System.Text.Json.JsonSerializer.Serialize(cacheKeys);
+                        await SecureStorage.SetAsync("cache_keys", updatedKeys);
+                    }
+                }
+
+                UpdateCacheInfo();
+                System.Diagnostics.Debug.WriteLine("Expired cache cleared");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to clear expired cache: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Veri senkronizasyonu
+        /// </summary>
+        private async Task SyncDataAsync()
+        {
+            try
+            {
+                if (!_connectivityService.IsConnected) return;
+
+                // Önbellekteki verileri sunucuya senkronize et
+                // Bu kısım gerçek senkronizasyon mantığı için genişletilebilir
+
+                // Son senkronizasyon zamanını kaydet
+                await SecureStorage.SetAsync(LastSyncKey, DateTime.UtcNow.ToString("O"));
+
+                System.Diagnostics.Debug.WriteLine("Data synchronized successfully");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to sync data: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Bağlantı durumu değiştiğinde
+        /// </summary>
+        private void OnConnectivityChanged(bool isConnected)
+        {
+            UpdateOfflineStatus();
+
+            if (isConnected && IsOfflineMode)
+            {
+                // Bağlantı geri geldi, otomatik senkronizasyon başlat
+                Task.Run(async () => await SyncDataAsync());
+            }
+        }
+
+        /// <summary>
+        /// Offline durumunu güncelle
+        /// </summary>
+        private void UpdateOfflineStatus()
+        {
+            var isConnected = _connectivityService.IsConnected;
+
+            if (!isConnected)
+            {
+                OfflineStatusMessage = "İnternet bağlantısı yok. Offline mod aktif.";
+                if (!IsOfflineMode)
+                {
+                    // Otomatik olarak offline moda geç
+                    Task.Run(async () => await EnableOfflineModeAsync());
+                }
+            }
+            else if (IsOfflineMode)
+            {
+                OfflineStatusMessage = "İnternet bağlantısı mevcut. Online moda geçebilirsiniz.";
+            }
+            else
+            {
+                OfflineStatusMessage = "Online mod aktif.";
+            }
+        }
+
+        /// <summary>
+        /// Cache bilgilerini güncelle
+        /// </summary>
+        private void UpdateCacheInfo()
+        {
+            // Bu kısım gerçek cache boyutu hesaplama için genişletilebilir
+            // Şimdilik tahmini değerler
+            CachedItemsCount = 0;
+            CacheSizeBytes = 0;
+
+            try
+            {
+                // SecureStorage'deki öğeleri say
+                // Not: SecureStorage'de öğe sayısını almak için API sınırlaması var
+                // Bu kısım gerçek implementasyon için genişletilebilir
+                CachedItemsCount = 5; // Tahmini değer
+                CacheSizeBytes = 1024 * 1024; // 1MB tahmini
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to update cache info: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Offline mod durumunu yükle
+        /// </summary>
+        private void LoadOfflineModeState()
+        {
+            try
+            {
+                var offlineModeStr = Preferences.Get(OfflineModeKey, "false");
+                IsOfflineMode = bool.Parse(offlineModeStr);
+            }
+            catch
+            {
+                IsOfflineMode = false;
+            }
+        }
+
+        /// <summary>
+        /// Offline mod durumunu kaydet
+        /// </summary>
+        private Task SaveOfflineModeStateAsync()
+        {
+            try
+            {
+                Preferences.Set(OfflineModeKey, IsOfflineMode.ToString());
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to save offline mode state: {ex.Message}");
+            }
+
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Byte'ları okunabilir formata çevir
+        /// </summary>
+        private string FormatBytes(long bytes)
+        {
+            string[] sizes = { "B", "KB", "MB", "GB" };
+            int order = 0;
+            double size = bytes;
+
+            while (size >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                size /= 1024;
+            }
+
+            return $"{size:0.##} {sizes[order]}";
+        }
+
+        /// <summary>
+        /// Property değişikliği bildirimi
+        /// </summary>
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        /// <summary>
+        /// Property değerini ayarla ve değişiklik bildir
+        /// </summary>
+        protected bool SetProperty<T>(ref T backingStore, T value, [CallerMemberName] string? propertyName = null)
+        {
+            if (EqualityComparer<T>.Default.Equals(backingStore, value))
+                return false;
+
+            backingStore = value;
+            OnPropertyChanged(propertyName);
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Offline mod değişikliği olay argümanları
+    /// </summary>
+    public class OfflineModeChangedEventArgs : EventArgs
+    {
+        public bool IsOfflineMode { get; }
+
+        public OfflineModeChangedEventArgs(bool isOfflineMode)
+        {
+            IsOfflineMode = isOfflineMode;
+        }
+    }
+}

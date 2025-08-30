@@ -1,0 +1,1 @@
+namespace KesifUygulamasiTemplate.Services\n{\n    public interface ICompassCalibrationService\n    {\n        bool IsCalibrationRequired { get; }\n        bool IsCalibrating { get; }\n        double CalibrationAccuracy { get; }\n\n        void StartCalibration();\n        void StopCalibration();\n        void ResetCalibration();\n    }\n}\n

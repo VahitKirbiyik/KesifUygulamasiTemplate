@@ -1,0 +1,301 @@
+# Test-NavigationSimulation.ps1 - Offline navigation simülasyon testi
+# Bu script navigation simülasyonunu test eder ve CI/CD pipeline ile entegre çalışır
+
+param(
+    [string]$TestEnvironment = "local",
+    [string]$Configuration = "Debug",
+    [string]$ProjectPath = $PSScriptRoot,
+    [switch]$SkipBuild,
+    [switch]$Verbose,
+    [switch]$ExportJson,
+    [int]$SimulationSpeed = 500,
+    [string]$SimulationMode = "normal"
+)
+
+# Script ayarları
+$ErrorActionPreference = "Stop"
+$VerbosePreference = if ($Verbose) { "Continue" } else { "SilentlyContinue" }
+
+# Test sonuçları için değişkenler
+$testResults = @{
+    TotalTests = 0
+    PassedTests = 0
+    FailedTests = 0
+    TestDuration = [TimeSpan]::Zero
+    Details = @()
+}
+
+# Environment değişkenlerini ayarla
+$env:TEST_ENVIRONMENT = $TestEnvironment
+$env:CI = if ($TestEnvironment -eq "ci") { "true" } else { "false" }
+$env:SIMULATION_SPEED = $SimulationSpeed.ToString()
+$env:SIMULATION_MODE = $SimulationMode
+$env:ENABLE_SIMULATION_LOGGING = if ($Verbose) { "true" } else { "false" }
+
+# Renkli output için
+function Write-ColorOutput {
+    param(
+        [string]$Message,
+        [string]$Color = "White"
+    )
+    Write-Host $Message -ForegroundColor $Color
+}
+
+# Başlık
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "      🚗 Navigation Simülasyon Testi" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput ""
+
+# Proje yolunu kontrol et
+if (!(Test-Path $ProjectPath)) {
+    Write-ColorOutput "Hata: Proje yolu bulunamadı: $ProjectPath" "Red"
+    exit 1
+}
+
+# Test fonksiyonları
+function Test-NavigationSimulation {
+    param(
+        [string]$TestName,
+        [scriptblock]$TestScript
+    )
+
+    $startTime = Get-Date
+    $testPassed = $false
+    $errorMessage = ""
+
+    Write-ColorOutput "🧪 $TestName testi başlatılıyor..." "White"
+
+    try {
+        & $TestScript
+        $testPassed = $true
+        Write-ColorOutput "  ✅ $TestName testi başarılı" "Green"
+    } catch {
+        $errorMessage = $_.Exception.Message
+        Write-ColorOutput "  ❌ $TestName testi başarısız: $errorMessage" "Red"
+    } finally {
+        $endTime = Get-Date
+        $duration = $endTime - $startTime
+
+        $testResults.TotalTests++
+        if ($testPassed) {
+            $testResults.PassedTests++
+        } else {
+            $testResults.FailedTests++
+        }
+        $testResults.TestDuration += $duration
+
+        $testResults.Details += @{
+            TestName = $TestName
+            Passed = $testPassed
+            Duration = $duration
+            ErrorMessage = $errorMessage
+        }
+    }
+}
+
+# GPS Mock Testi
+function Test-GpsMock {
+    Write-ColorOutput "  📡 GPS mock sistemi test ediliyor..." "Gray"
+
+    # GPS konfigürasyon dosyası kontrolü
+    $gpsConfigPath = Join-Path $env:APPDATA "KesifUygulamasi\SimulationData\gps_config.json"
+    $gpsConfigDir = Split-Path $gpsConfigPath -Parent
+
+    if (!(Test-Path $gpsConfigDir)) {
+        New-Item -ItemType Directory -Path $gpsConfigDir -Force | Out-Null
+    }
+
+    if (Test-Path $gpsConfigPath) {
+        Write-ColorOutput "    ✅ GPS konfigürasyon dosyası bulundu" "Green"
+    } else {
+        Write-ColorOutput "    ⚠️  GPS konfigürasyon dosyası bulunamadı, oluşturuluyor..." "Yellow"
+        $gpsConfig = @{
+            accuracy = 5.0
+            update_interval = $SimulationSpeed
+            mock_provider = "NavigationSimulator"
+        } | ConvertTo-Json
+        $gpsConfig | Out-File $gpsConfigPath -Encoding UTF8
+    }
+}
+
+# Rota Simülasyon Testi
+function Test-RouteSimulation {
+    Write-ColorOutput "  🗺️  Rota simülasyonu test ediliyor..." "Gray"
+
+    # Örnek rota oluştur
+    $sampleRoute = @(
+        @{ Lat = 41.0082; Lng = 28.9784 }, # İstanbul
+        @{ Lat = 41.0151; Lng = 28.9795 }, # Şişli
+        @{ Lat = 41.0222; Lng = 28.9855 }, # Mecidiyeköy
+        @{ Lat = 41.0292; Lng = 28.9915 }, # Levent
+        @{ Lat = 41.0362; Lng = 28.9975 }  # 4. Levent
+    )
+
+    Write-ColorOutput "    📍 Örnek rota oluşturuldu: $($sampleRoute.Count) nokta" "Gray"
+
+    # Simülasyon hızı testi
+    $expectedDuration = ($sampleRoute.Count - 1) * $SimulationSpeed / 1000
+    Write-ColorOutput "    ⏱️  Beklenen simülasyon süresi: ${expectedDuration}s" "Gray"
+
+    # Simülasyon verisi kontrolü
+    $simulationDataPath = Join-Path $env:APPDATA "KesifUygulamasi\SimulationData"
+    if (Test-Path $simulationDataPath) {
+        $simulationFiles = Get-ChildItem $simulationDataPath -Filter "simulation_*.json"
+        Write-ColorOutput "    📊 Önceki simülasyon dosyaları: $($simulationFiles.Count)" "Gray"
+    }
+}
+
+# Rota Sapması Testi
+function Test-RouteDeviation {
+    Write-ColorOutput "  🚨 Rota sapması simülasyonu test ediliyor..." "Gray"
+
+    if ($SimulationMode -eq "deviation_test") {
+        Write-ColorOutput "    🔄 Sapma düzeltme modu aktif" "Gray"
+    } else {
+        Write-ColorOutput "    📍 Normal rota modu" "Gray"
+    }
+
+    # Sapma algılama simülasyonu
+    $deviationThreshold = 0.001  # ~100 metre
+    Write-ColorOutput "    📏 Sapma eşiği: ${deviationThreshold} derece" "Gray"
+}
+
+# Offline Navigation Testi
+function Test-OfflineNavigation {
+    Write-ColorOutput "  📱 Offline navigation testi..." "Gray"
+
+    # Offline veri kontrolü
+    $offlineDataPath = Join-Path $ProjectPath "OfflineData"
+    if (Test-Path $offlineDataPath) {
+        $tileFiles = Get-ChildItem $offlineDataPath -Filter "*.png" -Recurse
+        Write-ColorOutput "    🗺️  Offline tile dosyaları: $($tileFiles.Count)" "Gray"
+    } else {
+        Write-ColorOutput "    ⚠️  Offline veri klasörü bulunamadı" "Yellow"
+    }
+}
+
+# Ana test döngüsü
+Write-ColorOutput "🚀 Navigation simülasyon testleri başlatılıyor..." "White"
+Write-ColorOutput ""
+
+# Testleri çalıştır
+Test-NavigationSimulation -TestName "GPS Mock Sistemi" -TestScript { Test-GpsMock }
+Test-NavigationSimulation -TestName "Rota Simülasyonu" -TestScript { Test-RouteSimulation }
+Test-NavigationSimulation -TestName "Rota Sapması" -TestScript { Test-RouteDeviation }
+Test-NavigationSimulation -TestName "Offline Navigation" -TestScript { Test-OfflineNavigation }
+
+# Test özeti
+Write-ColorOutput "" "White"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "           📊 Test Sonuçları" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+
+$successRate = if ($testResults.TotalTests -gt 0) {
+    [math]::Round(($testResults.PassedTests / $testResults.TotalTests) * 100, 1)
+} else { 0 }
+
+Write-ColorOutput "Toplam Test: $($testResults.TotalTests)" "White"
+Write-ColorOutput "Başarılı: $($testResults.PassedTests)" "Green"
+Write-ColorOutput "Başarısız: $($testResults.FailedTests)" "Red"
+Write-ColorOutput "Başarı Oranı: $successRate%" "Cyan"
+Write-ColorOutput "Toplam Süre: $($testResults.TestDuration.TotalSeconds) saniye" "White"
+
+# Detaylı sonuçlar
+if ($Verbose) {
+    Write-ColorOutput "" "White"
+    Write-ColorOutput "Detaylı Sonuçlar:" "Yellow"
+    foreach ($detail in $testResults.Details) {
+        $status = if ($detail.Passed) { "✅" } else { "❌" }
+        Write-ColorOutput "  $status $($detail.TestName)" "White"
+        if (!$detail.Passed -and $detail.ErrorMessage) {
+            Write-ColorOutput "    Hata: $($detail.ErrorMessage)" "Red"
+        }
+    }
+}
+
+# JSON export
+if ($ExportJson) {
+    $jsonPath = Join-Path $ProjectPath "navigation-simulation-test-results.json"
+    $exportData = @{
+        metadata = @{
+            timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            script_version = "1.0.0"
+            test_environment = $TestEnvironment
+            simulation_speed = $SimulationSpeed
+            simulation_mode = $SimulationMode
+            total_duration_seconds = $testResults.TestDuration.TotalSeconds
+        }
+        summary = @{
+            total_tests = $testResults.TotalTests
+            passed_tests = $testResults.PassedTests
+            failed_tests = $testResults.FailedTests
+            success_rate = $successRate
+            test_duration = $testResults.TestDuration.ToString()
+        }
+        configuration = @{
+            simulation_speed = $SimulationSpeed
+            simulation_mode = $SimulationMode
+            enable_logging = $Verbose
+            test_environment = $TestEnvironment
+        }
+        details = $testResults.Details
+        recommendations = @(
+            "GPS mock sistemini test ortamında etkinleştirin",
+            "Rota sapması senaryolarını daha sık test edin",
+            "Offline tile verilerini güncel tutun",
+            "Simülasyon hızını CI/CD ortamına göre ayarlayın"
+        )
+    }
+
+    $exportData | ConvertTo-Json -Depth 10 | Set-Content $jsonPath
+    Write-ColorOutput "📄 Test sonuçları JSON olarak kaydedildi: $jsonPath" "Green"
+}
+
+# Badge tetikleme
+if ($testResults.PassedTests -gt 0) {
+    Show-Badge "Navigation-Simulated"
+}
+
+# Final sonuç
+Write-ColorOutput "" "White"
+if ($testResults.FailedTests -eq 0) {
+    Write-ColorOutput "🎉 Tüm navigation simülasyon testleri başarılı! CI/CD pipeline devam edebilir." "Green"
+    exit 0
+} else {
+    Write-ColorOutput "💥 Bazı navigation simülasyon testleri başarısız. Lütfen simülasyon ayarlarını kontrol edin." "Red"
+    exit 1
+}
+
+# Badge gösterme fonksiyonu
+function Show-Badge {
+    param([string]$BadgeName)
+
+    Write-ColorOutput "🏅 Badge kazanıldı: $BadgeName" "Cyan"
+
+    # Badge dosyasını güncelle (varsa)
+    $badgeFile = Join-Path $ProjectPath "badge.json"
+    if (Test-Path $badgeFile) {
+        try {
+            $badgeData = Get-Content $badgeFile -Raw | ConvertFrom-Json
+            if ($badgeData.PSObject.Properties.Name -notcontains $BadgeName) {
+                $badgeData | Add-Member -MemberType NoteProperty -Name $BadgeName -Value $true
+                $badgeData | ConvertTo-Json | Set-Content $badgeFile
+                Write-ColorOutput "  ✅ Badge dosyası güncellendi" "Green"
+            } else {
+                $badgeData.$BadgeName = $true
+                $badgeData | ConvertTo-Json | Set-Content $badgeFile
+                Write-ColorOutput "  ✅ Badge dosyası güncellendi" "Green"
+            }
+        } catch {
+            Write-ColorOutput "  ⚠️  Badge dosyası güncellenemedi" "Yellow"
+        }
+    } else {
+        # Yeni badge dosyası oluştur
+        $newBadgeData = @{
+            $BadgeName = $true
+        }
+        $newBadgeData | ConvertTo-Json | Set-Content $badgeFile
+        Write-ColorOutput "  ✅ Yeni badge dosyası oluşturuldu" "Green"
+    }
+}

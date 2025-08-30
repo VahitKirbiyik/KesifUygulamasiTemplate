@@ -1,0 +1,352 @@
+# 📦 KesifApp Android App Bundle Oluşturma Scripti
+
+param(
+    [string]$Configuration = "Release",
+    [string]$OutputPath = ".\publish",
+    [string]$KeystorePath = ".\keystore\kesifapp.keystore",
+    [SecureString]$KeystorePassword,
+    [string]$KeyAlias = "kesifapp_key",
+    [switch]$Clean,
+    [switch]$NoSign,
+    [switch]$Help
+)
+
+# Script bilgileri
+$ScriptVersion = "1.0.0"
+$LastUpdated = "30 Ağustos 2025"
+
+# Renk tanımları
+$Green = "Green"
+$Yellow = "Yellow"
+$Red = "Red"
+$Cyan = "Cyan"
+$White = "White"
+
+function Write-ColorOutput {
+    param(
+        [string]$Message,
+        [string]$Color = $White
+    )
+    Write-Host $Message -ForegroundColor $Color
+}
+
+function Show-Help {
+    Write-ColorOutput "`n📦 KesifApp Android App Bundle Builder v$ScriptVersion" $Cyan
+    Write-ColorOutput "Son güncelleme: $LastUpdated`n" $Yellow
+
+    Write-ColorOutput "KULLANIM:" $Green
+    Write-ColorOutput "  .\build-aab.ps1 [parametreler]`n"
+
+    Write-ColorOutput "PARAMETRELER:" $Green
+    Write-ColorOutput "  -Configuration <config>    Build konfigürasyonu (varsayılan: Release)"
+    Write-ColorOutput "  -OutputPath <path>         Çıktı klasörü (varsayılan: .\publish)"
+    Write-ColorOutput "  -KeystorePath <path>       Keystore dosya yolu"
+    Write-ColorOutput "  -KeystorePassword <pass>   Keystore şifresi (varsayılan: çevre değişkeninden)"
+    Write-ColorOutput "  -KeyAlias <alias>          Anahtar takma adı (varsayılan: kesifapp_key)"
+    Write-ColorOutput "  -Clean                     Temiz build yapar"
+    Write-ColorOutput "  -NoSign                    İmzalama yapmadan build eder"
+    Write-ColorOutput "  -Help                      Bu yardım mesajını gösterir`n"
+
+    Write-ColorOutput "ÖRNEKLER:" $Green
+    Write-ColorOutput "  .\build-aab.ps1"
+    Write-ColorOutput "  .\build-aab.ps1 -Configuration Debug -NoSign"
+    Write-ColorOutput "  .\build-aab.ps1 -Clean -OutputPath .\output`n"
+
+    Write-ColorOutput "GEREKSİNİMLER:" $Yellow
+    Write-ColorOutput "  - .NET 8.0 SDK"
+    Write-ColorOutput "  - Android SDK (API 34)"
+    Write-ColorOutput "  - Java JDK 17+"
+    Write-ColorOutput "  - Android keystore (imzalama için)`n"
+}
+
+function Test-Prerequisites {
+    Write-ColorOutput "`n🔍 Gereksinim kontrolü yapılıyor..." $Cyan
+
+    # .NET SDK kontrolü
+    try {
+        $dotnetVersion = dotnet --version
+        Write-ColorOutput "✅ .NET SDK: $dotnetVersion" $Green
+    }
+    catch {
+        Write-ColorOutput "❌ .NET SDK bulunamadı. Lütfen .NET 8.0 SDK yükleyin." $Red
+        return $false
+    }
+
+    # Android SDK kontrolü
+    $androidHome = $env:ANDROID_HOME
+    if ($androidHome -and (Test-Path $androidHome)) {
+        Write-ColorOutput "✅ Android SDK: $androidHome" $Green
+    }
+    else {
+        Write-ColorOutput "❌ Android SDK bulunamadı. ANDROID_HOME çevre değişkenini ayarlayın." $Red
+        return $false
+    }
+
+    # Java kontrolü
+    try {
+        $javaVersion = java -version 2>&1 | Select-String "version"
+        Write-ColorOutput "✅ Java: $javaVersion" $Green
+    }
+    catch {
+        Write-ColorOutput "❌ Java JDK bulunamadı. Lütfen JDK 17+ yükleyin." $Red
+        return $false
+    }
+
+    # Keystore kontrolü
+    if (-not $NoSign) {
+        if (Test-Path $KeystorePath) {
+            Write-ColorOutput "✅ Keystore: $KeystorePath" $Green
+        }
+        else {
+            Write-ColorOutput "❌ Keystore bulunamadı: $KeystorePath" $Red
+            return $false
+        }
+    }
+
+    Write-ColorOutput "🎉 Tüm gereksinimler sağlandı!`n" $Green
+    return $true
+}
+
+function CleanProject {
+    Write-ColorOutput "`n🧹 Proje temizleniyor..." $Cyan
+
+    try {
+        dotnet clean
+        Write-ColorOutput "✅ Clean tamamlandı" $Green
+    }
+    catch {
+        Write-ColorOutput "❌ Clean başarısız: $($_.Exception.Message)" $Red
+        return $false
+    }
+
+    return $true
+}
+
+function Restore-Packages {
+    Write-ColorOutput "`n📦 NuGet paketleri geri yükleniyor..." $Cyan
+
+    try {
+        dotnet restore
+        Write-ColorOutput "✅ Paket geri yükleme tamamlandı" $Green
+    }
+    catch {
+        Write-ColorOutput "❌ Paket geri yükleme başarısız: $($_.Exception.Message)" $Red
+        return $false
+    }
+
+    return $true
+}
+
+function Build-Project {
+    Write-ColorOutput "`n🔨 Proje derleniyor..." $Cyan
+    Write-ColorOutput "Konfigürasyon: $Configuration" $Yellow
+
+    try {
+        dotnet build -c $Configuration --no-restore
+        Write-ColorOutput "✅ Build tamamlandı" $Green
+    }
+    catch {
+        Write-ColorOutput "❌ Build başarısız: $($_.Exception.Message)" $Red
+        return $false
+    }
+
+    return $true
+}
+
+function Publish-Android {
+    Write-ColorOutput "`n📱 Android App Bundle yayınlanıyor..." $Cyan
+
+    $publishArgs = @(
+        "publish",
+        "-c", $Configuration,
+        "-f", "net8.0-android",
+        "--android-platform", "34",
+        "--self-contained",
+        "-p:AndroidPackageFormat=aab",
+        "-p:ApplicationId=com.vahit.kesifuygulamasi",
+        "-p:ApplicationVersion=4",
+        "-p:ApplicationDisplayVersion=1.0.0",
+        "-o", $OutputPath
+    )
+
+    try {
+        & dotnet $publishArgs
+        Write-ColorOutput "✅ Android publish tamamlandı" $Green
+    }
+    catch {
+        Write-ColorOutput "❌ Android publish başarısız: $($_.Exception.Message)" $Red
+        return $false
+    }
+
+    return $true
+}
+
+function SignBundle {
+    if ($NoSign) {
+        Write-ColorOutput "`n⏭️  İmzalama atlanıyor (-NoSign parametresi)" $Yellow
+        return $true
+    }
+
+    Write-ColorOutput "`n🔐 App Bundle imzalanıyor..." $Cyan
+
+    # Keystore şifresini al
+    if (-not $KeystorePassword) {
+        $KeystorePassword = Read-Host "Keystore şifresini girin" -AsSecureString
+        if (-not $KeystorePassword) {
+            Write-ColorOutput "❌ Keystore şifresi gerekli" $Red
+            return $false
+        }
+    }
+
+    $bundlePath = Join-Path $OutputPath "com.vahit.kesifuygulamasi-Signed.aab"
+    $unsignedBundlePath = Get-ChildItem $OutputPath -Filter "*.aab" | Select-Object -First 1
+
+    if (-not $unsignedBundlePath) {
+        Write-ColorOutput "❌ AAB dosyası bulunamadı" $Red
+        return $false
+    }
+
+    try {
+        # jarsigner ile imzalama
+        & jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 -keystore $KeystorePath -storepass $KeystorePassword -keypass $KeystorePassword $unsignedBundlePath.FullName $KeyAlias
+
+        # İmzalı dosyayı yeniden adlandır
+        Move-Item $unsignedBundlePath.FullName $bundlePath -Force
+
+        Write-ColorOutput "✅ İmzalama tamamlandı: $bundlePath" $Green
+    }
+    catch {
+        Write-ColorOutput "❌ İmzalama başarısız: $($_.Exception.Message)" $Red
+        return $false
+    }
+
+    return $true
+}
+
+function VerifyBundle {
+    Write-ColorOutput "`n🔍 App Bundle doğrulanıyor..." $Cyan
+
+    $bundlePath = Get-ChildItem $OutputPath -Filter "*.aab" | Select-Object -First 1
+
+    if (-not $bundlePath) {
+        Write-ColorOutput "❌ AAB dosyası bulunamadı" $Red
+        return $false
+    }
+
+    # Dosya boyutu kontrolü
+    $fileSize = (Get-Item $bundlePath.FullName).Length / 1MB
+    Write-ColorOutput "📊 Dosya boyutu: $([math]::Round($fileSize, 2)) MB" $Yellow
+
+    if ($fileSize -gt 150) {
+        Write-ColorOutput "⚠️  Dosya boyutu büyük (>150MB). Play Store limiti kontrol edin." $Yellow
+    }
+
+    # İmza kontrolü
+    if (-not $NoSign) {
+        try {
+            $verifyResult = & jarsigner -verify -verbose $bundlePath.FullName 2>&1
+            if ($verifyResult -match "verified") {
+                Write-ColorOutput "✅ İmza doğrulandı" $Green
+            }
+            else {
+                Write-ColorOutput "❌ İmza doğrulanamadı" $Red
+                return $false
+            }
+        }
+        catch {
+            Write-ColorOutput "❌ İmza kontrolü başarısız: $($_.Exception.Message)" $Red
+            return $false
+        }
+    }
+
+    Write-ColorOutput "✅ Bundle doğrulama tamamlandı" $Green
+    return $true
+}
+
+function Show-Summary {
+    Write-ColorOutput "`n🎊 BUILD ÖZETİ" $Cyan
+    Write-ColorOutput "=" * 50 $Cyan
+
+    $bundlePath = Get-ChildItem $OutputPath -Filter "*.aab" | Select-Object -First 1
+
+    if ($bundlePath) {
+        Write-ColorOutput "📦 App Bundle: $($bundlePath.FullName)" $Green
+        Write-ColorOutput "📊 Boyut: $([math]::Round((Get-Item $bundlePath.FullName).Length / 1MB, 2)) MB" $Green
+        Write-ColorOutput "📅 Oluşturulma: $(Get-Item $bundlePath.FullName).CreationTime" $Green
+    }
+
+    Write-ColorOutput "`n🚀 SONRAKİ ADIMLAR:" $Yellow
+    Write-ColorOutput "1. Google Play Console'a giriş yapın" $White
+    Write-ColorOutput "2. KesifApp uygulamasını seçin" $White
+    Write-ColorOutput "3. 'Üretim' sekmesine gidin" $White
+    Write-ColorOutput "4. App Bundle dosyasını yükleyin" $White
+    Write-ColorOutput "5. Yayınlamayı başlatın" $White
+
+    Write-ColorOutput "`n📞 DESTEK:" $Yellow
+    Write-ColorOutput "GitHub: https://github.com/VahitKirbiyik/KesifUygulamasiTemplate" $White
+    Write-ColorOutput "Issues: https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/issues" $White
+}
+
+# Ana script mantığı
+function Main {
+    if ($Help) {
+        Show-Help
+        return
+    }
+
+    Write-ColorOutput "`n🚀 KesifApp Android App Bundle Builder başlatılıyor..." $Cyan
+    Write-ColorOutput "Versiyon: $ScriptVersion | Tarih: $LastUpdated" $Yellow
+
+    # Gereksinim kontrolü
+    if (-not (Test-Prerequisites)) {
+        Write-ColorOutput "`n❌ Gereksinimler sağlanamadı. Script durduruluyor." $Red
+        exit 1
+    }
+
+    # Çıktı klasörü oluştur
+    if (-not (Test-Path $OutputPath)) {
+        New-Item -ItemType Directory -Path $OutputPath | Out-Null
+        Write-ColorOutput "📁 Çıktı klasörü oluşturuldu: $OutputPath" $Green
+    }
+
+    # Temizleme
+    if ($Clean) {
+        if (-not (CleanProject)) {
+            exit 1
+        }
+    }
+
+    # Paket geri yükleme
+    if (-not (Restore-Packages)) {
+        exit 1
+    }
+
+    # Build
+    if (-not (Build-Project)) {
+        exit 1
+    }
+
+    # Android publish
+    if (-not (Publish-Android)) {
+        exit 1
+    }
+
+    # İmzalama
+    if (-not (SignBundle)) {
+        exit 1
+    }
+
+    # Doğrulama
+    if (-not (VerifyBundle)) {
+        exit 1
+    }
+
+    # Özet
+    Show-Summary
+
+    Write-ColorOutput "`n🎉 KesifApp App Bundle başarıyla oluşturuldu!" $Green
+    Write-ColorOutput "Artık Play Store'a yüklemeye hazırsınız! 🚀`n" $Green
+}
+
+# Script'i çalıştır
+Main

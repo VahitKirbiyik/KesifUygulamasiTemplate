@@ -1,1 +1,1 @@
-// Bu dosya kaldırıldı çünkü ExcludeFromCodeCoverageAttribute zaten DiagnosticsCodeAnalysisAttributes.cs içinde tanımlı.
+// Bu dosya kaldırıldı çünkü ExcludeFromCodeCoverageAttribute zaten DiagnosticsCodeAnalysisAttributes.cs içinde tanımlı.\n

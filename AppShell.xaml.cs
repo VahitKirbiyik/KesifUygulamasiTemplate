@@ -1,16 +1,1 @@
-using Microsoft.Maui.Controls;
-using KesifUygulamasiTemplate.Views;
-
-namespace KesifUygulamasiTemplate;
-
-public partial class AppShell : Shell
-{
-    public AppShell()
-    {
-        InitializeComponent();
-
-        // ✅ Sayfa yönlendirme tanımları yapılabilir (opsiyonel)
-        Routing.RegisterRoute("login", typeof(Views.LoginPage));
-        Routing.RegisterRoute("detail", typeof(Views.DetailPage));
-    }
-}
+using Microsoft.Maui.Controls;\nusing KesifUygulamasiTemplate.Views;\n\nnamespace KesifUygulamasiTemplate;\n\npublic partial class AppShell : Shell\n{\n    public AppShell()\n    {\n        InitializeComponent();\n\n        // ✅ Sayfa yönlendirme tanımları yapılabilir (opsiyonel)\n        Routing.RegisterRoute("login", typeof(Views.LoginPage));\n        Routing.RegisterRoute("detail", typeof(Views.DetailPage));\n    }\n}\n

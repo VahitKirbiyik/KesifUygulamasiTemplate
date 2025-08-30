@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Test Dashboard - KesifApp | Progressive Web App Test Sonuçları</title>
+    <meta name="description" content="KesifApp PWA test dashboard'u - Otomatik PWA test sonuçları, performans metrikleri ve iyileştirme önerileri">
+    <meta name="keywords" content="PWA, Progressive Web App, Test Dashboard, Performance Metrics, Web App Testing">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        .metric-card {
+            text-align: center;
+            padding: 20px;
+            cursor: help;
+        }
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .metric-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .status-passed { color: #28a745; }
+        .status-failed { color: #dc3545; }
+        .status-skipped { color: #ffc107; }
+        .progress-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0 auto;
+            cursor: help;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        .info-tooltip {
+            cursor: help;
+            border-bottom: 1px dotted #6c757d;
+        }
+        .badge {
+            font-size: 0.75rem;
+        }
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            border-top: none;
+        }
+        .alert-info {
+            background-color: #e3f2fd;
+            border-color: #bbdefb;
+            color: #0d47a1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <!-- Dashboard Başlığı ve Bilgilendirme -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h1 class="card-title mb-2">
+                            <i class="fas fa-mobile-alt me-2"></i>
+                            PWA Test Dashboard - KesifApp
+                            <small class="badge bg-light text-dark ms-2" title="Test-PWA.ps1 v4.0 ile oluşturulmuştur">v4.0</small>
+                        </h1>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-light">
+                                    <i class="fas fa-calendar-alt me-1"></i>
+                                    Test Tarihi: <strong>2025-08-30 02:40:22</strong>
+                                </small>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <small class="text-light">
+                                    <i class="fas fa-clock me-1"></i>
+                                    Son Güncelleme: <strong>Otomatik</strong>
+                                    <span class="badge bg-info ms-2" title="Bu dashboard Test-PWA.ps1 script'i tarafından otomatik olarak oluşturulur">Otomatik</span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body bg-light">
+                        <div class="alert alert-info mb-0">
+                            <h6 class="alert-heading mb-2">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Dashboard Hakkında
+                            </h6>
+                            <p class="mb-1">
+                                Bu dashboard, KesifApp'in Progressive Web App (PWA) özelliklerini test etmek için oluşturulmuştur.
+                                Test sonuçları, performans metrikleri ve iyileştirme önerilerini içerir.
+                            </p>
+                            <small class="text-muted">
+                                <i class="fas fa-external-link-alt me-1"></i>
+                                Detaylı bilgi için: <a href="README.md#🔍-pwa-test-sistemi-dokümantasyonu" class="alert-link">Dokümantasyon</a>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Genel Metrikler -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card metric-card"
+                     title="Toplam testlerin başarı yüzdesi. 90%+ mükemmel, 70-89% iyi, 50-69% orta, <%50 düşük performans anlamına gelir."
+                     data-bs-toggle="tooltip"
+                     data-bs-placement="top">
+                    <div class="progress-circle bg-primary text-white"
+                         title="Başarı Oranı: Geçen testlerin toplam testlere oranı">
+                        0%
+                    </div>
+                    <div class="metric-label">
+                        <i class="fas fa-percentage me-1"></i>
+                        Başarı Oranı
+                        <span class="info-tooltip" title="Test-PWA.ps1 tarafından hesaplanan genel başarı metriği">ℹ️</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card"
+                     title="Başarıyla geçen test sayısı. Yeşil renk başarılı testleri gösterir."
+                     data-bs-toggle="tooltip"
+                     data-bs-placement="top">
+                    <div class="metric-value text-success">
+                        <i class="fas fa-check-circle me-1"></i>
+                        0
+                    </div>
+                    <div class="metric-label">
+                        <i class="fas fa-check me-1 text-success"></i>
+                        Geçen Testler
+                        <span class="info-tooltip" title="Başarıyla tamamlanan test adedi">ℹ️</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card"
+                     title="Başarısız olan test sayısı. Kırmızı renk kritik sorunları gösterir."
+                     data-bs-toggle="tooltip"
+                     data-bs-placement="top">
+                    <div class="metric-value text-danger">
+                        <i class="fas fa-times-circle me-1"></i>
+                        7
+                    </div>
+                    <div class="metric-label">
+                        <i class="fas fa-times me-1 text-danger"></i>
+                        Başarısız Testler
+                        <span class="info-tooltip" title="Düzeltme gereken test adedi">ℹ️</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card"
+                     title="Atlanan test sayısı. Sarı renk koşullu testleri gösterir."
+                     data-bs-toggle="tooltip"
+                     data-bs-placement="top">
+                    <div class="metric-value text-warning">
+                        <i class="fas fa-pause-circle me-1"></i>
+                        0
+                    </div>
+                    <div class="metric-label">
+                        <i class="fas fa-pause me-1 text-warning"></i>
+                        Atlanan Testler
+                        <span class="info-tooltip" title="Koşullu olarak atlanan test adedi">ℹ️</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grafikler -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-pie me-2 text-primary"></i>
+                            Test Sonuçları Dağılımı
+                            <span class="info-tooltip ms-2"
+                                  title="Test sonuçlarının pasta grafiği gösterimi. Başarılı, başarısız ve atlanan testlerin oranlarını görselleştirir."
+                                  data-bs-toggle="tooltip">ℹ️</span>
+                        </h5>
+                        <small class="text-muted">Toplam test dağılımı ve başarı oranları</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="resultsChart"
+                                    title="Test sonuçlarının görsel dağılımı - Yeşil: Başarılı, Kırmızı: Başarısız, Sarı: Atlandı"></canvas>
+                        </div>
+                        <div class="mt-3 text-center">
+                            <small class="text-muted">
+                                <i class="fas fa-mouse-pointer me-1"></i>
+                                Grafik üzerinde hover yaparak detayları görebilirsiniz
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-bar me-2 text-success"></i>
+                            Test Kategorileri Detayları
+                            <span class="info-tooltip ms-2"
+                                  title="PWA, Performans, Güvenlik, SEO ve Yasal kategorilerindeki test sonuçları."
+                                  data-bs-toggle="tooltip">ℹ️</span>
+                        </h5>
+                        <small class="text-muted">Kategorilere göre test performansı analizi</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="detailsChart"
+                                    title="Kategori bazlı test sonuçları - Mavi: Toplam, Yeşil: Geçen, Kırmızı: Başarısız, Sarı: Atlandı"></canvas>
+                        </div>
+                        <div class="mt-3">
+                            <div class="row text-center">
+                                <div class="col-3">
+                                    <small class="text-primary">
+                                        <i class="fas fa-square me-1"></i>
+                                        Temel PWA
+                                    </small>
+                                </div>
+                                <div class="col-3">
+                                    <small class="text-info">
+                                        <i class="fas fa-square me-1"></i>
+                                        Performans
+                                    </small>
+                                </div>
+                                <div class="col-3">
+                                    <small class="text-warning">
+                                        <i class="fas fa-square me-1"></i>
+                                        Güvenlik
+                                    </small>
+                                </div>
+                                <div class="col-3">
+                                    <small class="text-secondary">
+                                        <i class="fas fa-square me-1"></i>
+                                        SEO/Yasal
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trend Analizi -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-line me-2 text-info"></i>
+                            Zaman İçinde Performans Trendleri
+                            <span class="info-tooltip ms-2"
+                                  title="Son 30 günün test sonuçlarının trend analizi. Başarı oranları, puanlar ve performans metriklerinin zaman içindeki değişimi."
+                                  data-bs-toggle="tooltip">ℹ️</span>
+                        </h5>
+                        <small class="text-muted">Son 30 günün test trendleri ve performans analizi</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="trendChart"
+                                    title="Zaman içindeki performans trendleri - Mavi: Başarı Oranı, Yeşil: PWA Puanı, Kırmızı: Performans Puanı, Mor: SEO Puanı"></canvas>
+                        </div>
+                        <div class="mt-3">
+                            <div class="row text-center">
+                                <div class="col-3">
+                                    <small class="text-primary">
+                                        <i class="fas fa-square me-1"></i>
+                                        Başarı Oranı (%)
+                                    </small>
+                                </div>
+                                <div class="col-3">
+                                    <small class="text-success">
+                                        <i class="fas fa-square me-1"></i>
+                                        PWA Puanı
+                                    </small>
+                                </div>
+                                <div class="col-3">
+                                    <small class="text-danger">
+                                        <i class="fas fa-square me-1"></i>
+                                        Performans Puanı
+                                    </small>
+                                </div>
+                                <div class="col-3">
+                                    <small class="text-info">
+                                        <i class="fas fa-square me-1"></i>
+                                        SEO Puanı
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Detayları Tablosu -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-list-check me-2"></i>
+                            Test Detayları
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="testDetailsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Test Adı</th>
+                                        <th>Durum</th>
+                                        <th>Detaylar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>                                    <tr>
+                                        <td>ServiceWorker</td>
+                                        <td><span class="badge bg-danger"><i class="fas fa-times me-1"></i>Başarısız</span></td>
+                                        <td>Service Worker işlevselliği kontrolü</td>
+                                    </tr>                                    <tr>
+                                        <td>404 Sayfası</td>
+                                        <td><span class="badge bg-danger"><i class="fas fa-times me-1"></i>Başarısız</span></td>
+                                        <td>404 sayfası PWA entegrasyonu</td>
+                                    </tr>                                    <tr>
+                                        <td>Manifest</td>
+                                        <td><span class="badge bg-danger"><i class="fas fa-times me-1"></i>Başarısız</span></td>
+                                        <td>PWA manifest dosyası kontrolü</td>
+                                    </tr>                                    <tr>
+                                        <td>Gizlilik Sayfası</td>
+                                        <td><span class="badge bg-danger"><i class="fas fa-times me-1"></i>Başarısız</span></td>
+                                        <td>Gizlilik sayfası PWA entegrasyonu</td>
+                                    </tr>                                    <tr>
+                                        <td>OfflineFallback</td>
+                                        <td><span class="badge bg-danger"><i class="fas fa-times me-1"></i>Başarısız</span></td>
+                                        <td>Offline fallback sayfası kontrolü</td>
+                                    </tr>                                    <tr>
+                                        <td>Yasal Sayfa</td>
+                                        <td><span class="badge bg-danger"><i class="fas fa-times me-1"></i>Başarısız</span></td>
+                                        <td>Yasal sayfa PWA entegrasyonu</td>
+                                    </tr>                                    <tr>
+                                        <td>Ana Sayfa</td>
+                                        <td><span class="badge bg-danger"><i class="fas fa-times me-1"></i>Başarısız</span></td>
+                                        <td>Ana sayfa PWA entegrasyonu</td>
+                                    </tr>                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Öneriler -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            İyileştirme Önerileri
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>PWA İyileştirmeleri:</h6>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-check-circle text-success me-2"></i>Manifest.json'da tüm gerekli alanların doldurulduğundan emin olun</li>
+                                    <li><i class="fas fa-check-circle text-success me-2"></i>Service Worker'ın tüm event handler'larını içerdiğinden emin olun</li>
+                                    <li><i class="fas fa-check-circle text-success me-2"></i>Tüm HTML sayfalarında PWA meta etiketlerinin mevcut olduğundan emin olun</li>
+                                    <li><i class="fas fa-check-circle text-success me-2"></i>HTTPS protokolü kullanıldığından emin olun</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>SEO İyileştirmeleri:</h6>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-search me-2"></i>Meta title ve description etiketlerini optimize edin</li>
+                                    <li><i class="fas fa-hashtag me-2"></i>Open Graph ve Twitter Card etiketlerini ekleyin</li>
+                                    <li><i class="fas fa-image me-2"></i>Tüm resimlere alt attribute'ları ekleyin</li>
+                                    <li><i class="fas fa-sitemap me-2"></i>Structured data markup'ları ekleyin</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global değişkenler
+        let testResults = null;
+        let testHistory = null;
+
+        // JSON verilerini yükle
+        async function loadTestData() {
+            try {
+                // Test sonuçlarını yükle
+                const resultsResponse = await fetch('pwa-test-results.json');
+                if (resultsResponse.ok) {
+                    testResults = await resultsResponse.json();
+                }
+
+                // Test geçmişini yükle
+                const historyResponse = await fetch('test-history.json');
+                if (historyResponse.ok) {
+                    testHistory = await historyResponse.json();
+                }
+
+                // Dashboard'u güncelle
+                updateDashboard();
+                updateCharts();
+
+            } catch (error) {
+                console.error('Veri yükleme hatası:', error);
+                // Varsayılan verilerle devam et
+                updateCharts();
+            }
+        }
+
+        // Dashboard'u güncelle
+        function updateDashboard() {
+            if (!testResults) return;
+
+            // Başlık bilgilerini güncelle
+            document.title = `PWA Test Dashboard - ${testResults.summary.success_rate}% Başarı`;
+
+            // Özet bilgileri güncelle
+            const summary = testResults.summary;
+            document.querySelector('.display-4').textContent = `${summary.success_rate}%`;
+            document.querySelector('.text-success').textContent = summary.passed_tests;
+            document.querySelector('.text-danger').textContent = summary.failed_tests;
+            document.querySelector('.text-warning').textContent = summary.skipped_tests;
+
+            // Test detayları tablosunu güncelle
+            updateTestDetailsTable();
+        }
+
+        // Test detayları tablosunu güncelle
+        function updateTestDetailsTable() {
+            if (!testResults) return;
+
+            const tbody = document.querySelector('#testDetailsTable tbody');
+            tbody.innerHTML = '';
+
+            Object.entries(testResults.detailed_results).forEach(([testName, result]) => {
+                const row = document.createElement('tr');
+
+                const statusBadge = result.status === 'passed'
+                    ? '<span class="badge bg-success"><i class="fas fa-check me-1"></i>Başarılı</span>'
+                    : result.status === 'failed'
+                    ? '<span class="badge bg-danger"><i class="fas fa-times me-1"></i>Başarısız</span>'
+                    : '<span class="badge bg-warning"><i class="fas fa-pause me-1"></i>Atlandı</span>';
+
+                row.innerHTML = `
+                    <td>${testName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
+                    <td>${statusBadge}</td>
+                    <td>${result.details}</td>
+                `;
+
+                tbody.appendChild(row);
+            });
+        }
+
+        // Grafikleri güncelle
+        function updateCharts() {
+            const summary = testResults ? testResults.summary : { passed_tests: 0, failed_tests: 7, skipped_tests: 0, total_tests: 7 };
+
+            // Test sonuçları grafiği
+            const resultsCtx = document.getElementById('resultsChart').getContext('2d');
+            new Chart(resultsCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Başarılı', 'Başarısız', 'Atlandı'],
+                    datasets: [{
+                        data: [summary.passed_tests, summary.failed_tests, summary.skipped_tests],
+                        backgroundColor: ['#28a745', '#dc3545', '#ffc107'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Test detayları grafiği
+            const detailsCtx = document.getElementById('detailsChart').getContext('2d');
+            new Chart(detailsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Toplam Test', 'Geçen Test', 'Başarısız Test', 'Atlanan Test'],
+                    datasets: [{
+                        label: 'Test Sayısı',
+                        data: [summary.total_tests, summary.passed_tests, summary.failed_tests, summary.skipped_tests],
+                        backgroundColor: ['#007bff', '#28a745', '#dc3545', '#ffc107'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Trend analizi grafiği
+            updateTrendChart();
+        }
+
+        // Trend analizi grafiği
+        function updateTrendChart() {
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+
+            // Örnek trend verileri (gerçek veriler test-history.json'dan gelecek)
+            const trendData = testHistory && testHistory.test_runs ?
+                testHistory.test_runs.slice(-7).map(run => run.success_rate) :
+                [0, 0, 0, 0, 0, 0, 0];
+
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['6 gün önce', '5 gün önce', '4 gün önce', '3 gün önce', '2 gün önce', '1 gün önce', 'Bugün'],
+                    datasets: [{
+                        label: 'Başarı Oranı (%)',
+                        data: trendData,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Sayfa yüklendiğinde verileri yükle
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTestData();
+
+            // Tooltip'leri başlat
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

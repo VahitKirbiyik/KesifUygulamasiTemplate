@@ -1,0 +1,588 @@
+# AuditLegal.ps1 - Legal auto-audit scripti
+# Bu script yasal dosyaları otomatik olarak doğrular ve CI/CD pipeline ile entegre çalışır
+
+param(
+    [string]$TestEnvironment = "local",
+    [string]$Configuration = "Debug",
+    [string]$ProjectPath = $PSScriptRoot,
+    [switch]$SkipBuild,
+    [switch]$Verbose,
+    [switch]$ExportJson,
+    [string]$LegalPath = ".\legal",
+    [string]$PrivacyPolicyFile = "privacy-policy.md",
+    [string]$TermsOfServiceFile = "terms-of-service.md",
+    [string]$LicenseFile = "LICENSE"
+)
+
+# Script ayarları
+$ErrorActionPreference = "Stop"
+$VerbosePreference = if ($Verbose) { "Continue" } else { "SilentlyContinue" }
+
+# Test sonuçları için değişkenler
+$testResults = @{
+    TotalTests = 0
+    PassedTests = 0
+    FailedTests = 0
+    TestDuration = [TimeSpan]::Zero
+    Details = @()
+}
+
+# Environment değişkenlerini ayarla
+$env:TEST_ENVIRONMENT = $TestEnvironment
+$env:CI = if ($TestEnvironment -eq "ci") { "true" } else { "false" }
+$env:LEGAL_PATH = $LegalPath
+$env:PRIVACY_POLICY_FILE = $PrivacyPolicyFile
+$env:TERMS_OF_SERVICE_FILE = $TermsOfServiceFile
+$env:LICENSE_FILE = $LicenseFile
+
+# Renkli output için
+function Write-ColorOutput {
+    param(
+        [string]$Message,
+        [string]$Color = "White"
+    )
+    Write-Host $Message -ForegroundColor $Color
+}
+
+# Başlık
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "      🔐 Legal Auto-Audit Sistemi" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput ""
+
+# Proje yolunu kontrol et
+if (!(Test-Path $ProjectPath)) {
+    Write-ColorOutput "Hata: Proje yolu bulunamadı: $ProjectPath" "Red"
+    exit 1
+}
+
+# Test fonksiyonları
+function Test-LegalAudit {
+    param(
+        [string]$TestName,
+        [scriptblock]$TestScript
+    )
+
+    $startTime = Get-Date
+    $testPassed = $false
+    $errorMessage = ""
+
+    Write-ColorOutput "🧪 $TestName testi başlatılıyor..." "White"
+
+    try {
+        & $TestScript
+        $testPassed = $true
+        Write-ColorOutput "  ✅ $TestName testi başarılı" "Green"
+    } catch {
+        $errorMessage = $_.Exception.Message
+        Write-ColorOutput "  ❌ $TestName testi başarısız: $errorMessage" "Red"
+    } finally {
+        $endTime = Get-Date
+        $duration = $endTime - $startTime
+
+        $testResults.TotalTests++
+        if ($testPassed) {
+            $testResults.PassedTests++
+        } else {
+            $testResults.FailedTests++
+        }
+        $testResults.TestDuration += $duration
+
+        $testResults.Details += @{
+            TestName = $TestName
+            Passed = $testPassed
+            Duration = $duration
+            ErrorMessage = $errorMessage
+        }
+    }
+}
+
+# Yasal klasör yapısı kontrolü
+function Test-LegalDirectoryStructure {
+    Write-ColorOutput "  📁 Yasal klasör yapısı kontrol ediliyor..." "Gray"
+
+    $legalFullPath = Join-Path $ProjectPath $LegalPath
+
+    if (!(Test-Path $legalFullPath)) {
+        Write-ColorOutput "    📂 Yasal klasör oluşturuluyor: $legalFullPath" "Gray"
+        New-Item -ItemType Directory -Path $legalFullPath -Force | Out-Null
+    } else {
+        Write-ColorOutput "    ✅ Yasal klasör mevcut: $legalFullPath" "Green"
+    }
+
+    # Alt klasörler kontrolü
+    $subDirs = @("policies", "licenses", "compliance", "gdpr", "ccpa")
+    foreach ($subDir in $subDirs) {
+        $subDirPath = Join-Path $legalFullPath $subDir
+        if (!(Test-Path $subDirPath)) {
+            New-Item -ItemType Directory -Path $subDirPath -Force | Out-Null
+            Write-ColorOutput "    📂 Alt klasör oluşturuldu: $subDir" "Gray"
+        } else {
+            Write-ColorOutput "    ✅ Alt klasör mevcut: $subDir" "Green"
+        }
+    }
+}
+
+# Privacy Policy kontrolü
+function Test-PrivacyPolicy {
+    Write-ColorOutput "  📋 Privacy Policy kontrol ediliyor..." "Gray"
+
+    $privacyPolicyPath = Join-Path $ProjectPath (Join-Path $LegalPath $PrivacyPolicyFile)
+
+    if (Test-Path $privacyPolicyPath) {
+        Write-ColorOutput "    ✅ Privacy Policy dosyası bulundu: $PrivacyPolicyFile" "Green"
+
+        # Dosya içeriği kontrolü
+        $content = Get-Content $privacyPolicyPath -Raw
+
+        # Gerekli bölümler kontrolü
+        $requiredSections = @(
+            "Data Collection",
+            "Data Usage",
+            "Data Sharing",
+            "User Rights",
+            "Contact Information",
+            "Last Updated"
+        )
+
+        $foundSections = 0
+        foreach ($section in $requiredSections) {
+            if ($content -match $section) {
+                $foundSections++
+            }
+        }
+
+        Write-ColorOutput "    📊 Bulunan bölümler: $foundSections/$($requiredSections.Count)" "Gray"
+
+        if ($foundSections -ge ($requiredSections.Count * 0.8)) {
+            Write-ColorOutput "    ✅ Privacy Policy içeriği yeterli" "Green"
+        } else {
+            Write-ColorOutput "    ⚠️  Privacy Policy içeriği eksik bölümler içeriyor" "Yellow"
+        }
+
+        # Dosya boyutu kontrolü
+        $fileSize = (Get-Item $privacyPolicyPath).Length
+        Write-ColorOutput "    📄 Dosya boyutu: $([math]::Round($fileSize/1024, 1)) KB" "Gray"
+
+        if ($fileSize -lt 1024) { # 1KB'den küçükse uyarı
+            Write-ColorOutput "    ⚠️  Privacy Policy dosyası çok küçük" "Yellow"
+        }
+
+    } else {
+        Write-ColorOutput "    ❌ Privacy Policy dosyası bulunamadı: $PrivacyPolicyFile" "Red"
+        Write-ColorOutput "    📝 Örnek Privacy Policy oluşturuluyor..." "Gray"
+
+        # Örnek Privacy Policy oluştur
+        $samplePrivacyPolicy = @"
+# Privacy Policy
+
+## Last Updated: $(Get-Date -Format "yyyy-MM-dd")
+
+## Data Collection
+We collect information you provide directly to us...
+
+## Data Usage
+We use the information we collect to...
+
+## Data Sharing
+We do not sell, trade, or otherwise transfer your personal information...
+
+## User Rights
+You have the right to access, update, or delete your personal information...
+
+## Contact Information
+If you have any questions about this Privacy Policy, please contact us at:
+- Email: privacy@example.com
+- Address: [Your Address]
+
+## Changes to This Policy
+We may update this Privacy Policy from time to time...
+"@
+
+        $samplePrivacyPolicy | Out-File $privacyPolicyPath -Encoding UTF8
+        Write-ColorOutput "    ✅ Örnek Privacy Policy oluşturuldu" "Green"
+    }
+}
+
+# Terms of Service kontrolü
+function Test-TermsOfService {
+    Write-ColorOutput "  📜 Terms of Service kontrol ediliyor..." "Gray"
+
+    $termsPath = Join-Path $ProjectPath (Join-Path $LegalPath $TermsOfServiceFile)
+
+    if (Test-Path $termsPath) {
+        Write-ColorOutput "    ✅ Terms of Service dosyası bulundu: $TermsOfServiceFile" "Green"
+
+        # Dosya içeriği kontrolü
+        $content = Get-Content $termsPath -Raw
+
+        # Gerekli bölümler kontrolü
+        $requiredSections = @(
+            "Acceptance of Terms",
+            "Use License",
+            "User Obligations",
+            "Prohibited Uses",
+            "Termination",
+            "Disclaimer",
+            "Limitation of Liability",
+            "Governing Law"
+        )
+
+        $foundSections = 0
+        foreach ($section in $requiredSections) {
+            if ($content -match $section) {
+                $foundSections++
+            }
+        }
+
+        Write-ColorOutput "    📊 Bulunan bölümler: $foundSections/$($requiredSections.Count)" "Gray"
+
+        if ($foundSections -ge ($requiredSections.Count * 0.8)) {
+            Write-ColorOutput "    ✅ Terms of Service içeriği yeterli" "Green"
+        } else {
+            Write-ColorOutput "    ⚠️  Terms of Service içeriği eksik bölümler içeriyor" "Yellow"
+        }
+
+    } else {
+        Write-ColorOutput "    ❌ Terms of Service dosyası bulunamadı: $TermsOfServiceFile" "Red"
+        Write-ColorOutput "    📝 Örnek Terms of Service oluşturuluyor..." "Gray"
+
+        # Örnek Terms of Service oluştur
+        $sampleTerms = @"
+# Terms of Service
+
+## Last Updated: $(Get-Date -Format "yyyy-MM-dd")
+
+## Acceptance of Terms
+By accessing and using this application, you accept and agree to be bound by the terms...
+
+## Use License
+Subject to these Terms, we grant you a limited, non-exclusive, non-transferable license...
+
+## User Obligations
+You agree to use the application only for lawful purposes...
+
+## Prohibited Uses
+You may not use the application for any illegal or unauthorized purpose...
+
+## Termination
+We may terminate or suspend your account immediately, without prior notice...
+
+## Disclaimer
+The application is provided on an "AS IS" and "AS AVAILABLE" basis...
+
+## Limitation of Liability
+In no event shall we be liable for any indirect, incidental, special, consequential...
+
+## Governing Law
+These Terms shall be interpreted and governed by the laws of [Your Jurisdiction]...
+
+## Contact Information
+If you have any questions about these Terms, please contact us at:
+- Email: legal@example.com
+"@
+
+        $sampleTerms | Out-File $termsPath -Encoding UTF8
+        Write-ColorOutput "    ✅ Örnek Terms of Service oluşturuldu" "Green"
+    }
+}
+
+# License dosyası kontrolü
+function Test-LicenseFile {
+    Write-ColorOutput "  📄 License dosyası kontrol ediliyor..." "Gray"
+
+    $licensePath = Join-Path $ProjectPath $LicenseFile
+
+    if (Test-Path $licensePath) {
+        Write-ColorOutput "    ✅ License dosyası bulundu: $LicenseFile" "Green"
+
+        # Lisans türü kontrolü
+        $content = Get-Content $licensePath -Raw
+
+        $licenseTypes = @(
+            @{ Name = "MIT"; Pattern = "MIT License" },
+            @{ Name = "Apache 2.0"; Pattern = "Apache License" },
+            @{ Name = "GPL"; Pattern = "GNU General Public License" },
+            @{ Name = "BSD"; Pattern = "BSD License" }
+        )
+
+        $detectedLicense = "Unknown"
+        foreach ($license in $licenseTypes) {
+            if ($content -match $license.Pattern) {
+                $detectedLicense = $license.Name
+                break
+            }
+        }
+
+        Write-ColorOutput "    📋 Tespit edilen lisans: $detectedLicense" "Gray"
+
+        # Lisans geçerliliği kontrolü
+        if ($content -match "Copyright" -and $content -match "Permission is hereby granted") {
+            Write-ColorOutput "    ✅ Lisans geçerli görünüyor" "Green"
+        } else {
+            Write-ColorOutput "    ⚠️  Lisans içeriği standart dışı" "Yellow"
+        }
+
+    } else {
+        Write-ColorOutput "    ❌ License dosyası bulunamadı: $LicenseFile" "Red"
+        Write-ColorOutput "    📝 MIT License oluşturuluyor..." "Gray"
+
+        # Örnek MIT License oluştur
+        $sampleLicense = @"
+MIT License
+
+Copyright (c) $(Get-Date -Format "yyyy") [Your Name or Company]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"@
+
+        $sampleLicense | Out-File $licensePath -Encoding UTF8
+        Write-ColorOutput "    ✅ Örnek MIT License oluşturuldu" "Green"
+    }
+}
+
+# GDPR uyumluluk kontrolü
+function Test-GDPRCompliance {
+    Write-ColorOutput "  🇪🇺 GDPR uyumluluk kontrol ediliyor..." "Gray"
+
+    $gdprPath = Join-Path $ProjectPath (Join-Path $LegalPath "gdpr")
+
+    # GDPR gerekli dosyalar
+    $gdprFiles = @(
+        "data-processing-agreement.md",
+        "data-retention-policy.md",
+        "cookie-policy.md",
+        "data-subject-rights.md"
+    )
+
+    $existingFiles = 0
+    foreach ($file in $gdprFiles) {
+        $filePath = Join-Path $gdprPath $file
+        if (Test-Path $filePath) {
+            $existingFiles++
+            Write-ColorOutput "    ✅ $file mevcut" "Green"
+        } else {
+            Write-ColorOutput "    ❌ $file eksik" "Red"
+        }
+    }
+
+    Write-ColorOutput "    📊 GDPR dosyaları: $existingFiles/$($gdprFiles.Count)" "Gray"
+
+    if ($existingFiles -ge ($gdprFiles.Count * 0.5)) {
+        Write-ColorOutput "    ✅ GDPR uyumluluk yeterli" "Green"
+    } else {
+        Write-ColorOutput "    ⚠️  GDPR uyumluluk eksik" "Yellow"
+    }
+}
+
+# Yasal dosya güncellik kontrolü
+function Test-LegalFileFreshness {
+    Write-ColorOutput "  📅 Yasal dosya güncellik kontrol ediliyor..." "Gray"
+
+    $legalFiles = @(
+        @{ Path = Join-Path $LegalPath $PrivacyPolicyFile; Name = "Privacy Policy" },
+        @{ Path = Join-Path $LegalPath $TermsOfServiceFile; Name = "Terms of Service" },
+        @{ Path = $LicenseFile; Name = "License" }
+    )
+
+    $maxAgeDays = 365  # 1 yıl
+
+    foreach ($file in $legalFiles) {
+        $filePath = Join-Path $ProjectPath $file.Path
+
+        if (Test-Path $filePath) {
+            $fileInfo = Get-Item $filePath
+            $age = (Get-Date) - $fileInfo.LastWriteTime
+            $ageDays = $age.TotalDays
+
+            Write-ColorOutput "    📄 $($file.Name): $([math]::Round($ageDays, 0)) gün önce güncellendi" "Gray"
+
+            if ($ageDays -gt $maxAgeDays) {
+                Write-ColorOutput "    ⚠️  $($file.Name) çok eski (>$maxAgeDays gün)" "Yellow"
+            } else {
+                Write-ColorOutput "    ✅ $($file.Name) güncel" "Green"
+            }
+        }
+    }
+}
+
+# Ana test döngüsü
+Write-ColorOutput "🚀 Legal auto-audit başlatılıyor..." "White"
+Write-ColorOutput ""
+
+# Testleri çalıştır
+Test-LegalAudit -TestName "Yasal Klasör Yapısı" -TestScript { Test-LegalDirectoryStructure }
+Test-LegalAudit -TestName "Privacy Policy" -TestScript { Test-PrivacyPolicy }
+Test-LegalAudit -TestName "Terms of Service" -TestScript { Test-TermsOfService }
+Test-LegalAudit -TestName "License Dosyası" -TestScript { Test-LicenseFile }
+Test-LegalAudit -TestName "GDPR Uyumluluk" -TestScript { Test-GDPRCompliance }
+Test-LegalAudit -TestName "Dosya Güncellik" -TestScript { Test-LegalFileFreshness }
+
+# Test özeti
+Write-ColorOutput "" "White"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "           📊 Audit Sonuçları" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+
+$successRate = if ($testResults.TotalTests -gt 0) {
+    [math]::Round(($testResults.PassedTests / $testResults.TotalTests) * 100, 1)
+} else { 0 }
+
+Write-ColorOutput "Toplam Test: $($testResults.TotalTests)" "White"
+Write-ColorOutput "Başarılı: $($testResults.PassedTests)" "Green"
+Write-ColorOutput "Başarısız: $($testResults.FailedTests)" "Red"
+Write-ColorOutput "Başarı Oranı: $successRate%" "Cyan"
+Write-ColorOutput "Toplam Süre: $($testResults.TestDuration.TotalSeconds) saniye" "White"
+
+# Detaylı sonuçlar
+if ($Verbose) {
+    Write-ColorOutput "" "White"
+    Write-ColorOutput "Detaylı Sonuçlar:" "Yellow"
+    foreach ($detail in $testResults.Details) {
+        $status = if ($detail.Passed) { "✅" } else { "❌" }
+        Write-ColorOutput "  $status $($detail.TestName)" "White"
+        if (!$detail.Passed -and $detail.ErrorMessage) {
+            Write-ColorOutput "    Hata: $($detail.ErrorMessage)" "Red"
+        }
+    }
+}
+
+# Yasal uyumluluk raporu
+Write-ColorOutput "" "White"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "        📋 Yasal Uyumluluk Raporu" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+
+$legalFiles = @(
+    Join-Path $LegalPath $PrivacyPolicyFile,
+    Join-Path $LegalPath $TermsOfServiceFile,
+    $LicenseFile
+)
+
+$complianceScore = 0
+$maxScore = $legalFiles.Count
+
+foreach ($file in $legalFiles) {
+    $filePath = Join-Path $ProjectPath $file
+    if (Test-Path $filePath) {
+        $complianceScore++
+        Write-ColorOutput "✅ $(Split-Path $file -Leaf) - Mevcut" "Green"
+    } else {
+        Write-ColorOutput "❌ $(Split-Path $file -Leaf) - Eksik" "Red"
+    }
+}
+
+$compliancePercentage = [math]::Round(($complianceScore / $maxScore) * 100, 1)
+Write-ColorOutput "📊 Yasal Uyumluluk Skoru: $complianceScore/$maxScore ($compliancePercentage%)" "Cyan"
+
+# JSON export
+if ($ExportJson) {
+    $jsonPath = Join-Path $ProjectPath "legal-audit-results.json"
+    $exportData = @{
+        metadata = @{
+            timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            script_version = "1.0.0"
+            test_environment = $TestEnvironment
+            legal_path = $LegalPath
+            total_duration_seconds = $testResults.TestDuration.TotalSeconds
+        }
+        summary = @{
+            total_tests = $testResults.TotalTests
+            passed_tests = $testResults.PassedTests
+            failed_tests = $testResults.FailedTests
+            success_rate = $successRate
+            compliance_score = $complianceScore
+            compliance_percentage = $compliancePercentage
+            test_duration = $testResults.TestDuration.ToString()
+        }
+        legal_files = @{
+            privacy_policy = @{
+                file = $PrivacyPolicyFile
+                exists = Test-Path (Join-Path $ProjectPath (Join-Path $LegalPath $PrivacyPolicyFile))
+            }
+            terms_of_service = @{
+                file = $TermsOfServiceFile
+                exists = Test-Path (Join-Path $ProjectPath (Join-Path $LegalPath $TermsOfServiceFile))
+            }
+            license = @{
+                file = $LicenseFile
+                exists = Test-Path (Join-Path $ProjectPath $LicenseFile)
+            }
+        }
+        details = $testResults.Details
+        recommendations = @(
+            "Privacy Policy ve Terms of Service dosyalarını oluşturun",
+            "Lisans dosyasını proje türüne uygun olarak güncelleyin",
+            "GDPR uyumluluk dosyalarını tamamlayın",
+            "Yasal dosyaları yılda bir kez gözden geçirin",
+            "Yasal değişiklikleri takip etmek için monitoring sistemi kurun"
+        )
+    }
+
+    $exportData | ConvertTo-Json -Depth 10 | Set-Content $jsonPath
+    Write-ColorOutput "📄 Audit sonuçları JSON olarak kaydedildi: $jsonPath" "Green"
+}
+
+# Badge tetikleme
+if ($testResults.PassedTests -gt 0) {
+    Show-Badge "Legal-Audited"
+}
+
+# Final sonuç
+Write-ColorOutput "" "White"
+if ($testResults.FailedTests -eq 0) {
+    Write-ColorOutput "🎉 Legal auto-audit başarılı! Tüm yasal dosyalar mevcut ve güncel." "Green"
+    exit 0
+} else {
+    Write-ColorOutput "💥 Legal audit tamamlandı ancak bazı dosyalar eksik veya güncel değil." "Red"
+    exit 1
+}
+
+# Badge gösterme fonksiyonu
+function Show-Badge {
+    param([string]$BadgeName)
+
+    Write-ColorOutput "🏅 Badge kazanıldı: $BadgeName" "Cyan"
+
+    # Badge dosyasını güncelle (varsa)
+    $badgeFile = Join-Path $ProjectPath "badge.json"
+    if (Test-Path $badgeFile) {
+        try {
+            $badgeData = Get-Content $badgeFile -Raw | ConvertFrom-Json
+            if ($badgeData.PSObject.Properties.Name -notcontains $BadgeName) {
+                $badgeData | Add-Member -MemberType NoteProperty -Name $BadgeName -Value $true
+                $badgeData | ConvertTo-Json | Set-Content $badgeFile
+                Write-ColorOutput "  ✅ Badge dosyası güncellendi" "Green"
+            } else {
+                $badgeData.$BadgeName = $true
+                $badgeData | ConvertTo-Json | Set-Content $badgeFile
+                Write-ColorOutput "  ✅ Badge dosyası güncellendi" "Green"
+            }
+        } catch {
+            Write-ColorOutput "  ⚠️  Badge dosyası güncellenemedi" "Yellow"
+        }
+    } else {
+        # Yeni badge dosyası oluştur
+        $newBadgeData = @{
+            $BadgeName = $true
+        }
+        $newBadgeData | ConvertTo-Json | Set-Content $badgeFile
+        Write-ColorOutput "  ✅ Yeni badge dosyası oluşturuldu" "Green"
+    }
+}

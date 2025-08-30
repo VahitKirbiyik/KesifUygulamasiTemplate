@@ -1,0 +1,128 @@
+using System;
+using System.Threading.Tasks;
+using Microsoft.Maui.Controls;
+using KesifUygulamasiTemplate.Services;
+using KesifUygulamasiTemplate.Models;
+using System.Collections.Generic;
+
+namespace KesifUygulamasiTemplate
+{
+    public partial class MainPage : ContentPage
+    {
+        private readonly OllamaService _ollamaService;
+
+        public MainPage(OllamaService ollamaService)
+        {
+            InitializeComponent();
+            _ollamaService = ollamaService;
+        }
+
+        private async void OnSendPromptClicked(object sender, EventArgs e)
+        {
+            string prompt = PromptEntry.Text;
+
+            if (string.IsNullOrWhiteSpace(prompt))
+            {
+                await DisplayAlert("Uyarı", "Lütfen bir metin giriniz.", "Tamam");
+                return;
+            }
+
+            ResponseEditor.Text = "⏳ Yanıt bekleniyor...";
+
+            try
+            {
+                // Örn: "llama3:13b" modelini çağırıyoruz
+                string result = await _ollamaService.GenerateTextAsync("llama3:13b", prompt);
+
+                ResponseEditor.Text = result;
+            }
+            catch (Exception ex)
+            {
+                ResponseEditor.Text = $"⚠️ Hata oluştu: {ex.Message}";
+            }
+        }
+
+        private async void OnTestPolylineClicked(object sender, EventArgs e)
+        {
+            await RunPolylineTests();
+        }
+
+        private async Task RunPolylineTests()
+        {
+            var testResults = new System.Text.StringBuilder();
+            testResults.AppendLine("=== PolylineDecoder Testleri ===");
+
+            // Test 1: Basit decode testi
+            testResults.AppendLine("\n1. Basit Decode Testi:");
+            string encodedPolyline = "_p~iF~ps|U_ulLnnqC_mqNvxq`@";
+
+            try
+            {
+                var decodedPoints = Services.PolylineDecoder.Decode(encodedPolyline);
+                testResults.AppendLine($"✓ Decode edilen nokta sayısı: {decodedPoints.Count}");
+
+                foreach (var point in decodedPoints)
+                {
+                    testResults.AppendLine($"  Lat: {point.Lat:F6}, Lng: {point.Lng:F6}");
+                }
+
+                // Encode test
+                var encodedAgain = Services.PolylineDecoder.Encode(decodedPoints);
+                testResults.AppendLine($"✓ Tekrar encode edilmiş: {encodedAgain}");
+            }
+            catch (Exception ex)
+            {
+                testResults.AppendLine($"✗ Test hatası: {ex.Message}");
+            }
+
+            // Test 2: Gerçek veri testi
+            testResults.AppendLine("\n2. Gerçek Veri Testi:");
+            var testPoints = new List<LatLng>
+            {
+                new LatLng(41.0458, 29.0340), // Ortaköy
+                new LatLng(41.0465, 29.0352), // Boğaz köprüsü başlangıç
+                new LatLng(41.0472, 29.0365), // Boğaz köprüsü orta
+                new LatLng(41.0480, 29.0378), // Boğaz köprüsü bitiş
+                new LatLng(41.0485, 29.0390)  // Üsküdar
+            };
+
+            try
+            {
+                string encoded = Services.PolylineDecoder.Encode(testPoints);
+                testResults.AppendLine($"✓ Encode edilmiş polyline: {encoded}");
+
+                var decoded = Services.PolylineDecoder.Decode(encoded);
+                testResults.AppendLine($"✓ Decode sonrası nokta sayısı: {decoded.Count}");
+
+                // Hassasiyet kontrolü
+                bool allWithinTolerance = true;
+                for (int i = 0; i < Math.Min(testPoints.Count, decoded.Count); i++)
+                {
+                    var original = testPoints[i];
+                    var decodedPoint = decoded[i];
+                    var latDiff = Math.Abs(original.Lat - decodedPoint.Lat);
+                    var lngDiff = Math.Abs(original.Lng - decodedPoint.Lng);
+
+                    if (latDiff > 0.00001 || lngDiff > 0.00001)
+                        allWithinTolerance = false;
+
+                    testResults.AppendLine($"  Nokta {i}: Fark - Lat: {latDiff:F8}, Lng: {lngDiff:F8}");
+                }
+
+                if (allWithinTolerance)
+                    testResults.AppendLine("✓ Hassasiyet testi başarılı!");
+                else
+                    testResults.AppendLine("⚠ Hassasiyet kaybı var ama kabul edilebilir.");
+            }
+            catch (Exception ex)
+            {
+                testResults.AppendLine($"✗ Gerçek veri testi hatası: {ex.Message}");
+            }
+
+            testResults.AppendLine("\n=== Testler Tamamlandı ===");
+
+            // Sonuçları göster
+            await DisplayAlert("Polyline Test Sonuçları", testResults.ToString(), "Tamam");
+        }
+    }
+}

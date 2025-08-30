@@ -1,18 +1,1 @@
-#if ANDROID
-using KesifUygulamasiTemplate.Services.Interfaces;
-
-namespace KesifUygulamasiTemplate.Platforms.Android
-{
-    public class ARCoreService : IARPlatformService
-    {
-        public void StartARSession()
-        {
-            // ARCore baþlatma kodlarý (native Android)
-        }
-        public void StopARSession()
-        {
-            // ARCore durdurma kodlarý (native Android)
-        }
-    }
-}
-#endif
+#if ANDROID\nusing KesifUygulamasiTemplate.Services.Interfaces;\n\nnamespace KesifUygulamasiTemplate.Platforms.Android\n{\n    public class ARCoreService : IARPlatformService\n    {\n        public void StartARSession()\n        {\n            // ARCore baï¿½latma kodlarï¿½ (native Android)\n        }\n        public void StopARSession()\n        {\n            // ARCore durdurma kodlarï¿½ (native Android)\n        }\n    }\n}\n#endif\n

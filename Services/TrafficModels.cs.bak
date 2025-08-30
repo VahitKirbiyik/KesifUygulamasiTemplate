@@ -1,0 +1,122 @@
+using System;
+using System.Collections.Generic;
+using KesifUygulamasiTemplate.Models;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Trafik seviyeleri
+    /// </summary>
+    public enum TrafficLevel
+    {
+        Unknown,
+        Normal,
+        Moderate,
+        Heavy,
+        Severe
+    }
+
+    /// <summary>
+    /// Trafik bilgilerini tutar
+    /// </summary>
+    public class TrafficInfo
+    {
+        public LocationModel Location { get; set; } = new();
+        public TrafficLevel TrafficLevel { get; set; }
+        public double? TravelTimeMinutes { get; set; }
+        public double? NormalTimeMinutes { get; set; }
+        public bool IsDataAvailable { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+    }
+
+    /// <summary>
+    /// Trafik kazası/incident bilgilerini tutar
+    /// </summary>
+    public class TrafficIncident
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public LocationModel Location { get; set; } = new();
+        public TrafficWarningSeverity Severity { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public string Type { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Trafik gecikme bilgilerini tutar
+    /// </summary>
+    public class TrafficDelayInfo
+    {
+        public double TotalDelayMinutes { get; set; }
+        public List<TrafficDelaySegment> DelaySegments { get; set; } = new();
+        public double AverageTrafficDensity { get; set; }
+    }
+
+    /// <summary>
+    /// Trafik gecikme segmenti
+    /// </summary>
+    public class TrafficDelaySegment
+    {
+        public LocationModel FromPoint { get; set; } = new();
+        public LocationModel ToPoint { get; set; } = new();
+        public double DelayMinutes { get; set; }
+        public double DistanceKm { get; set; }
+    }
+
+    /// <summary>
+    /// Trafik uyarısı
+    /// </summary>
+    public class TrafficWarning
+    {
+        public TrafficWarningType Type { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public TrafficWarningSeverity Severity { get; set; }
+    }
+
+    /// <summary>
+    /// Trafik uyarısı türleri
+    /// </summary>
+    public enum TrafficWarningType
+    {
+        HeavyDelay,
+        ModerateDelay,
+        HeavyTraffic,
+        ModerateTraffic,
+        SegmentDelay,
+        Accident,
+        Roadwork
+    }
+
+    /// <summary>
+    /// Trafik uyarısı önem derecesi
+    /// </summary>
+    public enum TrafficWarningSeverity
+    {
+        Low,
+        Medium,
+        High,
+        Critical
+    }
+
+    /// <summary>
+    /// Rota optimizasyon tercihleri
+    /// </summary>
+    public enum RouteOptimizationPreference
+    {
+        Fastest,
+        Shortest,
+        AvoidHighways,
+        AvoidTolls
+    }
+
+    /// <summary>
+    /// Trafik verisi cache'i
+    /// </summary>
+    internal class TrafficDataCache
+    {
+        public double? TravelTimeMinutes { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+}

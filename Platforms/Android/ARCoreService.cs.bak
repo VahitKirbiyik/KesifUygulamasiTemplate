@@ -1,0 +1,18 @@
+#if ANDROID
+using KesifUygulamasiTemplate.Services.Interfaces;
+
+namespace KesifUygulamasiTemplate.Platforms.Android
+{
+    public class ARCoreService : IARPlatformService
+    {
+        public void StartARSession()
+        {
+            // ARCore ba�latma kodlar� (native Android)
+        }
+        public void StopARSession()
+        {
+            // ARCore durdurma kodlar� (native Android)
+        }
+    }
+}
+#endif

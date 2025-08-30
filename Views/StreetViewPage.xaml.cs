@@ -1,12 +1,1 @@
-using Microsoft.Maui.Controls;
-
-namespace KesifUygulamasiTemplate.Views
-{
-    public partial class StreetViewPage : ContentPage
-    {
-        public StreetViewPage()
-        {
-            InitializeComponent();
-        }
-    }
-}
+using Microsoft.Maui.Controls;\n\nnamespace KesifUygulamasiTemplate.Views\n{\n    public partial class StreetViewPage : ContentPage\n    {\n        public StreetViewPage()\n        {\n            InitializeComponent();\n        }\n    }\n}\n

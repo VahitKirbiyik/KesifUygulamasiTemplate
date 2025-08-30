@@ -1,0 +1,469 @@
+# Test-IncidentLogging.ps1 - Realtime incident logging test scripti
+# CI/CD pipeline ile entegre edilmiş olay loglama test sistemi
+
+param(
+    [string]$TestEnvironment = "local",
+    [string]$Configuration = "Debug",
+    [string]$ProjectPath = $PSScriptRoot,
+    [switch]$SkipBuild,
+    [switch]$Verbose,
+    [switch]$ExportJson,
+    [string]$LogPath = "logs\incidents",
+    [int]$TestDurationMinutes = 5,
+    [int]$IncidentCount = 50
+)
+
+# Script ayarları
+$ErrorActionPreference = "Stop"
+$VerbosePreference = if ($Verbose) { "Continue" } else { "SilentlyContinue" }
+
+# Test sonuçları için değişkenler
+$testResults = @{
+    TotalTests = 0
+    PassedTests = 0
+    FailedTests = 0
+    TestDuration = [TimeSpan]::Zero
+    Details = @()
+    IncidentStats = @{
+        LoggedIncidents = 0
+        CriticalCount = 0
+        ErrorCount = 0
+        WarningCount = 0
+        InfoCount = 0
+    }
+}
+
+# Environment değişkenlerini ayarla
+$env:TEST_ENVIRONMENT = $TestEnvironment
+$env:CI = if ($TestEnvironment -eq "ci") { "true" } else { "false" }
+$env:INCIDENT_LOG_PATH = $LogPath
+$env:ENABLE_REALTIME_LOGGING = "true"
+$env:MAX_LOG_FILE_SIZE_MB = "10"
+$env:LOG_RETENTION_DAYS = "7"
+
+# Renkli output için
+function Write-ColorOutput {
+    param(
+        [string]$Message,
+        [string]$Color = "White"
+    )
+    Write-Host $Message -ForegroundColor $Color
+}
+
+# Başlık
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "      🚨 Incident Logging Test Sistemi" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput ""
+
+# Proje yolunu kontrol et
+if (!(Test-Path $ProjectPath)) {
+    Write-ColorOutput "Hata: Proje yolu bulunamadı: $ProjectPath" "Red"
+    exit 1
+}
+
+# Test fonksiyonları
+function Test-IncidentLogging {
+    param(
+        [string]$TestName,
+        [scriptblock]$TestScript
+    )
+
+    $startTime = Get-Date
+    $testPassed = $false
+    $errorMessage = ""
+
+    Write-ColorOutput "🧪 $TestName testi başlatılıyor..." "White"
+
+    try {
+        & $TestScript
+        $testPassed = $true
+        Write-ColorOutput "  ✅ $TestName testi başarılı" "Green"
+    } catch {
+        $errorMessage = $_.Exception.Message
+        Write-ColorOutput "  ❌ $TestName testi başarısız: $errorMessage" "Red"
+    } finally {
+        $endTime = Get-Date
+        $duration = $endTime - $startTime
+
+        $testResults.TotalTests++
+        if ($testPassed) {
+            $testResults.PassedTests++
+        } else {
+            $testResults.FailedTests++
+        }
+        $testResults.TestDuration += $duration
+
+        $testResults.Details += @{
+            TestName = $TestName
+            Passed = $testPassed
+            Duration = $duration
+            ErrorMessage = $errorMessage
+        }
+    }
+}
+
+# Log klasörü oluşturma testi
+function Test-LogDirectoryCreation {
+    Write-ColorOutput "  📁 Log klasörü oluşturma kontrol ediliyor..." "Gray"
+
+    $fullLogPath = Join-Path $ProjectPath $LogPath
+
+    if (!(Test-Path $fullLogPath)) {
+        Write-ColorOutput "    📂 Log klasörü oluşturuluyor: $fullLogPath" "Gray"
+        New-Item -ItemType Directory -Path $fullLogPath -Force | Out-Null
+    } else {
+        Write-ColorOutput "    ✅ Log klasörü mevcut: $fullLogPath" "Green"
+    }
+
+    # Test log dosyası oluştur
+    $testFile = Join-Path $fullLogPath "test-log.json"
+    $testData = @{
+        test = "Incident logging test"
+        timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+    }
+    $testData | ConvertTo-Json | Set-Content $testFile
+
+    if (Test-Path $testFile) {
+        Write-ColorOutput "    ✅ Test log dosyası oluşturuldu" "Green"
+        Remove-Item $testFile -Force
+    } else {
+        Write-ColorOutput "    ❌ Test log dosyası oluşturulamadı" "Red"
+        throw "Log directory creation failed"
+    }
+}
+
+# Farklı seviye olay loglama testi
+function Test-IncidentLevelLogging {
+    Write-ColorOutput "  📊 Farklı seviye olay loglama test ediliyor..." "Gray"
+
+    $fullLogPath = Join-Path $ProjectPath $LogPath
+    $testFile = Join-Path $fullLogPath "test-incidents.json"
+
+    # Test olayları
+    $testIncidents = @(
+        @{
+            Level = "Critical"
+            Message = "Critical system failure detected"
+            Category = "System"
+        },
+        @{
+            Level = "Error"
+            Message = "Database connection failed"
+            Category = "Database"
+        },
+        @{
+            Level = "Warning"
+            Message = "High memory usage detected"
+            Category = "Performance"
+        },
+        @{
+            Level = "Info"
+            Message = "User login successful"
+            Category = "Authentication"
+        }
+    )
+
+    $loggedIncidents = @()
+
+    foreach ($incident in $testIncidents) {
+        $logEntry = @{
+            Id = [Guid]::NewGuid().ToString()
+            Level = $incident.Level
+            Message = $incident.Message
+            Category = $incident.Category
+            Timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            Environment = $TestEnvironment
+            Metadata = @{
+                TestRun = $true
+                Source = "Test-IncidentLogging.ps1"
+            }
+            Source = "KesifUygulamasiTemplate"
+        }
+
+        $loggedIncidents += $logEntry
+
+        # İstatistikleri güncelle
+        switch ($incident.Level) {
+            "Critical" { $testResults.IncidentStats.CriticalCount++ }
+            "Error" { $testResults.IncidentStats.ErrorCount++ }
+            "Warning" { $testResults.IncidentStats.WarningCount++ }
+            "Info" { $testResults.IncidentStats.InfoCount++ }
+        }
+        $testResults.IncidentStats.LoggedIncidents++
+    }
+
+    # JSON dosyasına yaz
+    $loggedIncidents | ConvertTo-Json -Depth 10 | Set-Content $testFile
+
+    Write-ColorOutput "    📝 $($testIncidents.Count) test olayı loglandı" "Gray"
+    Write-ColorOutput "    📊 Critical: $($testResults.IncidentStats.CriticalCount), Error: $($testResults.IncidentStats.ErrorCount), Warning: $($testResults.IncidentStats.WarningCount), Info: $($testResults.IncidentStats.InfoCount)" "Gray"
+
+    if ($testResults.IncidentStats.LoggedIncidents -eq $testIncidents.Count) {
+        Write-ColorOutput "    ✅ Tüm olay seviyeleri başarıyla loglandı" "Green"
+    } else {
+        Write-ColorOutput "    ❌ Olay loglama sayısı uyumsuz" "Red"
+        throw "Incident level logging count mismatch"
+    }
+}
+
+# Log dosya rotasyonu testi
+function Test-LogRotation {
+    Write-ColorOutput "  🔄 Log dosya rotasyonu test ediliyor..." "Gray"
+
+    $fullLogPath = Join-Path $ProjectPath $LogPath
+
+    # Büyük log dosyası oluştur (test için)
+    $largeLogFile = Join-Path $fullLogPath "large-test-log.json"
+    $largeContent = @()
+
+    for ($i = 1; $i -le 1000; $i++) {
+        $largeContent += @{
+            Id = [Guid]::NewGuid().ToString()
+            Level = "Info"
+            Message = "Test log entry $i with some additional content to make it larger"
+            Category = "Test"
+            Timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            Environment = $TestEnvironment
+        }
+    }
+
+    $largeContent | ConvertTo-Json -Depth 10 | Set-Content $largeLogFile
+
+    $fileSize = (Get-Item $largeLogFile).Length
+    $fileSizeMB = [math]::Round($fileSize / 1MB, 2)
+
+    Write-ColorOutput "    📄 Büyük test dosyası oluşturuldu: $fileSizeMB MB" "Gray"
+
+    # Dosya boyutu kontrolü
+    $maxSizeMB = [int]$env:MAX_LOG_FILE_SIZE_MB
+    if ($fileSizeMB -gt $maxSizeMB) {
+        Write-ColorOutput "    ✅ Dosya boyutu rotasyon eşiğini aştı ($maxSizeMB MB)" "Green"
+    } else {
+        Write-ColorOutput "    ⚠️  Dosya boyutu rotasyon eşiğinin altında" "Yellow"
+    }
+
+    # Temizlik
+    Remove-Item $largeLogFile -Force
+}
+
+# Log temizleme testi
+function Test-LogCleanup {
+    Write-ColorOutput "  🧹 Log temizleme testi başlatılıyor..." "Gray"
+
+    $fullLogPath = Join-Path $ProjectPath $LogPath
+
+    # Eski test dosyaları oluştur
+    $oldDate = (Get-Date).AddDays(-($env:LOG_RETENTION_DAYS + 1))
+    $oldFileName = "incident-$($oldDate.ToString('yyyy-MM-dd'))-test.json"
+    $oldFilePath = Join-Path $fullLogPath $oldFileName
+
+    @{ test = "old file" } | ConvertTo-Json | Set-Content $oldFilePath
+    (Get-Item $oldFilePath).CreationTime = $oldDate
+
+    Write-ColorOutput "    📅 Eski test dosyası oluşturuldu: $oldFileName" "Gray"
+
+    # Yeni dosya oluştur
+    $newFileName = "incident-$((Get-Date).ToString('yyyy-MM-dd'))-test.json"
+    $newFilePath = Join-Path $fullLogPath $newFileName
+    @{ test = "new file" } | ConvertTo-Json | Set-Content $newFilePath
+
+    Write-ColorOutput "    📅 Yeni test dosyası oluşturuldu: $newFileName" "Gray"
+
+    # Eski dosyaların temizlenmesi simülasyonu
+    $retentionDays = [int]$env:LOG_RETENTION_DAYS
+    $cutoffDate = (Get-Date).AddDays(-$retentionDays)
+
+    $oldFiles = Get-ChildItem $fullLogPath -Filter "incident-*.json" |
+        Where-Object { $_.CreationTime -lt $cutoffDate }
+
+    Write-ColorOutput "    🗑️  Temizlenecek eski dosyalar: $($oldFiles.Count)" "Gray"
+
+    foreach ($file in $oldFiles) {
+        Remove-Item $file.FullName -Force
+        Write-ColorOutput "    ✅ Eski dosya silindi: $($file.Name)" "Green"
+    }
+
+    # Temizlik sonrası kontrol
+    $remainingFiles = Get-ChildItem $fullLogPath -Filter "incident-*.json"
+    Write-ColorOutput "    📊 Kalan dosya sayısı: $($remainingFiles.Count)" "Gray"
+}
+
+# Performans testi
+function Test-IncidentLoggingPerformance {
+    Write-ColorOutput "  ⚡ Incident logging performans testi başlatılıyor..." "Gray"
+
+    $fullLogPath = Join-Path $ProjectPath $LogPath
+    $perfTestFile = Join-Path $fullLogPath "performance-test.json"
+
+    $startTime = Get-Date
+    $testIncidents = @()
+
+    # Çok sayıda olay oluştur
+    for ($i = 1; $i -le $IncidentCount; $i++) {
+        $testIncidents += @{
+            Id = [Guid]::NewGuid().ToString()
+            Level = "Info"
+            Message = "Performance test incident $i"
+            Category = "Performance"
+            Timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            Environment = $TestEnvironment
+            Metadata = @{
+                TestNumber = $i
+                PerformanceTest = $true
+            }
+        }
+    }
+
+    $testIncidents | ConvertTo-Json -Depth 10 | Set-Content $perfTestFile
+
+    $endTime = Get-Date
+    $duration = $endTime - $startTime
+    $avgTimePerIncident = $duration.TotalMilliseconds / $IncidentCount
+
+    Write-ColorOutput "    📈 $IncidentCount olay loglandı" "Gray"
+    Write-ColorOutput "    ⏱️  Toplam süre: $([math]::Round($duration.TotalSeconds, 2)) saniye" "Gray"
+    Write-ColorOutput "    📊 Olay başına ortalama süre: $([math]::Round($avgTimePerIncident, 2)) ms" "Gray"
+
+    if ($avgTimePerIncident -lt 10) { # 10ms'den az
+        Write-ColorOutput "    ✅ Performans kabul edilebilir" "Green"
+    } else {
+        Write-ColorOutput "    ⚠️  Performans iyileştirilebilir" "Yellow"
+    }
+
+    # Temizlik
+    Remove-Item $perfTestFile -Force
+}
+
+# Ana test döngüsü
+Write-ColorOutput "🚀 Incident logging testleri başlatılıyor..." "White"
+Write-ColorOutput ""
+
+# Testleri çalıştır
+Test-IncidentLogging -TestName "Log Klasörü Oluşturma" -TestScript { Test-LogDirectoryCreation }
+Test-IncidentLogging -TestName "Farklı Seviye Olay Loglama" -TestScript { Test-IncidentLevelLogging }
+Test-IncidentLogging -TestName "Log Dosya Rotasyonu" -TestScript { Test-LogRotation }
+Test-IncidentLogging -TestName "Log Temizleme" -TestScript { Test-LogCleanup }
+Test-IncidentLogging -TestName "Performans Testi" -TestScript { Test-IncidentLoggingPerformance }
+
+# Test özeti
+Write-ColorOutput "" "White"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "           📊 Test Sonuçları" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+
+$successRate = if ($testResults.TotalTests -gt 0) {
+    [math]::Round(($testResults.PassedTests / $testResults.TotalTests) * 100, 1)
+} else { 0 }
+
+Write-ColorOutput "Toplam Test: $($testResults.TotalTests)" "White"
+Write-ColorOutput "Başarılı: $($testResults.PassedTests)" "Green"
+Write-ColorOutput "Başarısız: $($testResults.FailedTests)" "Red"
+Write-ColorOutput "Başarı Oranı: $successRate%" "Cyan"
+Write-ColorOutput "Toplam Süre: $($testResults.TestDuration.TotalSeconds) saniye" "White"
+
+# Incident istatistikleri
+Write-ColorOutput "" "White"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "        🚨 Incident İstatistikleri" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+
+Write-ColorOutput "Loglanan Toplam Olay: $($testResults.IncidentStats.LoggedIncidents)" "White"
+Write-ColorOutput "Critical: $($testResults.IncidentStats.CriticalCount)" "Red"
+Write-ColorOutput "Error: $($testResults.IncidentStats.ErrorCount)" "Red"
+Write-ColorOutput "Warning: $($testResults.IncidentStats.WarningCount)" "Yellow"
+Write-ColorOutput "Info: $($testResults.IncidentStats.InfoCount)" "Green"
+
+# Detaylı sonuçlar
+if ($Verbose) {
+    Write-ColorOutput "" "White"
+    Write-ColorOutput "Detaylı Sonuçlar:" "Yellow"
+    foreach ($detail in $testResults.Details) {
+        $status = if ($detail.Passed) { "✅" } else { "❌" }
+        Write-ColorOutput "  $status $($detail.TestName)" "White"
+        if (!$detail.Passed -and $detail.ErrorMessage) {
+            Write-ColorOutput "    Hata: $($detail.ErrorMessage)" "Red"
+        }
+    }
+}
+
+# JSON export
+if ($ExportJson) {
+    $jsonPath = Join-Path $ProjectPath "incident-logging-test-results.json"
+    $exportData = @{
+        metadata = @{
+            timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            script_version = "1.0.0"
+            test_environment = $TestEnvironment
+            log_path = $LogPath
+            total_duration_seconds = $testResults.TestDuration.TotalSeconds
+            incident_count = $IncidentCount
+        }
+        summary = @{
+            total_tests = $testResults.TotalTests
+            passed_tests = $testResults.PassedTests
+            failed_tests = $testResults.FailedTests
+            success_rate = $successRate
+        }
+        incident_stats = $testResults.IncidentStats
+        details = $testResults.Details
+        recommendations = @(
+            "Log rotasyonunu etkinleştir",
+            "Eski log dosyalarını düzenli temizle",
+            "Performans monitoring'i aktif tut",
+            "Critical olaylar için alert sistemi kur",
+            "Log analizi dashboard'u oluştur"
+        )
+    }
+
+    $exportData | ConvertTo-Json -Depth 10 | Set-Content $jsonPath
+    Write-ColorOutput "📄 Test sonuçları JSON olarak kaydedildi: $jsonPath" "Green"
+}
+
+# Badge tetikleme
+if ($testResults.PassedTests -gt 0) {
+    Show-Badge "Incident-Tracked"
+}
+
+# Final sonuç
+Write-ColorOutput "" "White"
+if ($testResults.FailedTests -eq 0) {
+    Write-ColorOutput "🎉 Incident logging testleri başarılı! Sistem hazır." "Green"
+    exit 0
+} else {
+    Write-ColorOutput "💥 Bazı incident logging testleri başarısız oldu." "Red"
+    exit 1
+}
+
+# Badge gösterme fonksiyonu
+function Show-Badge {
+    param([string]$BadgeName)
+
+    Write-ColorOutput "🏅 Badge kazanıldı: $BadgeName" "Cyan"
+
+    # Badge dosyasını güncelle (varsa)
+    $badgeFile = Join-Path $ProjectPath "badge.json"
+    if (Test-Path $badgeFile) {
+        try {
+            $badgeData = Get-Content $badgeFile -Raw | ConvertFrom-Json
+            if ($badgeData.PSObject.Properties.Name -notcontains $BadgeName) {
+                $badgeData | Add-Member -MemberType NoteProperty -Name $BadgeName -Value $true
+                $badgeData | ConvertTo-Json | Set-Content $badgeFile
+                Write-ColorOutput "  ✅ Badge dosyası güncellendi" "Green"
+            } else {
+                $badgeData.$BadgeName = $true
+                $badgeData | ConvertTo-Json | Set-Content $badgeFile
+                Write-ColorOutput "  ✅ Badge dosyası güncellendi" "Green"
+            }
+        } catch {
+            Write-ColorOutput "  ⚠️  Badge dosyası güncellenemedi" "Yellow"
+        }
+    } else {
+        # Yeni badge dosyası oluştur
+        $newBadgeData = @{
+            $BadgeName = $true
+        }
+        $newBadgeData | ConvertTo-Json | Set-Content $badgeFile
+        Write-ColorOutput "  ✅ Yeni badge dosyası oluşturuldu" "Green"
+    }
+}

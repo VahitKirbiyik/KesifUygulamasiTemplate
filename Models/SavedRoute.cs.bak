@@ -1,0 +1,83 @@
+using System;
+using System.Collections.Generic;
+using SQLite;
+using Microsoft.Maui.Devices.Sensors;
+using KesifUygulamasiTemplate.Services;
+
+namespace KesifUygulamasiTemplate.Models
+{
+    /// <summary>
+    /// Kaydedilmiş rotayı temsil eder
+    /// </summary>
+    [Table("SavedRoutes")]
+    public class SavedRoute
+    {
+        [PrimaryKey, AutoIncrement]
+        public int Id { get; set; }
+
+        public string Name { get; set; } = string.Empty;
+
+        public string Description { get; set; } = string.Empty;
+
+        public double StartLatitude { get; set; }
+
+        public double StartLongitude { get; set; }
+
+        public double EndLatitude { get; set; }
+
+        public double EndLongitude { get; set; }
+
+        public double DistanceKm { get; set; }
+
+        public TimeSpan EstimatedDuration { get; set; }
+
+        public string TransportMode { get; set; } = "Driving";
+
+        public List<Location> Points { get; set; } = new List<Location>();
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime LastModified { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Route nesnesine dönüştürür
+        /// </summary>
+        public Route ToRoute()
+        {
+            return new Route
+            {
+                RouteId = this.Id.ToString(),
+                Start = new Location(this.StartLatitude, this.StartLongitude),
+                End = new Location(this.EndLatitude, this.EndLongitude),
+                Path = this.Points ?? new List<Location>(),
+                DistanceKm = this.DistanceKm,
+                Duration = this.EstimatedDuration,
+                TransportMode = Enum.Parse<TransportMode>(this.TransportMode),
+                Points = this.Points ?? new List<Location>(),
+                Distance = this.DistanceKm
+            };
+        }
+
+        /// <summary>
+        /// Route nesnesinden SavedRoute oluşturur
+        /// </summary>
+        public static SavedRoute FromRoute(Route route)
+        {
+            return new SavedRoute
+            {
+                Name = $"Route {DateTime.Now:yyyy-MM-dd HH:mm}",
+                Description = $"From {route.Start.Latitude:F4}, {route.Start.Longitude:F4} to {route.End.Latitude:F4}, {route.End.Longitude:F4}",
+                StartLatitude = route.Start.Latitude,
+                StartLongitude = route.Start.Longitude,
+                EndLatitude = route.End.Latitude,
+                EndLongitude = route.End.Longitude,
+                DistanceKm = route.DistanceKm,
+                EstimatedDuration = route.Duration,
+                TransportMode = route.TransportMode.ToString(),
+                Points = route.Path ?? new List<Location>(),
+                CreatedAt = DateTime.UtcNow,
+                LastModified = DateTime.UtcNow
+            };
+        }
+    }
+}

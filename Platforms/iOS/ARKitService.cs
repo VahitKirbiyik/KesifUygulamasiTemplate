@@ -1,18 +1,1 @@
-#if IOS
-using KesifUygulamasiTemplate.Services.Interfaces;
-
-namespace KesifUygulamasiTemplate.Platforms.iOS
-{
-    public class ARKitService : IARPlatformService
-    {
-        public void StartARSession()
-        {
-            // ARKit baþlatma kodlarý (native iOS)
-        }
-        public void StopARSession()
-        {
-            // ARKit durdurma kodlarý (native iOS)
-        }
-    }
-}
-#endif
+#if IOS\nusing KesifUygulamasiTemplate.Services.Interfaces;\n\nnamespace KesifUygulamasiTemplate.Platforms.iOS\n{\n    public class ARKitService : IARPlatformService\n    {\n        public void StartARSession()\n        {\n            // ARKit baï¿½latma kodlarï¿½ (native iOS)\n        }\n        public void StopARSession()\n        {\n            // ARKit durdurma kodlarï¿½ (native iOS)\n        }\n    }\n}\n#endif\n

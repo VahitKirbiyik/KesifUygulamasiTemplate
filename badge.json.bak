@@ -1,0 +1,421 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2024-01-20T10:00:00Z",
+  "badges": [
+    {
+      "id": "First-Route",
+      "name": "İlk Rota",
+      "description": "İlk rotanızı hesaplayın",
+      "iconUrl": "route_icon.png",
+      "category": "Achievement",
+      "points": 10,
+      "isHidden": false,
+      "trigger": {
+        "type": "route_calculated",
+        "count": 1
+      }
+    },
+    {
+      "id": "Route-Master",
+      "name": "Rota Ustası",
+      "description": "100 rota hesaplayın",
+      "iconUrl": "master_icon.png",
+      "category": "Achievement",
+      "points": 100,
+      "isHidden": false,
+      "maxProgress": 100,
+      "trigger": {
+        "type": "route_calculated",
+        "count": 100
+      }
+    },
+    {
+      "id": "Eco-Warrior",
+      "name": "Çevre Dostu",
+      "description": "10 çevre dostu rota kullanın",
+      "iconUrl": "eco_icon.png",
+      "category": "Achievement",
+      "points": 50,
+      "isHidden": false,
+      "maxProgress": 10,
+      "trigger": {
+        "type": "optimization_used",
+        "optimizationType": "Eco",
+        "count": 10
+      }
+    },
+    {
+      "id": "Offline-Ready",
+      "name": "Offline Hazır",
+      "description": "Offline harita verisi indirin",
+      "iconUrl": "offline_icon.png",
+      "category": "Achievement",
+      "points": 25,
+      "isHidden": false,
+      "trigger": {
+        "type": "offline_data_downloaded",
+        "count": 1
+      }
+    },
+    {
+      "id": "AR-Explorer",
+      "name": "AR Kaşifi",
+      "description": "Artırılmış gerçeklik özelliğini kullanın",
+      "iconUrl": "ar_icon.png",
+      "category": "Achievement",
+      "points": 30,
+      "isHidden": false,
+      "trigger": {
+        "type": "ar_session_started",
+        "count": 1
+      }
+    },
+    {
+      "id": "IAP-Enabled",
+      "name": "Premium Kullanıcı",
+      "description": "İlk satın alma işlemini tamamlayın",
+      "iconUrl": "premium_icon.png",
+      "category": "Purchase",
+      "points": 0,
+      "isHidden": true,
+      "trigger": {
+        "type": "purchase_completed",
+        "count": 1
+      }
+    },
+    {
+      "id": "Speed-Demon",
+      "name": "Hız Şeytanı",
+      "description": "En hızlı rotayı 50 kez kullanın",
+      "iconUrl": "speed_icon.png",
+      "category": "Achievement",
+      "points": 75,
+      "isHidden": false,
+      "maxProgress": 50,
+      "trigger": {
+        "type": "optimization_used",
+        "optimizationType": "Fastest",
+        "count": 50
+      }
+    },
+    {
+      "id": "Safety-First",
+      "name": "Güvenlik Önce",
+      "description": "En güvenli rotayı 25 kez kullanın",
+      "iconUrl": "safety_icon.png",
+      "category": "Achievement",
+      "points": 60,
+      "isHidden": false,
+      "maxProgress": 25,
+      "trigger": {
+        "type": "optimization_used",
+        "optimizationType": "Safe",
+        "count": 25
+      }
+    },
+    {
+      "id": "Provider-Switcher",
+      "name": "Sağlayıcı Değiştirici",
+      "description": "3 farklı harita sağlayıcısını kullanın",
+      "iconUrl": "switcher_icon.png",
+      "category": "Achievement",
+      "points": 40,
+      "isHidden": false,
+      "maxProgress": 3,
+      "trigger": {
+        "type": "provider_used",
+        "uniqueProviders": ["Google", "Mapbox", "HERE"],
+        "count": 3
+      }
+    },
+    {
+      "id": "Night-Owl",
+      "name": "Gece Kuşu",
+      "description": "Gece yarısından sonra 10 rota hesaplayın",
+      "iconUrl": "night_icon.png",
+      "category": "Achievement",
+      "points": 35,
+      "isHidden": false,
+      "maxProgress": 10,
+      "trigger": {
+        "type": "route_calculated_night",
+        "count": 10
+      }
+    },
+    {
+      "id": "Distance-King",
+      "name": "Mesafe Kralı",
+      "description": "Toplam 1000 km rota hesaplayın",
+      "iconUrl": "distance_icon.png",
+      "category": "Achievement",
+      "points": 80,
+      "isHidden": false,
+      "maxProgress": 1000,
+      "trigger": {
+        "type": "total_distance",
+        "distanceKm": 1000
+      }
+    },
+    {
+      "id": "Feedback-Guru",
+      "name": "Geri Bildirim Uzmanı",
+      "description": "10 rota için geri bildirim gönderin",
+      "iconUrl": "feedback_icon.png",
+      "category": "Achievement",
+      "points": 20,
+      "isHidden": false,
+      "maxProgress": 10,
+      "trigger": {
+        "type": "feedback_submitted",
+        "count": 10
+      }
+    },
+    {
+      "id": "Navigation-Simulated",
+      "name": "Navigasyon Simülatörü",
+      "description": "Offline navigasyon simülasyonunu 5 kez çalıştırın",
+      "iconUrl": "simulation_icon.png",
+      "category": "Achievement",
+      "points": 45,
+      "isHidden": false,
+      "maxProgress": 5,
+      "trigger": {
+        "type": "navigation_simulated",
+        "count": 5
+      }
+    },
+    {
+      "id": "Feedback-Globalized",
+      "name": "Global Geri Bildirim",
+      "description": "3 farklı dilde geri bildirim gönderin",
+      "iconUrl": "global_icon.png",
+      "category": "Achievement",
+      "points": 55,
+      "isHidden": false,
+      "maxProgress": 3,
+      "trigger": {
+        "type": "feedback_multilanguage",
+        "languages": ["en", "tr", "de"],
+        "count": 3
+      }
+    },
+    {
+      "id": "Benchmark-Logged",
+      "name": "Performans İzleyici",
+      "description": "Dinamik benchmark sistemini 10 kez çalıştırın",
+      "iconUrl": "benchmark_icon.png",
+      "category": "Achievement",
+      "points": 40,
+      "isHidden": false,
+      "maxProgress": 10,
+      "trigger": {
+        "type": "benchmark_logged",
+        "count": 10
+      }
+    },
+    {
+      "id": "Legal-Audited",
+      "name": "Yasal Denetçi",
+      "description": "Yasal auto-audit sistemini çalıştırın",
+      "iconUrl": "legal_icon.png",
+      "category": "Achievement",
+      "points": 35,
+      "isHidden": false,
+      "trigger": {
+        "type": "legal_audit_completed",
+        "count": 1
+      }
+    },
+    {
+      "id": "Incident-Tracked",
+      "name": "Olay İzleyici",
+      "description": "Realtime incident logging sistemini 10 kez çalıştırın",
+      "iconUrl": "incident_icon.png",
+      "category": "Achievement",
+      "points": 50,
+      "isHidden": false,
+      "maxProgress": 10,
+      "trigger": {
+        "type": "incident_logged",
+        "count": 10
+      }
+    },
+    {
+      "id": "Offline-Optimized",
+      "name": "Offline Optimize",
+      "description": "Tile compression ve prefetching sistemini 5 kez kullanın",
+      "iconUrl": "offline_opt_icon.png",
+      "category": "Achievement",
+      "points": 45,
+      "isHidden": false,
+      "maxProgress": 5,
+      "trigger": {
+        "type": "tile_optimized",
+        "count": 5
+      }
+    },
+    {
+      "id": "Behavior-Analyzed",
+      "name": "Davranış Analisti",
+      "description": "User behavior analytics sistemini 15 kez çalıştırın",
+      "iconUrl": "behavior_icon.png",
+      "category": "Achievement",
+      "points": 55,
+      "isHidden": false,
+      "maxProgress": 15,
+      "trigger": {
+        "type": "behavior_analyzed",
+        "count": 15
+      }
+    },
+    {
+      "id": "Accessibility-Verified",
+      "name": "Erişilebilirlik Doğrulandı",
+      "description": "WCAG compliance scanner ile %85 üzeri skor alın",
+      "iconUrl": "accessibility_icon.png",
+      "category": "Achievement",
+      "points": 60,
+      "isHidden": false,
+      "trigger": {
+        "type": "accessibility_scanned",
+        "complianceScore": 85,
+        "count": 1
+      }
+    },
+    {
+      "id": "Notification-Delivered",
+      "name": "Bildirim Uzmanı",
+      "description": "10 başarılı bildirim gönderimi gerçekleştirin",
+      "iconUrl": "notification_icon.png",
+      "category": "Achievement",
+      "points": 40,
+      "isHidden": false,
+      "maxProgress": 10,
+      "trigger": {
+        "type": "notification_delivered",
+        "count": 10
+      }
+    },
+    {
+      "id": "Route-Stabilized",
+      "name": "Rota İstikrarı",
+      "description": "5 rota sapma kurtarma işlemi gerçekleştirin",
+      "iconUrl": "stability_icon.png",
+      "category": "Achievement",
+      "points": 45,
+      "isHidden": false,
+      "maxProgress": 5,
+      "trigger": {
+        "type": "route_deviation_recovered",
+        "count": 5
+      }
+    },
+    {
+      "id": "Voice-Enabled",
+      "name": "Sesli Navigasyon",
+      "description": "10 başarılı sesli navigasyon gerçekleştirin",
+      "iconUrl": "voice_icon.png",
+      "category": "Achievement",
+      "points": 50,
+      "isHidden": false,
+      "maxProgress": 10,
+      "trigger": {
+        "type": "voice_navigation_used",
+        "count": 10
+      }
+    },
+    {
+      "id": "Security-Verified",
+      "name": "Güvenlik Doğrulandı",
+      "description": "Güvenlik denetimi ile tüm token'ları doğrulayın",
+      "iconUrl": "security_icon.png",
+      "category": "Achievement",
+      "points": 55,
+      "isHidden": false,
+      "trigger": {
+        "type": "security_audit_passed",
+        "count": 1
+      }
+    }
+  ],
+  "categories": [
+    {
+      "id": "Achievement",
+      "name": "Başarı",
+      "description": "Uygulama kullanımından kazanılan başarılar",
+      "color": "#4CAF50"
+    },
+    {
+      "id": "Purchase",
+      "name": "Satın Alma",
+      "description": "Satın alma işlemlerinden kazanılan başarılar",
+      "color": "#FF9800"
+    },
+    {
+      "id": "Social",
+      "name": "Sosyal",
+      "description": "Sosyal özelliklerden kazanılan başarılar",
+      "color": "#2196F3"
+    }
+  ],
+  "ciCdConfig": {
+    "enabled": true,
+    "badgeTriggers": [
+      {
+        "event": "build_success",
+        "badgeId": "CI-Master"
+      },
+      {
+        "event": "test_passed",
+        "badgeId": "Test-Champion"
+      },
+      {
+        "event": "deployment_success",
+        "badgeId": "Deploy-Pro"
+      },
+      {
+        "event": "incident_logged",
+        "badgeId": "Incident-Tracked"
+      },
+      {
+        "event": "tile_optimized",
+        "badgeId": "Offline-Optimized"
+      },
+      {
+        "event": "behavior_analyzed",
+        "badgeId": "Behavior-Analyzed"
+      },
+      {
+        "event": "accessibility_scanned",
+        "badgeId": "Accessibility-Verified"
+      },
+      {
+        "event": "notification_delivered",
+        "badgeId": "Notification-Delivered"
+      },
+      {
+        "event": "route_deviation_recovered",
+        "badgeId": "Route-Stabilized"
+      },
+      {
+        "event": "voice_navigation_used",
+        "badgeId": "Voice-Enabled"
+      },
+      {
+        "event": "security_audit_passed",
+        "badgeId": "Security-Verified"
+      }
+    ],
+    "environmentVariables": {
+      "BADGE_ENABLED": "true",
+      "BADGE_DATA_PATH": "./badge-data",
+      "BADGE_UPDATE_INTERVAL": "300000"
+    }
+  },
+  "userStats": {
+    "totalUsers": 0,
+    "activeUsers": 0,
+    "badgeCompletionRate": 0.0,
+    "popularBadges": []
+  }
+}

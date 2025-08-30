@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:media="clr-namespace:Microsoft.Maui.Controls;assembly=Microsoft.Maui.Controls"
+             x:Class="KesifUygulamasiTemplate.Views.ARMoonCompassPage"
+             Title="AR Ay Pusulas�">
+    <Grid>
+        <!-- Kamera onizleme yerine placeholder -->
+        <Image x:Name="CameraPreview"
+               Source="placeholder_camera.png"
+               Aspect="AspectFill"
+               HeightRequest="400"
+               WidthRequest="300"
+               VerticalOptions="Center"
+               HorizontalOptions="Center" />
+        <!-- Overlay: Ay konumu -->
+        <AbsoluteLayout>
+            <Image Source="moon_icon.png"
+                   WidthRequest="48" HeightRequest="48"
+                   AbsoluteLayout.LayoutBounds="{Binding MoonAzimuth, Converter={StaticResource AzimuthToLayoutBoundsConverter}}"
+                   AbsoluteLayout.LayoutFlags="None"/>
+        </AbsoluteLayout>
+        <!-- Yenile Butonu -->
+        <Button Text="Yenile" Command="{Binding RefreshCommand}" VerticalOptions="End" HorizontalOptions="Center" Margin="0,0,0,30"/>
+    </Grid>
+    <!-- MediaElement kaldirildi -->
+</ContentPage>
+

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:KesifUygulamasiTemplate.Views"
+             x:Class="KesifUygulamasiTemplate.MainPage"
+             Title="Ana Sayfa">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="20">
+
+            <!-- Baslik -->
+            <Label Text="Ollama AI Asistani"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   HorizontalTextAlignment="Center"
+                   TextColor="{StaticResource Primary}" />
+
+            <!-- Prompt giris alani -->
+            <VerticalStackLayout Spacing="10">
+                <Label Text="Sorunuzu yazin:" FontSize="16" />
+                <Entry x:Name="PromptEntry"
+                       Placeholder="Buraya yazin..."
+                       Text="{Binding Prompt, Mode=TwoWay}" />
+            </VerticalStackLayout>
+
+            <!-- Gonder butonu -->
+            <Button Text="Gonder"
+                    x:Name="SendButton"
+                    BackgroundColor="{StaticResource Primary}"
+                    TextColor="White"
+                    HeightRequest="50"
+                    CornerRadius="8"
+                    Clicked="OnSendPromptClicked" />
+
+            <!-- Polyline Test butonu -->
+            <Button Text="Polyline Testlerini Çalıştır"
+                    x:Name="TestButton"
+                    BackgroundColor="#28a745"
+                    TextColor="White"
+                    HeightRequest="50"
+                    CornerRadius="8"
+                    Clicked="OnTestPolylineClicked" />
+
+            <!-- Cevap alani -->
+            <VerticalStackLayout Spacing="10">
+                <Label Text="Cevap:" FontSize="16" />
+                <Editor x:Name="ResponseEditor"
+                        Placeholder="Cevap burada gorunecek..."
+                        HeightRequest="200"
+                        IsReadOnly="True"
+                        BackgroundColor="#F5F5F5" />
+            </VerticalStackLayout>
+
+            <!-- Ollama Panel -->
+            <local:OllamaPanelControl x:Name="OllamaPanel" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

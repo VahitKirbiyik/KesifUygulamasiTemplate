@@ -41,6 +41,24 @@ jobs:
       - name: Run unit tests
         run: dotnet test --no-build --verbosity normal --logger trx --results-directory TestResults --collect:"XPlat Code Coverage" --settings coverlet.runsettings
 
+      - name: Run Polyline Decode Test
+        run: dotnet test --no-build --verbosity normal --filter "PolylineDecoder" --logger trx --results-directory TestResults
+
+      - name: Run Offline Route Simulation Test
+        run: pwsh scripts/Test-OfflineRoute.ps1
+
+      - name: Run Monitoring Tests
+        run: dotnet test --no-build --verbosity normal --filter "Monitoring" --logger trx --results-directory TestResults
+
+      - name: Update Badge Status
+        run: |
+          if [ -f TestResults/badge-status.md ]; then
+            cat TestResults/badge-status.md
+            echo "Badge status updated successfully"
+          else
+            echo "# ⚠️ Badge status file not found" > TestResults/badge-status.md
+          fi
+
       - name: Upload test results
         uses: actions/upload-artifact@v4
         with:

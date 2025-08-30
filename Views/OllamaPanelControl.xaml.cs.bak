@@ -1,0 +1,23 @@
+using System;
+using Microsoft.Maui.Controls;
+
+namespace KesifUygulamasiTemplate.Views
+{
+    public partial class OllamaPanelControl : ContentView
+    {
+        public OllamaPanelControl()
+        {
+            InitializeComponent();
+        }
+
+        private void OnStartClicked(object sender, EventArgs e)
+        {
+            // TODO: Implement Ollama start functionality
+        }
+
+        private void OnStopClicked(object sender, EventArgs e)
+        {
+            // TODO: Implement Ollama stop functionality
+        }
+    }
+}

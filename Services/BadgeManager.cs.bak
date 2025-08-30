@@ -1,0 +1,422 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using KesifUygulamasiTemplate.Services.Interfaces;
+using KesifUygulamasiTemplate.Models;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Badge yönetim servisi - CI/CD pipeline ile entegre
+    /// </summary>
+    public class BadgeManager : IBadgeService
+    {
+        private readonly ILogger<BadgeManager> _logger;
+        private readonly string _badgeDataPath;
+        private Dictionary<string, Badge> _badges;
+        private Dictionary<string, UserBadge> _userBadges;
+
+        // CI/CD için environment variable desteği
+        private readonly bool _isTestEnvironment = Environment.GetEnvironmentVariable("CI") == "true" ||
+                                                  Environment.GetEnvironmentVariable("TEST_ENVIRONMENT") == "true";
+
+        public event EventHandler<Badge> BadgeAwarded;
+        public event EventHandler<BadgeProgress> BadgeProgressChanged;
+
+        public BadgeManager(ILogger<BadgeManager> logger)
+        {
+            _logger = logger;
+            _badgeDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BadgeData");
+
+            Directory.CreateDirectory(_badgeDataPath);
+            InitializeBadges();
+            LoadUserBadges();
+        }
+
+        /// <summary>
+        /// Badge'ları başlatır
+        /// </summary>
+        private void InitializeBadges()
+        {
+            _badges = new Dictionary<string, Badge>
+            {
+                ["First-Route"] = new Badge
+                {
+                    Id = "First-Route",
+                    Name = "İlk Rota",
+                    Description = "İlk rotanızı hesaplayın",
+                    IconUrl = "route_icon.png",
+                    Category = BadgeCategory.Achievement,
+                    Points = 10,
+                    IsHidden = false
+                },
+                ["Route-Master"] = new Badge
+                {
+                    Id = "Route-Master",
+                    Name = "Rota Ustası",
+                    Description = "100 rota hesaplayın",
+                    IconUrl = "master_icon.png",
+                    Category = BadgeCategory.Achievement,
+                    Points = 100,
+                    IsHidden = false,
+                    MaxProgress = 100
+                },
+                ["Eco-Warrior"] = new Badge
+                {
+                    Id = "Eco-Warrior",
+                    Name = "Çevre Dostu",
+                    Description = "10 çevre dostu rota kullanın",
+                    IconUrl = "eco_icon.png",
+                    Category = BadgeCategory.Achievement,
+                    Points = 50,
+                    IsHidden = false,
+                    MaxProgress = 10
+                },
+                ["Offline-Ready"] = new Badge
+                {
+                    Id = "Offline-Ready",
+                    Name = "Offline Hazır",
+                    Description = "Offline harita verisi indirin",
+                    IconUrl = "offline_icon.png",
+                    Category = BadgeCategory.Achievement,
+                    Points = 25,
+                    IsHidden = false
+                },
+                ["AR-Explorer"] = new Badge
+                {
+                    Id = "AR-Explorer",
+                    Name = "AR Kaşifi",
+                    Description = "Artırılmış gerçeklik özelliğini kullanın",
+                    IconUrl = "ar_icon.png",
+                    Category = BadgeCategory.Achievement,
+                    Points = 30,
+                    IsHidden = false
+                },
+                ["IAP-Enabled"] = new Badge
+                {
+                    Id = "IAP-Enabled",
+                    Name = "Premium Kullanıcı",
+                    Description = "İlk satın alma işlemini tamamlayın",
+                    IconUrl = "premium_icon.png",
+                    Category = BadgeCategory.Purchase,
+                    Points = 0,
+                    IsHidden = true
+                },
+                ["Speed-Demon"] = new Badge
+                {
+                    Id = "Speed-Demon",
+                    Name = "Hız Şeytanı",
+                    Description = "En hızlı rotayı 50 kez kullanın",
+                    IconUrl = "speed_icon.png",
+                    Category = BadgeCategory.Achievement,
+                    Points = 75,
+                    IsHidden = false,
+                    MaxProgress = 50
+                },
+                ["Safety-First"] = new Badge
+                {
+                    Id = "Safety-First",
+                    Name = "Güvenlik Önce",
+                    Description = "En güvenli rotayı 25 kez kullanın",
+                    IconUrl = "safety_icon.png",
+                    Category = BadgeCategory.Achievement,
+                    Points = 60,
+                    IsHidden = false,
+                    MaxProgress = 25
+                }
+            };
+
+            _logger.LogInformation($"{_badges.Count} badge tanımlandı");
+        }
+
+        /// <summary>
+        /// Kullanıcı badge verilerini yükler
+        /// </summary>
+        private void LoadUserBadges()
+        {
+            try
+            {
+                var userBadgesPath = Path.Combine(_badgeDataPath, "user_badges.json");
+                if (File.Exists(userBadgesPath))
+                {
+                    var json = File.ReadAllText(userBadgesPath);
+                    _userBadges = JsonSerializer.Deserialize<Dictionary<string, UserBadge>>(json) ?? new Dictionary<string, UserBadge>();
+                    _logger.LogInformation($"{_userBadges.Count} kullanıcı badge'ı yüklendi");
+                }
+                else
+                {
+                    _userBadges = new Dictionary<string, UserBadge>();
+                    _logger.LogInformation("Yeni kullanıcı badge verisi oluşturuldu");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Kullanıcı badge verisi yükleme hatası");
+                _userBadges = new Dictionary<string, UserBadge>();
+            }
+        }
+
+        /// <summary>
+        /// Kullanıcı badge verilerini kaydeder
+        /// </summary>
+        private async Task SaveUserBadgesAsync()
+        {
+            try
+            {
+                var userBadgesPath = Path.Combine(_badgeDataPath, "user_badges.json");
+                var json = JsonSerializer.Serialize(_userBadges, new JsonSerializerOptions { WriteIndented = true });
+                await File.WriteAllTextAsync(userBadgesPath, json);
+                _logger.LogInformation("Kullanıcı badge verisi kaydedildi");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Kullanıcı badge verisi kaydetme hatası");
+            }
+        }
+
+        /// <summary>
+        /// Badge verir
+        /// </summary>
+        public async Task<bool> AwardBadgeAsync(string badgeId)
+        {
+            try
+            {
+                if (!_badges.ContainsKey(badgeId))
+                {
+                    _logger.LogWarning($"Badge bulunamadı: {badgeId}");
+                    return false;
+                }
+
+                var badge = _badges[badgeId];
+
+                if (_userBadges.ContainsKey(badgeId))
+                {
+                    var userBadge = _userBadges[badgeId];
+                    if (userBadge.IsEarned)
+                    {
+                        _logger.LogInformation($"Badge zaten kazanılmış: {badgeId}");
+                        return false;
+                    }
+                }
+
+                var userBadge = new UserBadge
+                {
+                    BadgeId = badgeId,
+                    IsEarned = true,
+                    EarnedDate = DateTime.Now,
+                    Progress = badge.MaxProgress ?? 1,
+                    TotalPoints = badge.Points
+                };
+
+                _userBadges[badgeId] = userBadge;
+                await SaveUserBadgesAsync();
+
+                BadgeAwarded?.Invoke(this, badge);
+                _logger.LogInformation($"Badge verildi: {badgeId}");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Badge verme hatası: {badgeId}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Badge verir (senkron versiyon)
+        /// </summary>
+        public void AwardBadge(string badgeId)
+        {
+            Task.Run(() => AwardBadgeAsync(badgeId)).Wait();
+        }
+
+        /// <summary>
+        /// Badge ilerlemesini günceller
+        /// </summary>
+        public async Task UpdateBadgeProgressAsync(string badgeId, int progress)
+        {
+            try
+            {
+                if (!_badges.ContainsKey(badgeId))
+                {
+                    _logger.LogWarning($"Badge bulunamadı: {badgeId}");
+                    return;
+                }
+
+                var badge = _badges[badgeId];
+                if (!badge.MaxProgress.HasValue)
+                {
+                    _logger.LogWarning($"Badge progress desteklemiyor: {badgeId}");
+                    return;
+                }
+
+                var userBadge = _userBadges.ContainsKey(badgeId) ? _userBadges[badgeId] : new UserBadge { BadgeId = badgeId };
+                userBadge.Progress = Math.Min(progress, badge.MaxProgress.Value);
+
+                if (userBadge.Progress >= badge.MaxProgress.Value && !userBadge.IsEarned)
+                {
+                    userBadge.IsEarned = true;
+                    userBadge.EarnedDate = DateTime.Now;
+                    userBadge.TotalPoints = badge.Points;
+                    BadgeAwarded?.Invoke(this, badge);
+                    _logger.LogInformation($"Badge tamamlandı: {badgeId}");
+                }
+
+                _userBadges[badgeId] = userBadge;
+                await SaveUserBadgesAsync();
+
+                var badgeProgress = new BadgeProgress
+                {
+                    BadgeId = badgeId,
+                    CurrentProgress = userBadge.Progress,
+                    MaxProgress = badge.MaxProgress.Value,
+                    IsCompleted = userBadge.IsEarned
+                };
+
+                BadgeProgressChanged?.Invoke(this, badgeProgress);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Badge progress güncelleme hatası: {badgeId}");
+            }
+        }
+
+        /// <summary>
+        /// Kullanıcının kazandığı badge'ları alır
+        /// </summary>
+        public List<Badge> GetEarnedBadges()
+        {
+            try
+            {
+                return _userBadges.Values
+                    .Where(ub => ub.IsEarned)
+                    .Select(ub => _badges[ub.BadgeId])
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Kazanılan badge'lar alma hatası");
+                return new List<Badge>();
+            }
+        }
+
+        /// <summary>
+        /// Kullanıcının progress'teki badge'larını alır
+        /// </summary>
+        public List<BadgeProgress> GetBadgeProgress()
+        {
+            try
+            {
+                return _userBadges.Values
+                    .Where(ub => !ub.IsEarned && _badges[ub.BadgeId].MaxProgress.HasValue)
+                    .Select(ub => new BadgeProgress
+                    {
+                        BadgeId = ub.BadgeId,
+                        CurrentProgress = ub.Progress,
+                        MaxProgress = _badges[ub.BadgeId].MaxProgress.Value,
+                        IsCompleted = false
+                    })
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Badge progress alma hatası");
+                return new List<BadgeProgress>();
+            }
+        }
+
+        /// <summary>
+        /// Tüm badge'ları alır
+        /// </summary>
+        public List<Badge> GetAllBadges()
+        {
+            return _badges.Values.ToList();
+        }
+
+        /// <summary>
+        /// Badge kazanma istatistiklerini alır
+        /// </summary>
+        public BadgeStatistics GetBadgeStatistics()
+        {
+            try
+            {
+                var earnedBadges = GetEarnedBadges();
+                var totalPoints = earnedBadges.Sum(b => b.Points);
+                var recentBadges = _userBadges.Values
+                    .Where(ub => ub.IsEarned && ub.EarnedDate.HasValue)
+                    .OrderByDescending(ub => ub.EarnedDate)
+                    .Take(5)
+                    .Select(ub => _badges[ub.BadgeId])
+                    .ToList();
+
+                return new BadgeStatistics
+                {
+                    TotalEarnedBadges = earnedBadges.Count,
+                    TotalPoints = totalPoints,
+                    RecentBadges = recentBadges,
+                    CompletionRate = (double)earnedBadges.Count / _badges.Count * 100
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Badge istatistikleri alma hatası");
+                return new BadgeStatistics();
+            }
+        }
+
+        /// <summary>
+        /// Test için badge verilerini sıfırlar
+        /// </summary>
+        public async Task ResetBadgeDataAsync()
+        {
+            if (!_isTestEnvironment)
+            {
+                _logger.LogWarning("Badge verisi sıfırlama sadece test ortamında kullanılabilir");
+                return;
+            }
+
+            _userBadges.Clear();
+            await SaveUserBadgesAsync();
+            _logger.LogInformation("Badge verisi sıfırlandı (test ortamı)");
+        }
+    }
+
+    /// <summary>
+    /// Kullanıcı badge sınıfı
+    /// </summary>
+    public class UserBadge
+    {
+        public string BadgeId { get; set; }
+        public bool IsEarned { get; set; }
+        public DateTime? EarnedDate { get; set; }
+        public int Progress { get; set; }
+        public int TotalPoints { get; set; }
+    }
+
+    /// <summary>
+    /// Badge progress sınıfı
+    /// </summary>
+    public class BadgeProgress
+    {
+        public string BadgeId { get; set; }
+        public int CurrentProgress { get; set; }
+        public int MaxProgress { get; set; }
+        public bool IsCompleted { get; set; }
+    }
+
+    /// <summary>
+    /// Badge istatistikleri sınıfı
+    /// </summary>
+    public class BadgeStatistics
+    {
+        public int TotalEarnedBadges { get; set; }
+        public int TotalPoints { get; set; }
+        public List<Badge> RecentBadges { get; set; } = new();
+        public double CompletionRate { get; set; }
+    }
+}

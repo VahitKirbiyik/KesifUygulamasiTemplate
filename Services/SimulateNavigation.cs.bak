@@ -1,0 +1,367 @@
+// SimulateNavigation.cs - Offline navigation simülasyon sistemi
+// Bu sınıf offline navigation senaryolarını simüle eder ve CI/CD pipeline ile entegre çalışır
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Navigation simülasyon koordinat sınıfı
+    /// </summary>
+    public class Coordinate
+    {
+        public double Lat { get; set; }
+        public double Lng { get; set; }
+        public double? Altitude { get; set; }
+        public double? Speed { get; set; }
+        public DateTime Timestamp { get; set; }
+
+        public Coordinate(double lat, double lng)
+        {
+            Lat = lat;
+            Lng = lng;
+            Timestamp = DateTime.UtcNow;
+        }
+
+        public override string ToString() => $"{Lat:F6}, {Lng:F6}";
+    }
+
+    /// <summary>
+    /// Navigation simülasyon sonucu
+    /// </summary>
+    public class SimulationResult
+    {
+        public bool Success { get; set; }
+        public TimeSpan Duration { get; set; }
+        public double DistanceCovered { get; set; }
+        public int WaypointsProcessed { get; set; }
+        public List<string> Events { get; set; } = new List<string>();
+        public Dictionary<string, object> Metrics { get; set; } = new Dictionary<string, object>();
+    }
+
+    /// <summary>
+    /// Navigation simülasyon servisi
+    /// </summary>
+    public class NavigationSimulator
+    {
+        private readonly ILogger<NavigationSimulator> _logger;
+        private readonly string _simulationDataPath;
+        private readonly bool _isTestEnvironment;
+
+        // CI/CD için environment variable desteği
+        private readonly int _simulationSpeed = int.Parse(Environment.GetEnvironmentVariable("SIMULATION_SPEED") ?? "1000");
+        private readonly bool _enableDetailedLogging = bool.Parse(Environment.GetEnvironmentVariable("ENABLE_SIMULATION_LOGGING") ?? "true");
+        private readonly string _simulationMode = Environment.GetEnvironmentVariable("SIMULATION_MODE") ?? "normal";
+
+        public event EventHandler<Coordinate> LocationUpdated;
+        public event EventHandler<SimulationResult> SimulationCompleted;
+
+        public NavigationSimulator(ILogger<NavigationSimulator> logger)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+            // Test ortamı kontrolü
+            _isTestEnvironment = Environment.GetEnvironmentVariable("CI") == "true" ||
+                                Environment.GetEnvironmentVariable("TEST_ENVIRONMENT") == "true";
+
+            // Simülasyon veri yolu
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            _simulationDataPath = Path.Combine(appDataPath, "KesifUygulamasi", "SimulationData");
+            Directory.CreateDirectory(_simulationDataPath);
+
+            _logger.LogInformation("NavigationSimulator initialized with mode: {Mode}, speed: {Speed}ms",
+                _simulationMode, _simulationSpeed);
+        }
+
+        /// <summary>
+        /// Rota simülasyonunu başlatır
+        /// </summary>
+        public async Task<SimulationResult> SimulateRouteAsync(Coordinate[] route, CancellationToken cancellationToken = default)
+        {
+            if (route == null || route.Length == 0)
+                throw new ArgumentException("Route cannot be null or empty", nameof(route));
+
+            var result = new SimulationResult
+            {
+                Success = false,
+                WaypointsProcessed = route.Length
+            };
+
+            var startTime = DateTime.UtcNow;
+            var lastPosition = route.First();
+            double totalDistance = 0;
+
+            _logger.LogInformation("Starting route simulation with {Count} waypoints", route.Length);
+
+            try
+            {
+                // GPS mock başlatma
+                await InitializeGpsMockAsync();
+
+                for (int i = 0; i < route.Length; i++)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        result.Events.Add("Simulation cancelled by user");
+                        break;
+                    }
+
+                    var currentPoint = route[i];
+
+                    // Konum güncelleme simülasyonu
+                    await SimulateLocationUpdateAsync(currentPoint, i + 1, route.Length);
+
+                    // Mesafe hesaplama
+                    if (i > 0)
+                    {
+                        var distance = CalculateDistance(lastPosition, currentPoint);
+                        totalDistance += distance;
+                        result.Metrics["distance_increment"] = distance;
+                    }
+
+                    lastPosition = currentPoint;
+
+                    // Rota sapması simülasyonu (test için)
+                    if (_isTestEnvironment && i > 0 && i % 5 == 0)
+                    {
+                        await SimulateRouteDeviationAsync(currentPoint);
+                    }
+
+                    // Yeniden hesaplama simülasyonu
+                    if (_simulationMode == "deviation_test" && i == route.Length / 2)
+                    {
+                        await SimulateRecalculationAsync(currentPoint);
+                    }
+
+                    // Simülasyon hızı
+                    await Task.Delay(_simulationSpeed, cancellationToken);
+                }
+
+                result.Success = true;
+                result.DistanceCovered = totalDistance;
+                result.Events.Add($"Simulation completed successfully. Distance: {totalDistance:F2} km");
+
+                _logger.LogInformation("Route simulation completed: Distance={Distance:F2}km, Duration={Duration}",
+                    totalDistance, result.Duration);
+
+            }
+            catch (Exception ex)
+            {
+                result.Events.Add($"Simulation failed: {ex.Message}");
+                _logger.LogError(ex, "Route simulation failed");
+            }
+            finally
+            {
+                result.Duration = DateTime.UtcNow - startTime;
+                SimulationCompleted?.Invoke(this, result);
+
+                // Simülasyon verilerini kaydet
+                await SaveSimulationDataAsync(result);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Senkron rota simülasyonu (legacy support)
+        /// </summary>
+        public void SimulateRoute(Coordinate[] route)
+        {
+            Task.Run(() => SimulateRouteAsync(route)).Wait();
+        }
+
+        /// <summary>
+        /// GPS mock sistemini başlatır
+        /// </summary>
+        private async Task InitializeGpsMockAsync()
+        {
+            if (_enableDetailedLogging)
+            {
+                _logger.LogInformation("Initializing GPS mock system");
+            }
+
+            // GPS mock konfigürasyonu
+            var gpsConfig = new
+            {
+                accuracy = 5.0, // 5 metre accuracy
+                update_interval = _simulationSpeed,
+                mock_provider = "NavigationSimulator"
+            };
+
+            var configPath = Path.Combine(_simulationDataPath, "gps_config.json");
+            await File.WriteAllTextAsync(configPath, JsonSerializer.Serialize(gpsConfig, new JsonSerializerOptions { WriteIndented = true }));
+        }
+
+        /// <summary>
+        /// Konum güncelleme simülasyonu
+        /// </summary>
+        private async Task SimulateLocationUpdateAsync(Coordinate point, int currentStep, int totalSteps)
+        {
+            // GPS verisi simülasyonu
+            point.Altitude = point.Altitude ?? new Random().Next(0, 100);
+            point.Speed = point.Speed ?? new Random().Next(20, 80);
+
+            if (_enableDetailedLogging)
+            {
+                _logger.LogInformation("📍 Simulated location: {Lat:F6}, {Lng:F6} (Step {Current}/{Total})",
+                    point.Lat, point.Lng, currentStep, totalSteps);
+            }
+
+            // Event tetikleme
+            LocationUpdated?.Invoke(this, point);
+
+            // Konsol çıktısı (CI/CD için)
+            if (_isTestEnvironment)
+            {
+                Console.WriteLine($"📍 Simulated location: {point.Lat:F6}, {point.Lng:F6} (Step {currentStep}/{totalSteps})");
+            }
+        }
+
+        /// <summary>
+        /// Rota sapması simülasyonu
+        /// </summary>
+        private async Task SimulateRouteDeviationAsync(Coordinate currentPoint)
+        {
+            var deviation = new Random().NextDouble() * 0.001; // ~100 metre sapma
+            var deviatedPoint = new Coordinate(
+                currentPoint.Lat + deviation,
+                currentPoint.Lng + deviation
+            );
+
+            _logger.LogWarning("🚨 Route deviation detected at {Lat:F6}, {Lng:F6}", currentPoint.Lat, currentPoint.Lng);
+
+            // Sapma düzeltme simülasyonu
+            await Task.Delay(_simulationSpeed / 2);
+
+            if (_enableDetailedLogging)
+            {
+                _logger.LogInformation("✅ Route deviation corrected");
+            }
+        }
+
+        /// <summary>
+        /// Rota yeniden hesaplama simülasyonu
+        /// </summary>
+        private async Task SimulateRecalculationAsync(Coordinate currentPoint)
+        {
+            _logger.LogInformation("🔄 Recalculating route from {Lat:F6}, {Lng:F6}", currentPoint.Lat, currentPoint.Lng);
+
+            // Yeniden hesaplama simülasyonu
+            await Task.Delay(_simulationSpeed * 2);
+
+            if (_enableDetailedLogging)
+            {
+                _logger.LogInformation("✅ Route recalculated successfully");
+            }
+        }
+
+        /// <summary>
+        /// İki koordinat arasındaki mesafeyi hesaplar (Haversine formula)
+        /// </summary>
+        private double CalculateDistance(Coordinate point1, Coordinate point2)
+        {
+            const double EarthRadius = 6371; // km
+
+            var lat1 = point1.Lat * Math.PI / 180;
+            var lat2 = point2.Lat * Math.PI / 180;
+            var deltaLat = (point2.Lat - point1.Lat) * Math.PI / 180;
+            var deltaLng = (point2.Lng - point1.Lng) * Math.PI / 180;
+
+            var a = Math.Sin(deltaLat / 2) * Math.Sin(deltaLat / 2) +
+                    Math.Cos(lat1) * Math.Cos(lat2) *
+                    Math.Sin(deltaLng / 2) * Math.Sin(deltaLng / 2);
+
+            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+
+            return EarthRadius * c;
+        }
+
+        /// <summary>
+        /// Simülasyon verilerini kaydeder
+        /// </summary>
+        private async Task SaveSimulationDataAsync(SimulationResult result)
+        {
+            try
+            {
+                var simulationData = new
+                {
+                    timestamp = DateTime.UtcNow,
+                    result = result,
+                    environment = new
+                    {
+                        is_test = _isTestEnvironment,
+                        mode = _simulationMode,
+                        speed = _simulationSpeed
+                    }
+                };
+
+                var fileName = $"simulation_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json";
+                var filePath = Path.Combine(_simulationDataPath, fileName);
+
+                await File.WriteAllTextAsync(filePath, JsonSerializer.Serialize(simulationData,
+                    new JsonSerializerOptions { WriteIndented = true }));
+
+                _logger.LogInformation("Simulation data saved to {FilePath}", filePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to save simulation data");
+            }
+        }
+
+        /// <summary>
+        /// Örnek rota oluşturur (test için)
+        /// </summary>
+        public static Coordinate[] CreateSampleRoute()
+        {
+            return new[]
+            {
+                new Coordinate(41.0082, 28.9784), // İstanbul
+                new Coordinate(41.0151, 28.9795), // Şişli
+                new Coordinate(41.0222, 28.9855), // Mecidiyeköy
+                new Coordinate(41.0292, 28.9915), // Levent
+                new Coordinate(41.0362, 28.9975), // 4. Levent
+                new Coordinate(41.0432, 29.0035)  // Maslak
+            };
+        }
+
+        /// <summary>
+        /// Simülasyon istatistiklerini döndürür
+        /// </summary>
+        public async Task<Dictionary<string, object>> GetSimulationStatsAsync()
+        {
+            var stats = new Dictionary<string, object>();
+
+            try
+            {
+                var simulationFiles = Directory.GetFiles(_simulationDataPath, "simulation_*.json");
+                stats["total_simulations"] = simulationFiles.Length;
+
+                if (simulationFiles.Length > 0)
+                {
+                    var latestFile = simulationFiles.OrderByDescending(f => f).First();
+                    var latestData = JsonSerializer.Deserialize<dynamic>(await File.ReadAllTextAsync(latestFile));
+                    stats["latest_simulation"] = latestData;
+                }
+
+                stats["simulation_mode"] = _simulationMode;
+                stats["simulation_speed"] = _simulationSpeed;
+                stats["is_test_environment"] = _isTestEnvironment;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get simulation stats");
+                stats["error"] = ex.Message;
+            }
+
+            return stats;
+        }
+    }
+}

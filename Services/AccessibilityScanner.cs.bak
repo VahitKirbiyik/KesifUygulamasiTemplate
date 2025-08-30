@@ -1,0 +1,581 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Erişilebilirlik compliance scanner servisi
+    /// WCAG 2.1 ve accessibility standartlarına uygunluk kontrolü
+    /// </summary>
+    public class AccessibilityScanner
+    {
+        private readonly ILogger<AccessibilityScanner> _logger;
+        private readonly string _reportsPath;
+        private readonly bool _enableDetailedReporting;
+        private readonly int _maxIssuesPerFile;
+
+        public AccessibilityScanner(ILogger<AccessibilityScanner> logger)
+        {
+            _logger = logger;
+            _reportsPath = Environment.GetEnvironmentVariable("ACCESSIBILITY_REPORTS_PATH") ?? "reports/accessibility";
+            _enableDetailedReporting = bool.Parse(Environment.GetEnvironmentVariable("ENABLE_DETAILED_ACCESSIBILITY_REPORTING") ?? "true");
+            _maxIssuesPerFile = int.Parse(Environment.GetEnvironmentVariable("MAX_ACCESSIBILITY_ISSUES_PER_FILE") ?? "50");
+
+            // Reports klasörünü oluştur
+            Directory.CreateDirectory(_reportsPath);
+        }
+
+        /// <summary>
+        /// HTML dosyasını accessibility açısından tara
+        /// </summary>
+        public async Task<AccessibilityResult> CheckCompliance(string htmlPath)
+        {
+            try
+            {
+                if (!File.Exists(htmlPath))
+                {
+                    throw new FileNotFoundException($"HTML file not found: {htmlPath}");
+                }
+
+                var htmlContent = await File.ReadAllTextAsync(htmlPath);
+                var result = new AccessibilityResult
+                {
+                    FilePath = htmlPath,
+                    FileName = Path.GetFileName(htmlPath),
+                    ScanTimestamp = DateTime.UtcNow,
+                    Issues = new List<AccessibilityIssue>()
+                };
+
+                // HTML içeriğini tara
+                await ScanHtmlContent(htmlContent, result);
+
+                // Sonuçları hesapla
+                result.TotalIssues = result.Issues.Count;
+                result.CriticalIssues = result.Issues.Count(i => i.Severity == IssueSeverity.Critical);
+                result.WarningIssues = result.Issues.Count(i => i.Severity == IssueSeverity.Warning);
+                result.InfoIssues = result.Issues.Count(i => i.Severity == IssueSeverity.Info);
+
+                result.ComplianceScore = CalculateComplianceScore(result);
+                result.IsCompliant = result.ComplianceScore >= 85; // %85 üzeri uyumlu kabul edilir
+
+                _logger.LogInformation($"Accessibility scan completed for {htmlPath}: {result.TotalIssues} issues found, score: {result.ComplianceScore}%");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Accessibility scan failed for {htmlPath}: {ex.Message}");
+                return new AccessibilityResult
+                {
+                    FilePath = htmlPath,
+                    FileName = Path.GetFileName(htmlPath),
+                    ScanTimestamp = DateTime.UtcNow,
+                    Issues = new List<AccessibilityIssue>(),
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        /// <summary>
+        /// Birden fazla HTML dosyasını tara
+        /// </summary>
+        public async Task<List<AccessibilityResult>> CheckMultipleFiles(IEnumerable<string> htmlPaths)
+        {
+            var results = new List<AccessibilityResult>();
+
+            foreach (var path in htmlPaths)
+            {
+                var result = await CheckCompliance(path);
+                results.Add(result);
+
+                // Kısa bir gecikme ekle (rate limiting için)
+                await Task.Delay(100);
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        /// Proje içindeki tüm HTML dosyalarını tara
+        /// </summary>
+        public async Task<List<AccessibilityResult>> ScanProject(string projectPath)
+        {
+            var htmlFiles = Directory.GetFiles(projectPath, "*.html", SearchOption.AllDirectories)
+                .Where(f => !f.Contains("\\bin\\") && !f.Contains("\\obj\\") && !f.Contains("\\node_modules\\"))
+                .ToList();
+
+            _logger.LogInformation($"Found {htmlFiles.Count} HTML files to scan in project");
+
+            return await CheckMultipleFiles(htmlFiles);
+        }
+
+        /// <summary>
+        /// HTML içeriğini tara
+        /// </summary>
+        private async Task ScanHtmlContent(string htmlContent, AccessibilityResult result)
+        {
+            // 1. Resimler için alt text kontrolü
+            await CheckImageAltTexts(htmlContent, result);
+
+            // 2. Başlık hiyerarşisi kontrolü
+            await CheckHeadingHierarchy(htmlContent, result);
+
+            // 3. Form elemanları kontrolü
+            await CheckFormElements(htmlContent, result);
+
+            // 4. Linkler kontrolü
+            await CheckLinks(htmlContent, result);
+
+            // 5. Renk kontrast kontrolü (basit kontrol)
+            await CheckColorContrast(htmlContent, result);
+
+            // 6. Language attribute kontrolü
+            await CheckLanguageAttribute(htmlContent, result);
+
+            // 7. ARIA attributes kontrolü
+            await CheckAriaAttributes(htmlContent, result);
+
+            // 8. Tab order kontrolü
+            await CheckTabOrder(htmlContent, result);
+
+            // 9. Semantic HTML kontrolü
+            await CheckSemanticHtml(htmlContent, result);
+
+            // 10. Media elements kontrolü
+            await CheckMediaElements(htmlContent, result);
+        }
+
+        /// <summary>
+        /// Resimler için alt text kontrolü
+        /// </summary>
+        private async Task CheckImageAltTexts(string htmlContent, AccessibilityResult result)
+        {
+            var imgRegex = new Regex(@"<img[^>]*>", RegexOptions.IgnoreCase);
+            var altRegex = new Regex(@"alt\s*=\s*[""']([^""']*)[""']", RegexOptions.IgnoreCase);
+
+            var imgMatches = imgRegex.Matches(htmlContent);
+            var imagesWithoutAlt = 0;
+            var imagesWithEmptyAlt = 0;
+
+            foreach (Match imgMatch in imgMatches)
+            {
+                var imgTag = imgMatch.Value;
+                var altMatch = altRegex.Match(imgTag);
+
+                if (!altMatch.Success)
+                {
+                    imagesWithoutAlt++;
+                    AddIssue(result, IssueSeverity.Critical, "Missing alt attribute",
+                        $"Image tag missing alt attribute: {imgTag.Substring(0, Math.Min(50, imgTag.Length))}...");
+                }
+                else if (string.IsNullOrWhiteSpace(altMatch.Groups[1].Value))
+                {
+                    imagesWithEmptyAlt++;
+                    AddIssue(result, IssueSeverity.Warning, "Empty alt attribute",
+                        $"Image has empty alt attribute: {imgTag.Substring(0, Math.Min(50, imgTag.Length))}...");
+                }
+            }
+
+            if (imagesWithoutAlt == 0 && imagesWithEmptyAlt == 0)
+            {
+                AddIssue(result, IssueSeverity.Info, "Images accessibility", "All images have proper alt attributes", true);
+            }
+        }
+
+        /// <summary>
+        /// Başlık hiyerarşisi kontrolü
+        /// </summary>
+        private async Task CheckHeadingHierarchy(string htmlContent, AccessibilityResult result)
+        {
+            var headingRegex = new Regex(@"<h([1-6])[^>]*>(.*?)</h\1>", RegexOptions.IgnoreCase);
+            var headings = headingRegex.Matches(htmlContent);
+
+            if (headings.Count == 0)
+            {
+                AddIssue(result, IssueSeverity.Warning, "Missing headings", "No heading elements found in the document");
+                return;
+            }
+
+            var headingLevels = new List<int>();
+            foreach (Match heading in headings)
+            {
+                if (int.TryParse(heading.Groups[1].Value, out int level))
+                {
+                    headingLevels.Add(level);
+                }
+            }
+
+            // H1 kontrolü
+            if (!headingLevels.Contains(1))
+            {
+                AddIssue(result, IssueSeverity.Warning, "Missing H1", "Document should have at least one H1 heading");
+            }
+
+            // Hiyerarşi kontrolü
+            var previousLevel = 0;
+            var hierarchyIssues = 0;
+
+            foreach (var level in headingLevels)
+            {
+                if (previousLevel > 0 && level > previousLevel + 1)
+                {
+                    hierarchyIssues++;
+                }
+                previousLevel = level;
+            }
+
+            if (hierarchyIssues > 0)
+            {
+                AddIssue(result, IssueSeverity.Warning, "Heading hierarchy",
+                    $"Heading hierarchy issues found: {hierarchyIssues} level skips detected");
+            }
+            else
+            {
+                AddIssue(result, IssueSeverity.Info, "Heading hierarchy", "Heading hierarchy is properly structured", true);
+            }
+        }
+
+        /// <summary>
+        /// Form elemanları kontrolü
+        /// </summary>
+        private async Task CheckFormElements(string htmlContent, AccessibilityResult result)
+        {
+            // Label kontrolü
+            var inputRegex = new Regex(@"<input[^>]*>", RegexOptions.IgnoreCase);
+            var labelRegex = new Regex(@"<label[^>]*>.*?</label>", RegexOptions.IgnoreCase);
+            var textareaRegex = new Regex(@"<textarea[^>]*>", RegexOptions.IgnoreCase);
+            var selectRegex = new Regex(@"<select[^>]*>", RegexOptions.IgnoreCase);
+
+            var inputs = inputRegex.Matches(htmlContent).Count;
+            var labels = labelRegex.Matches(htmlContent).Count;
+            var textareas = textareaRegex.Matches(htmlContent).Count;
+            var selects = selectRegex.Matches(htmlContent).Count;
+
+            var totalFormElements = inputs + textareas + selects;
+
+            if (totalFormElements > 0 && labels == 0)
+            {
+                AddIssue(result, IssueSeverity.Critical, "Missing form labels",
+                    $"Found {totalFormElements} form elements but no labels");
+            }
+            else if (totalFormElements > labels)
+            {
+                AddIssue(result, IssueSeverity.Warning, "Insufficient form labels",
+                    $"Found {totalFormElements} form elements but only {labels} labels");
+            }
+            else
+            {
+                AddIssue(result, IssueSeverity.Info, "Form accessibility", "Form elements have proper labels", true);
+            }
+
+            // Required field indicators kontrolü
+            var requiredRegex = new Regex(@"required[^>]*>|<[^>]*required", RegexOptions.IgnoreCase);
+            var requiredFields = requiredRegex.Matches(htmlContent).Count;
+
+            if (requiredFields > 0)
+            {
+                // Required alanlar için görsel gösterge kontrolü (basit kontrol)
+                var asteriskRegex = new Regex(@"\*", RegexOptions.IgnoreCase);
+                var asterisks = asteriskRegex.Matches(htmlContent).Count;
+
+                if (asterisks < requiredFields)
+                {
+                    AddIssue(result, IssueSeverity.Warning, "Required field indicators",
+                        "Required fields should have visual indicators (e.g., asterisks)");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Linkler kontrolü
+        /// </summary>
+        private async Task CheckLinks(string htmlContent, AccessibilityResult result)
+        {
+            var linkRegex = new Regex(@"<a[^>]*>(.*?)</a>", RegexOptions.IgnoreCase);
+            var links = linkRegex.Matches(htmlContent);
+
+            var linksWithoutText = 0;
+            var genericLinks = 0;
+
+            foreach (Match link in links)
+            {
+                var linkText = link.Groups[1].Value.Trim();
+
+                if (string.IsNullOrWhiteSpace(linkText))
+                {
+                    linksWithoutText++;
+                }
+                else if (new[] { "click here", "read more", "here", "link", "more" }.Contains(linkText.ToLower()))
+                {
+                    genericLinks++;
+                }
+            }
+
+            if (linksWithoutText > 0)
+            {
+                AddIssue(result, IssueSeverity.Critical, "Links without text",
+                    $"Found {linksWithoutText} links without descriptive text");
+            }
+
+            if (genericLinks > 0)
+            {
+                AddIssue(result, IssueSeverity.Warning, "Generic link text",
+                    $"Found {genericLinks} links with generic text (e.g., 'click here')");
+            }
+
+            if (linksWithoutText == 0 && genericLinks == 0 && links.Count > 0)
+            {
+                AddIssue(result, IssueSeverity.Info, "Link accessibility", "All links have descriptive text", true);
+            }
+        }
+
+        /// <summary>
+        /// Renk kontrast kontrolü (basit)
+        /// </summary>
+        private async Task CheckColorContrast(string htmlContent, AccessibilityResult result)
+        {
+            // Bu basit bir kontrol - gerçek kontrast hesaplaması için daha sofistike algoritma gerekir
+            var colorRegex = new Regex(@"color\s*:\s*#[0-9a-fA-F]{6}|background-color\s*:\s*#[0-9a-fA-F]{6}", RegexOptions.IgnoreCase);
+            var colorMatches = colorRegex.Matches(htmlContent);
+
+            if (colorMatches.Count > 0)
+            {
+                AddIssue(result, IssueSeverity.Info, "Color usage detected",
+                    $"Found {colorMatches.Count} color definitions. Manual contrast review recommended.");
+            }
+        }
+
+        /// <summary>
+        /// Language attribute kontrolü
+        /// </summary>
+        private async Task CheckLanguageAttribute(string htmlContent, AccessibilityResult result)
+        {
+            var htmlTagRegex = new Regex(@"<html[^>]*>", RegexOptions.IgnoreCase);
+            var langRegex = new Regex(@"lang\s*=\s*[""']([^""']*)[""']", RegexOptions.IgnoreCase);
+
+            var htmlTag = htmlTagRegex.Match(htmlContent);
+            if (htmlTag.Success)
+            {
+                var langMatch = langRegex.Match(htmlTag.Value);
+                if (!langMatch.Success)
+                {
+                    AddIssue(result, IssueSeverity.Warning, "Missing language attribute",
+                        "HTML element should have a lang attribute to specify the document language");
+                }
+                else
+                {
+                    AddIssue(result, IssueSeverity.Info, "Language attribute",
+                        $"Document language set to: {langMatch.Groups[1].Value}", true);
+                }
+            }
+        }
+
+        /// <summary>
+        /// ARIA attributes kontrolü
+        /// </summary>
+        private async Task CheckAriaAttributes(string htmlContent, AccessibilityResult result)
+        {
+            var ariaRegex = new Regex(@"aria-[a-zA-Z]+", RegexOptions.IgnoreCase);
+            var ariaMatches = ariaRegex.Matches(htmlContent);
+
+            if (ariaMatches.Count > 0)
+            {
+                AddIssue(result, IssueSeverity.Info, "ARIA attributes",
+                    $"Found {ariaMatches.Count} ARIA attributes. Ensure they are used correctly.", true);
+            }
+        }
+
+        /// <summary>
+        /// Tab order kontrolü
+        /// </summary>
+        private async Task CheckTabOrder(string htmlContent, AccessibilityResult result)
+        {
+            var tabindexRegex = new Regex(@"tabindex\s*=\s*[""']?(-?\d+)[""']?", RegexOptions.IgnoreCase);
+            var tabindexMatches = tabindexRegex.Matches(htmlContent);
+
+            var negativeTabindex = 0;
+            foreach (Match match in tabindexMatches)
+            {
+                if (int.TryParse(match.Groups[1].Value, out int tabindex) && tabindex < 0)
+                {
+                    negativeTabindex++;
+                }
+            }
+
+            if (negativeTabindex > 0)
+            {
+                AddIssue(result, IssueSeverity.Info, "Tab order",
+                    $"Found {negativeTabindex} elements with negative tabindex (removed from tab order)");
+            }
+        }
+
+        /// <summary>
+        /// Semantic HTML kontrolü
+        /// </summary>
+        private async Task CheckSemanticHtml(string htmlContent, AccessibilityResult result)
+        {
+            var semanticElements = new[] { "header", "nav", "main", "section", "article", "aside", "footer" };
+            var foundSemanticElements = 0;
+
+            foreach (var element in semanticElements)
+            {
+                var regex = new Regex($@"<{element}[^>]*>", RegexOptions.IgnoreCase);
+                if (regex.IsMatch(htmlContent))
+                {
+                    foundSemanticElements++;
+                }
+            }
+
+            if (foundSemanticElements == 0)
+            {
+                AddIssue(result, IssueSeverity.Info, "Semantic HTML",
+                    "Consider using semantic HTML elements (header, nav, main, section, etc.)");
+            }
+            else
+            {
+                AddIssue(result, IssueSeverity.Info, "Semantic HTML",
+                    $"Found {foundSemanticElements} semantic HTML elements", true);
+            }
+        }
+
+        /// <summary>
+        /// Media elements kontrolü
+        /// </summary>
+        private async Task CheckMediaElements(string htmlContent, AccessibilityResult result)
+        {
+            // Video kontrolü
+            var videoRegex = new Regex(@"<video[^>]*>", RegexOptions.IgnoreCase);
+            var videos = videoRegex.Matches(htmlContent);
+
+            foreach (Match video in videos)
+            {
+                if (!video.Value.Contains("track") && !video.Value.Contains("transcript"))
+                {
+                    AddIssue(result, IssueSeverity.Warning, "Video accessibility",
+                        "Video elements should have captions or transcripts");
+                }
+            }
+
+            // Audio kontrolü
+            var audioRegex = new Regex(@"<audio[^>]*>", RegexOptions.IgnoreCase);
+            var audios = audioRegex.Matches(htmlContent);
+
+            foreach (Match audio in audios)
+            {
+                if (!audio.Value.Contains("transcript"))
+                {
+                    AddIssue(result, IssueSeverity.Warning, "Audio accessibility",
+                        "Audio elements should have transcripts");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Issue ekleme yardımcı metodu
+        /// </summary>
+        private void AddIssue(AccessibilityResult result, IssueSeverity severity, string category, string description, bool isPositive = false)
+        {
+            if (result.Issues.Count >= _maxIssuesPerFile)
+            {
+                return; // Maximum issue limitine ulaşıldı
+            }
+
+            result.Issues.Add(new AccessibilityIssue
+            {
+                Severity = severity,
+                Category = category,
+                Description = description,
+                IsPositive = isPositive,
+                Timestamp = DateTime.UtcNow
+            });
+        }
+
+        /// <summary>
+        /// Compliance score hesapla
+        /// </summary>
+        private double CalculateComplianceScore(AccessibilityResult result)
+        {
+            if (result.TotalIssues == 0)
+                return 100.0;
+
+            // Puanlama sistemi
+            var criticalPenalty = result.CriticalIssues * 10; // Her critical issue %10 puan kaybı
+            var warningPenalty = result.WarningIssues * 2;   // Her warning issue %2 puan kaybı
+
+            var score = 100.0 - criticalPenalty - warningPenalty;
+
+            // Pozitif issues için bonus
+            var positiveIssues = result.Issues.Count(i => i.IsPositive);
+            score += positiveIssues * 2;
+
+            return Math.Max(0, Math.Min(100, score));
+        }
+
+        /// <summary>
+        /// Rapor oluştur
+        /// </summary>
+        public async Task<string> GenerateReport(List<AccessibilityResult> results)
+        {
+            var reportPath = Path.Combine(_reportsPath, $"accessibility-report-{DateTime.UtcNow:yyyy-MM-dd-HH-mm-ss}.json");
+
+            var report = new
+            {
+                ReportGenerated = DateTime.UtcNow,
+                TotalFiles = results.Count,
+                CompliantFiles = results.Count(r => r.IsCompliant),
+                NonCompliantFiles = results.Count(r => !r.IsCompliant),
+                TotalIssues = results.Sum(r => r.TotalIssues),
+                CriticalIssues = results.Sum(r => r.CriticalIssues),
+                WarningIssues = results.Sum(r => r.WarningIssues),
+                AverageComplianceScore = results.Average(r => r.ComplianceScore),
+                Results = results
+            };
+
+            var json = System.Text.Json.JsonSerializer.Serialize(report, new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+            });
+
+            await File.WriteAllTextAsync(reportPath, json);
+
+            return reportPath;
+        }
+    }
+
+    public class AccessibilityResult
+    {
+        public string FilePath { get; set; }
+        public string FileName { get; set; }
+        public DateTime ScanTimestamp { get; set; }
+        public List<AccessibilityIssue> Issues { get; set; }
+        public int TotalIssues { get; set; }
+        public int CriticalIssues { get; set; }
+        public int WarningIssues { get; set; }
+        public int InfoIssues { get; set; }
+        public double ComplianceScore { get; set; }
+        public bool IsCompliant { get; set; }
+        public string ErrorMessage { get; set; }
+    }
+
+    public class AccessibilityIssue
+    {
+        public IssueSeverity Severity { get; set; }
+        public string Category { get; set; }
+        public string Description { get; set; }
+        public bool IsPositive { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+
+    public enum IssueSeverity
+    {
+        Info,
+        Warning,
+        Critical
+    }
+}

@@ -1,0 +1,331 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using KesifUygulamasiTemplate.Models;
+using KesifUygulamasiTemplate.Services;
+using KesifUygulamasiTemplate.Services.Interfaces;
+
+namespace KesifUygulamasiTemplate.Utils
+{
+    /// <summary>
+    /// Rota üzerindeki durakları optimize eden servis
+    /// Traveling Salesman Problem (TSP) benzeri algoritmalar kullanır
+    /// </summary>
+    public class RouteOptimizer
+    {
+        private readonly ITrafficDataProvider? _trafficProvider;
+        private readonly IRouteService _routeService;
+
+        public RouteOptimizer(IRouteService routeService, ITrafficDataProvider? trafficProvider = null)
+        {
+            _routeService = routeService ?? throw new ArgumentNullException(nameof(routeService));
+            _trafficProvider = trafficProvider;
+        }
+
+        /// <summary>
+        /// Durakları en kısa sürede tamamlayacak şekilde sıralar
+        /// </summary>
+        /// <param name="waypoints">Sıralanacak durak listesi</param>
+        /// <param name="startPoint">Başlangıç noktası</param>
+        /// <param name="endPoint">Bitiş noktası (opsiyonel)</param>
+        /// <returns>Optimize edilmiş durak sırası</returns>
+        public async Task<List<LocationModel>> OptimizeRouteAsync(
+            List<LocationModel> waypoints,
+            LocationModel startPoint,
+            LocationModel? endPoint = null)
+        {
+            if (waypoints == null || waypoints.Count == 0)
+                return new List<LocationModel>();
+
+            if (waypoints.Count == 1)
+                return new List<LocationModel> { waypoints[0] };
+
+            try
+            {
+                // Tüm noktaları birleştir (başlangıç + duraklar + bitiş)
+                var allPoints = new List<LocationModel> { startPoint };
+                allPoints.AddRange(waypoints);
+                if (endPoint != null)
+                    allPoints.Add(endPoint);
+
+                // Mesafe matrisini hesapla
+                var distanceMatrix = await CalculateDistanceMatrixAsync(allPoints);
+
+                // TSP algoritması ile en kısa yolu bul
+                var optimizedOrder = SolveTSP(distanceMatrix);
+
+                // Optimize edilmiş sıraya göre durakları döndür
+                var result = new List<LocationModel>();
+                foreach (var index in optimizedOrder.Skip(1)) // Başlangıç noktasını atla
+                {
+                    if (index < allPoints.Count)
+                    {
+                        var point = allPoints[index];
+                        if (point != startPoint && (endPoint == null || point != endPoint))
+                        {
+                            result.Add(point);
+                        }
+                    }
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Rota optimizasyonu hatası: {ex.Message}");
+                // Hata durumunda orijinal sıralamayı döndür
+                return waypoints;
+            }
+        }
+
+        /// <summary>
+        /// Tüm noktalar arası mesafe matrisini hesaplar
+        /// </summary>
+        private async Task<double[,]> CalculateDistanceMatrixAsync(List<LocationModel> points)
+        {
+            var matrix = new double[points.Count, points.Count];
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                for (int j = 0; j < points.Count; j++)
+                {
+                    if (i == j)
+                    {
+                        matrix[i, j] = 0;
+                    }
+                    else
+                    {
+                        matrix[i, j] = await CalculateTravelTimeAsync(points[i], points[j]);
+                    }
+                }
+            }
+
+            return matrix;
+        }
+
+        /// <summary>
+        /// İki nokta arası seyahat süresini hesaplar (trafik verisi ile)
+        /// </summary>
+        private async Task<double> CalculateTravelTimeAsync(LocationModel from, LocationModel to)
+        {
+            try
+            {
+                // Trafik verisi varsa kullan
+                if (_trafficProvider != null)
+                {
+                    var trafficTime = await _trafficProvider.GetTravelTimeAsync(from, to);
+                    if (trafficTime.HasValue)
+                        return trafficTime.Value;
+                }
+
+                // Trafik verisi yoksa rota servisi ile hesapla
+                var route = await _routeService.GetRouteAsync(from, to);
+                if (route != null && route.Count >= 2)
+                {
+                    // Basit mesafe bazlı süre hesabı (ortalama hız 50 km/h)
+                    var distance = CalculateHaversineDistance(from, to);
+                    var speedKmh = 50.0; // Ortalama şehir içi hız
+                    return (distance / speedKmh) * 60; // Dakika cinsinden
+                }
+
+                // Fallback olarak Haversine mesafesi kullan
+                return CalculateHaversineDistance(from, to) / 50.0 * 60;
+            }
+            catch
+            {
+                // Hata durumunda Haversine mesafesi kullan
+                return CalculateHaversineDistance(from, to) / 50.0 * 60;
+            }
+        }
+
+        /// <summary>
+        /// Haversine formülü ile iki nokta arası mesafeyi hesaplar (km)
+        /// </summary>
+        private double CalculateHaversineDistance(LocationModel point1, LocationModel point2)
+        {
+            const double EarthRadiusKm = 6371.0;
+
+            var lat1Rad = point1.Latitude * Math.PI / 180.0;
+            var lon1Rad = point1.Longitude * Math.PI / 180.0;
+            var lat2Rad = point2.Latitude * Math.PI / 180.0;
+            var lon2Rad = point2.Longitude * Math.PI / 180.0;
+
+            var deltaLat = lat2Rad - lat1Rad;
+            var deltaLon = lon2Rad - lon1Rad;
+
+            var a = Math.Sin(deltaLat / 2) * Math.Sin(deltaLat / 2) +
+                    Math.Cos(lat1Rad) * Math.Cos(lat2Rad) *
+                    Math.Sin(deltaLon / 2) * Math.Sin(deltaLon / 2);
+
+            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+
+            return EarthRadiusKm * c;
+        }
+
+        /// <summary>
+        /// Traveling Salesman Problem için yaklaşık çözüm (Nearest Neighbor algoritması)
+        /// </summary>
+        private List<int> SolveTSP(double[,] distanceMatrix)
+        {
+            int n = distanceMatrix.GetLength(0);
+            var visited = new bool[n];
+            var path = new List<int>();
+
+            // Başlangıç noktasından başla (index 0)
+            int current = 0;
+            visited[current] = true;
+            path.Add(current);
+
+            // Tüm noktaları ziyaret et
+            for (int i = 1; i < n; i++)
+            {
+                int nearest = -1;
+                double minDistance = double.MaxValue;
+
+                // Ziyaret edilmemiş en yakın noktayı bul
+                for (int j = 0; j < n; j++)
+                {
+                    if (!visited[j] && distanceMatrix[current, j] < minDistance)
+                    {
+                        minDistance = distanceMatrix[current, j];
+                        nearest = j;
+                    }
+                }
+
+                if (nearest != -1)
+                {
+                    visited[nearest] = true;
+                    path.Add(nearest);
+                    current = nearest;
+                }
+            }
+
+            return path;
+        }
+
+        /// <summary>
+        /// Optimize edilmiş rotanın toplam süresini hesaplar
+        /// </summary>
+        public async Task<double> CalculateTotalRouteTimeAsync(
+            List<LocationModel> waypoints,
+            LocationModel startPoint,
+            LocationModel? endPoint = null)
+        {
+            var optimizedWaypoints = await OptimizeRouteAsync(waypoints, startPoint, endPoint);
+
+            var allPoints = new List<LocationModel> { startPoint };
+            allPoints.AddRange(optimizedWaypoints);
+            if (endPoint != null)
+                allPoints.Add(endPoint);
+
+            double totalTime = 0;
+            for (int i = 0; i < allPoints.Count - 1; i++)
+            {
+                totalTime += await CalculateTravelTimeAsync(allPoints[i], allPoints[i + 1]);
+            }
+
+            return totalTime;
+        }
+
+        /// <summary>
+        /// Optimize edilmiş rotanın toplam mesafesini hesaplar
+        /// </summary>
+        public async Task<double> CalculateTotalRouteDistanceAsync(
+            List<LocationModel> waypoints,
+            LocationModel startPoint,
+            LocationModel? endPoint = null)
+        {
+            var optimizedWaypoints = await OptimizeRouteAsync(waypoints, startPoint, endPoint);
+
+            var allPoints = new List<LocationModel> { startPoint };
+            allPoints.AddRange(optimizedWaypoints);
+            if (endPoint != null)
+                allPoints.Add(endPoint);
+
+            double totalDistance = 0;
+            for (int i = 0; i < allPoints.Count - 1; i++)
+            {
+                totalDistance += CalculateHaversineDistance(allPoints[i], allPoints[i + 1]);
+            }
+
+            return totalDistance;
+        }
+    }
+
+    /// <summary>
+    /// Trafik verisi sağlayıcısı interface'i
+    /// </summary>
+    public interface ITrafficDataProvider
+    {
+        /// <summary>
+        /// İki nokta arası seyahat süresini trafik verisi ile hesaplar
+        /// </summary>
+        Task<double?> GetTravelTimeAsync(LocationModel from, LocationModel to);
+
+        /// <summary>
+        /// Belirtilen bölgedeki trafik yoğunluğunu döndürür (0-1 arası)
+        /// </summary>
+        Task<double?> GetTrafficDensityAsync(double latitude, double longitude);
+
+        /// <summary>
+        /// Trafik verisinin güncellik durumunu kontrol eder
+        /// </summary>
+        Task<bool> IsTrafficDataFreshAsync();
+    }
+
+    /// <summary>
+    /// RouteService için rota optimizasyonu extension metodları
+    /// </summary>
+    public static class RouteServiceExtensions
+    {
+        /// <summary>
+        /// RouteService'e rota optimizasyonu özelliği ekler
+        /// </summary>
+        public static async Task<List<LocationModel>> GetOptimizedRouteAsync(
+            this IRouteService routeService,
+            List<LocationModel> waypoints,
+            LocationModel startPoint,
+            LocationModel? endPoint = null,
+            ITrafficDataProvider? trafficProvider = null,
+            bool useOptimization = true)
+        {
+            if (!useOptimization || waypoints == null || waypoints.Count <= 1)
+            {
+                // Optimizasyon kullanılmayacaksa veya tek durak varsa normal sıralamayı döndür
+                return waypoints ?? new List<LocationModel>();
+            }
+
+            var optimizer = new RouteOptimizer(routeService, trafficProvider);
+            return await optimizer.OptimizeRouteAsync(waypoints, startPoint, endPoint);
+        }
+
+        /// <summary>
+        /// Optimize edilmiş rotanın toplam süresini hesaplar
+        /// </summary>
+        public static async Task<double> CalculateOptimizedRouteTimeAsync(
+            this IRouteService routeService,
+            List<LocationModel> waypoints,
+            LocationModel startPoint,
+            LocationModel? endPoint = null,
+            ITrafficDataProvider? trafficProvider = null)
+        {
+            var optimizer = new RouteOptimizer(routeService, trafficProvider);
+            return await optimizer.CalculateTotalRouteTimeAsync(waypoints, startPoint, endPoint);
+        }
+
+        /// <summary>
+        /// Optimize edilmiş rotanın toplam mesafesini hesaplar
+        /// </summary>
+        public static async Task<double> CalculateOptimizedRouteDistanceAsync(
+            this IRouteService routeService,
+            List<LocationModel> waypoints,
+            LocationModel startPoint,
+            LocationModel? endPoint = null,
+            ITrafficDataProvider? trafficProvider = null)
+        {
+            var optimizer = new RouteOptimizer(routeService, trafficProvider);
+            return await optimizer.CalculateTotalRouteDistanceAsync(waypoints, startPoint, endPoint);
+        }
+    }
+}

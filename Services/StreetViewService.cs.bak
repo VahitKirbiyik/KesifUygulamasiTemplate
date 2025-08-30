@@ -1,0 +1,152 @@
+using System.Net.Http;
+using System.Text.Json;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using Microsoft.Maui.Storage;
+using System;
+using KesifUygulamasiTemplate.Models;
+using KesifUygulamasiTemplate.Helpers;
+using KesifUygulamasiTemplate.Services.Interfaces;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    public class StreetViewService : IStreetViewService
+    {
+        private readonly HttpClient _httpClient = new HttpClient();
+        private readonly ConfigurationService _configurationService;
+
+        public StreetViewService(ConfigurationService configurationService)
+        {
+            _configurationService = configurationService;
+        }
+
+        public Task<string> GetApiKeyAsync()
+        {
+            var key = _configurationService.GoogleMapsApiKey;
+            if (string.IsNullOrWhiteSpace(key))
+                throw new Exception("API Key bulunamadı!");
+            return Task.FromResult(key);
+        }
+
+        public async Task<StreetViewPanorama> GetPanoramaAsync(string location)
+        {
+            // Location'dan latitude ve longitude çıkar
+            var parts = location.Split(',');
+            if (parts.Length != 2 || !double.TryParse(parts[0], out var lat) || !double.TryParse(parts[1], out var lng))
+            {
+                throw new ArgumentException("Invalid location format. Expected 'latitude,longitude'");
+            }
+            return await GetPanorama(lat, lng);
+        }
+
+        public async Task<StreetViewPanorama> GetPanorama(double latitude, double longitude)
+        {
+            try
+            {
+                var apiKey = await GetApiKeyAsync();
+                var url = $"https://maps.googleapis.com/maps/api/streetview/metadata?location={latitude},{longitude}&key={apiKey}";
+                var response = await _httpClient.GetStringAsync(url);
+                var json = JsonSerializer.Deserialize<JsonElement>(response);
+
+                // Generate unique ID for the panorama
+                var panoramaId = $"pano_{latitude}_{longitude}_{DateTime.Now.Ticks}";
+
+                // Create Street View image URL
+                var imageUrl = $"https://maps.googleapis.com/maps/api/streetview?size=600x400&location={latitude},{longitude}&key={apiKey}";
+
+                var panorama = new StreetViewPanorama
+                {
+                    Id = panoramaId,
+                    Latitude = latitude,
+                    Longitude = longitude,
+                    ImageUrl = imageUrl,
+                    Description = $"Street View at {latitude:F6}, {longitude:F6}",
+                    Copyright = json.TryGetProperty("copyright", out var c) ? c.GetString() ?? "" : "",
+                    DateCaptured = json.TryGetProperty("date_captured", out var d) && d.GetString() is string dateStr ? DateTime.Parse(dateStr) : null,
+                    Links = new List<StreetViewLink>()
+                };
+
+                // Add sample navigation links (in a real implementation, these would come from the API)
+                await AddNavigationLinksAsync(panorama, apiKey);
+
+                return panorama;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Panorama alınamadı: {ex.Message}");
+            }
+        }
+
+        public async Task<StreetViewPanorama> GetPanoramaByIdAsync(string panoramaId)
+        {
+            try
+            {
+                // In a real implementation, this would fetch from a database or API
+                // For now, return a sample panorama
+                var sampleLat = 40.7128;
+                var sampleLng = -74.0060;
+
+                var apiKey = await GetApiKeyAsync();
+                var imageUrl = $"https://maps.googleapis.com/maps/api/streetview?size=600x400&location={sampleLat},{sampleLng}&key={apiKey}";
+
+                var panorama = new StreetViewPanorama
+                {
+                    Id = panoramaId,
+                    Latitude = sampleLat,
+                    Longitude = sampleLng,
+                    ImageUrl = imageUrl,
+                    Description = $"Street View panorama {panoramaId}",
+                    Links = new List<StreetViewLink>()
+                };
+
+                await AddNavigationLinksAsync(panorama, apiKey);
+                return panorama;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Panorama ID ile yüklenemedi: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Adds navigation links to a panorama (simulated for demo purposes)
+        /// </summary>
+        private async Task AddNavigationLinksAsync(StreetViewPanorama panorama, string apiKey)
+        {
+            // In a real implementation, these would come from Google Street View API
+            // For demo purposes, we'll create sample navigation links
+
+            var directions = new[]
+            {
+                new { Bearing = 0.0, Description = "North", Distance = 50.0 },
+                new { Bearing = 90.0, Description = "East", Distance = 75.0 },
+                new { Bearing = 180.0, Description = "South", Distance = 60.0 },
+                new { Bearing = 270.0, Description = "West", Distance = 45.0 }
+            };
+
+            foreach (var dir in directions)
+            {
+                // Calculate approximate coordinates for the linked panorama
+                var distance = dir.Distance / 111000; // Convert meters to degrees (approximate)
+                var bearingRad = dir.Bearing * Math.PI / 180;
+
+                var newLat = panorama.Latitude + distance * Math.Cos(bearingRad);
+                var newLng = panorama.Longitude + distance * Math.Sin(bearingRad) / Math.Cos(panorama.Latitude * Math.PI / 180);
+
+                var linkId = $"link_{panorama.Id}_{dir.Bearing}";
+
+                var link = new StreetViewLink(
+                    fromId: panorama.Id,
+                    toId: linkId,
+                    bearing: dir.Bearing,
+                    description: dir.Description,
+                    distance: dir.Distance
+                );
+
+                panorama.Links.Add(link);
+            }
+
+            await Task.CompletedTask; // Make method async
+        }
+    }
+}

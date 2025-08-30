@@ -1,16 +1,1 @@
-using System.Threading.Tasks;
-
-namespace KesifUygulamasiTemplate.Services
-{
-    public interface IPreferencesService
-    {
-        Task SetThemeAsync(string theme); // "dark"/"light"/"system"
-        Task<string> GetThemeAsync();
-        Task SetLanguageAsync(string langCode);
-        Task<string> GetLanguageAsync();
-        void Set(string key, string value);
-        string? Get(string key);
-        void Set(string key, bool value);
-        bool Get(string key, bool defaultValue);
-    }
-}
+using System.Threading.Tasks;\n\nnamespace KesifUygulamasiTemplate.Services\n{\n    public interface IPreferencesService\n    {\n        Task SetThemeAsync(string theme); // "dark"/"light"/"system"\n        Task<string> GetThemeAsync();\n        Task SetLanguageAsync(string langCode);\n        Task<string> GetLanguageAsync();\n        void Set(string key, string value);\n        string? Get(string key);\n        void Set(string key, bool value);\n        bool Get(string key, bool defaultValue);\n    }\n}\n

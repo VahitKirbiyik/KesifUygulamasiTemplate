@@ -1,0 +1,361 @@
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using System.Windows.Input;
+using KesifUygulamasiTemplate.Models;
+using KesifUygulamasiTemplate.Services.Interfaces;
+using KesifUygulamasiTemplate.Services;
+using Microsoft.Maui.Controls;
+
+// Alias for Services namespace classes to avoid conflicts
+using TrafficInfo = KesifUygulamasiTemplate.Services.TrafficInfo;
+using TrafficIncident = KesifUygulamasiTemplate.Services.TrafficIncident;
+
+namespace KesifUygulamasiTemplate.ViewModels
+{
+    public class RouteViewModel : INotifyPropertyChanged
+    {
+        private LocationModel? _startLocation;
+        private LocationModel? _endLocation;
+        private ObservableCollection<LocationModel> _routePoints;
+        private bool _isBusy;
+        private string _errorMessage;
+        private ObservableCollection<TrafficInfo> _trafficData;
+        private ObservableCollection<TrafficIncident> _trafficIncidents;
+        private string _trafficWarningMessage;
+        private bool _hasTrafficWarnings;
+        private TimeSpan _estimatedDelay;
+        private TrafficSeverity _currentCongestionLevel;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public LocationModel? StartLocation
+        {
+            get => _startLocation;
+            set
+            {
+                _startLocation = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public LocationModel? EndLocation
+        {
+            get => _endLocation;
+            set
+            {
+                _endLocation = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ObservableCollection<LocationModel> RoutePoints
+        {
+            get => _routePoints;
+            set
+            {
+                _routePoints = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool IsBusy
+        {
+            get => _isBusy;
+            set
+            {
+                _isBusy = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string ErrorMessage
+        {
+            get => _errorMessage;
+            set
+            {
+                _errorMessage = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ObservableCollection<TrafficInfo> TrafficData
+        {
+            get => _trafficData;
+            set
+            {
+                _trafficData = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ObservableCollection<TrafficIncident> TrafficIncidents
+        {
+            get => _trafficIncidents;
+            set
+            {
+                _trafficIncidents = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string TrafficWarningMessage
+        {
+            get => _trafficWarningMessage;
+            set
+            {
+                _trafficWarningMessage = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool HasTrafficWarnings
+        {
+            get => _hasTrafficWarnings;
+            set
+            {
+                _hasTrafficWarnings = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public KesifUygulamasiTemplate.Services.Interfaces.RouteOptimizationType SelectedOptimizationType { get; set; } = KesifUygulamasiTemplate.Services.Interfaces.RouteOptimizationType.Fastest;
+        
+        private string _currentProvider = "Offline";
+        public string CurrentProvider
+        {
+            get => _currentProvider;
+            set
+            {
+                _currentProvider = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ObservableCollection<string> OptimizationTypes { get; } = new()
+        {
+            "Fastest",
+            "Shortest", 
+            "Eco",
+            "Safe"
+        };
+
+        public string SelectedOptimizationTypeString
+        {
+            get => SelectedOptimizationType.ToString();
+            set
+            {
+                if (Enum.TryParse<KesifUygulamasiTemplate.Services.Interfaces.RouteOptimizationType>(value, out var type))
+                {
+                    SelectedOptimizationType = type;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public TimeSpan EstimatedDelay
+        {
+            get => _estimatedDelay;
+            set
+            {
+                _estimatedDelay = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public TrafficSeverity CurrentCongestionLevel
+        {
+            get => _currentCongestionLevel;
+            set
+            {
+                _currentCongestionLevel = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ICommand GetRouteCommand { get; }
+        public ICommand GenerateRouteCommand { get; }
+        public ICommand RefreshTrafficCommand { get; }
+
+        private readonly IRouteService _routeService;
+        private readonly ITrafficService _trafficService;
+
+        public RouteViewModel(IRouteService routeService, ITrafficService trafficService)
+        {
+            _routeService = routeService ?? throw new ArgumentNullException(nameof(routeService));
+            _trafficService = trafficService ?? throw new ArgumentNullException(nameof(trafficService));
+            _routePoints = new ObservableCollection<LocationModel>();
+            _errorMessage = string.Empty;
+            _trafficData = new ObservableCollection<TrafficInfo>();
+            _trafficIncidents = new ObservableCollection<TrafficIncident>();
+            _trafficWarningMessage = string.Empty;
+            _hasTrafficWarnings = false;
+            _estimatedDelay = TimeSpan.Zero;
+            _currentCongestionLevel = TrafficSeverity.Low;
+            GetRouteCommand = new Command(async () => await GenerateRouteAsync());
+            GenerateRouteCommand = new Command(async () => await GenerateRouteAsync());
+            RefreshTrafficCommand = new Command(async () => await RefreshTrafficAsync());
+        }
+
+        public RouteViewModel()
+        {
+            _routeService = null!;
+            _trafficService = null!;
+            _routePoints = new ObservableCollection<LocationModel>();
+            _errorMessage = string.Empty;
+            _trafficData = new ObservableCollection<TrafficInfo>();
+            _trafficIncidents = new ObservableCollection<TrafficIncident>();
+            _trafficWarningMessage = string.Empty;
+            _hasTrafficWarnings = false;
+            _estimatedDelay = TimeSpan.Zero;
+            _currentCongestionLevel = TrafficSeverity.Low;
+            GetRouteCommand = new Command(async () => await GenerateRouteAsync());
+            GenerateRouteCommand = new Command(async () => await GenerateRouteAsync());
+            RefreshTrafficCommand = new Command(async () => await RefreshTrafficAsync());
+        }
+
+        private async Task GenerateRouteAsync()
+        {
+            if (StartLocation == null || EndLocation == null)
+            {
+                ErrorMessage = "Başlangıç ve bitiş noktalarını belirtin";
+                return;
+            }
+
+            IsBusy = true;
+            ErrorMessage = string.Empty;
+
+            try
+            {
+                // Route generation logic with optimization type
+                if (_routeService != null && StartLocation != null && EndLocation != null)
+                {
+                    var route = await _routeService.GetRouteAsync(StartLocation, EndLocation, SelectedOptimizationType);
+                    RoutePoints.Clear();
+                    foreach (var point in route)
+                    {
+                        RoutePoints.Add(point);
+                    }
+                    
+                    // Update current provider from service
+                    CurrentProvider = _routeService.CurrentProvider;
+                }
+                else
+                {
+                    // Fallback to simple route
+                    RoutePoints.Clear();
+                    if (StartLocation != null && EndLocation != null)
+                    {
+                        RoutePoints.Add(StartLocation);
+                        RoutePoints.Add(EndLocation);
+                    }
+                }
+
+                // Trafik verilerini yükle
+                await LoadTrafficDataAsync();
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Rota oluşturma hatası: {ex.Message}";
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private async Task RefreshTrafficAsync()
+        {
+            if (RoutePoints.Count < 2)
+            {
+                ErrorMessage = "Önce rota oluşturun";
+                return;
+            }
+
+            IsBusy = true;
+            ErrorMessage = string.Empty;
+
+            try
+            {
+                await LoadTrafficDataAsync();
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Trafik verisi güncelleme hatası: {ex.Message}";
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        private async Task LoadTrafficDataAsync()
+        {
+            if (_trafficService == null || RoutePoints.Count < 2)
+                return;
+
+            try
+            {
+                // Trafik verilerini al
+                var routeList = RoutePoints.ToList();
+                var delayInfo = await _trafficService.CalculateRouteDelaysAsync(routeList);
+                var warnings = await _trafficService.GetTrafficWarningsAsync(routeList);
+
+                // UI'yi güncelle
+                TrafficData.Clear();
+                TrafficIncidents.Clear();
+
+                // Trafik bilgilerini ekle
+                var trafficInfo = new TrafficInfo
+                {
+                    Location = RoutePoints.FirstOrDefault() ?? new LocationModel { Latitude = 0, Longitude = 0 },
+                    TrafficLevel = delayInfo.TotalDelayMinutes > 10 ? TrafficLevel.Heavy :
+                                   delayInfo.TotalDelayMinutes > 5 ? TrafficLevel.Moderate : TrafficLevel.Normal,
+                    TravelTimeMinutes = delayInfo.TotalDelayMinutes + 10, // Tahmini toplam süre
+                    NormalTimeMinutes = 10, // Tahmini normal süre
+                    IsDataAvailable = true,
+                    Message = delayInfo.TotalDelayMinutes > 0 ? $"Trafik nedeniyle {delayInfo.TotalDelayMinutes:F1} dakika gecikme" : "Normal trafik koşulları",
+                    Timestamp = DateTime.Now
+                };
+                TrafficData.Add(trafficInfo);
+
+                // Trafik uyarılarını işle
+                if (warnings.Any())
+                {
+                    HasTrafficWarnings = true;
+                    TrafficWarningMessage = string.Join("\n", warnings.Select(w => w.Message));
+                    
+                    // En yüksek önem derecesini al
+                    var maxSeverity = warnings.Max(w => w.Severity);
+                    CurrentCongestionLevel = maxSeverity switch
+                    {
+                        KesifUygulamasiTemplate.Services.TrafficWarningSeverity.Critical => TrafficSeverity.Critical,
+                        KesifUygulamasiTemplate.Services.TrafficWarningSeverity.High => TrafficSeverity.High,
+                        KesifUygulamasiTemplate.Services.TrafficWarningSeverity.Medium => TrafficSeverity.Medium,
+                        _ => TrafficSeverity.Low
+                    };
+                }
+                else
+                {
+                    HasTrafficWarnings = false;
+                    TrafficWarningMessage = string.Empty;
+                    CurrentCongestionLevel = TrafficSeverity.Low;
+                }
+
+                EstimatedDelay = TimeSpan.FromMinutes(delayInfo.TotalDelayMinutes);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Trafik verisi yüklenirken hata: {ex.Message}");
+                ErrorMessage = "Trafik verisi alınamadı";
+            }
+        }
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName ?? string.Empty));
+        }
+    }
+}

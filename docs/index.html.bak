@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KesifApp PWA Test Sistemi | Progressive Web App Testing Suite</title>
+    <meta name="description" content="KesifApp PWA Test Sistemi - Otomatik PWA testleri, performans analizi, SEO kontrolü ve geliştirici dostu dashboard ile profesyonel web uygulamaları için kapsamlı test çözümü">
+    <meta name="keywords" content="PWA, Progressive Web App, Test Suite, Performance Analysis, SEO Testing, Web App Testing, Developer Tools">
+    <meta name="author" content="Vahit Kirbiyik">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="KesifApp PWA Test Sistemi">
+    <meta property="og:description" content="Otomatik PWA testleri, performans analizi ve geliştirici dostu dashboard">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://kesifapp.com">
+    <meta property="og:image" content="https://kesifapp.com/assets/pwa-icon-512.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="KesifApp PWA Test Sistemi">
+    <meta name="twitter:description" content="Otomatik PWA testleri ve performans analizi">
+    <link rel="canonical" href="https://kesifapp.com">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .hero-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 3rem;
+            margin: 2rem 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .feature-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 1rem 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        .btn-custom {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            color: white;
+        }
+        .badge-custom {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        .stats-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="text-center py-5">
+            <h1 class="display-4 text-white mb-3">
+                <i class="fas fa-rocket me-3"></i>
+                KesifApp PWA Test Sistemi
+            </h1>
+            <p class="lead text-white-50 mb-4">
+                Progressive Web App'ler için Kapsamlı Test ve Analiz Platformu
+            </p>
+            <div class="mb-4">
+                <span class="badge-custom me-2">
+                    <i class="fas fa-check-circle me-1"></i>
+                    PWA-Test Verified
+                </span>
+                <span class="badge bg-light text-dark me-2">
+                    <i class="fab fa-github me-1"></i>
+                    Open Source
+                </span>
+                <span class="badge bg-info text-white">
+                    <i class="fas fa-code me-1"></i>
+                    PowerShell 5.1+
+                </span>
+            </div>
+        </div>
+
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <div class="row">
+                <div class="col-lg-8">
+                    <h2 class="text-white mb-4">
+                        🚀 Otomatik PWA Testleri & Performans Analizi
+                    </h2>
+                    <p class="text-white-50 mb-4">
+                        KesifApp PWA Test Sistemi, web uygulamalarınızın Progressive Web App standartlarına
+                        uyumluluğunu otomatik olarak test eder, performans metriklerini analiz eder ve
+                        iyileştirme önerileri sunar.
+                    </p>
+                    <div class="d-flex gap-3 flex-wrap">
+                        <a href="https://github.com/VahitKirbiyik/KesifUygulamasiTemplate" class="btn-custom">
+                            <i class="fab fa-github me-2"></i>
+                            GitHub Repository
+                        </a>
+                        <a href="pwa-dashboard.html" class="btn-custom">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Test Dashboard
+                        </a>
+                        <a href="README.md" class="btn-custom">
+                            <i class="fas fa-book me-2"></i>
+                            Dokümantasyon
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="stats-card">
+                        <h3 class="text-primary mb-3">
+                            <i class="fas fa-trophy"></i>
+                        </h3>
+                        <h4 class="mb-2">Sistem Özellikleri</h4>
+                        <ul class="list-unstyled text-start">
+                            <li><i class="fas fa-check text-success me-2"></i>7 Test Kategorisi</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Gerçek Zamanlı Dashboard</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Otomatik Badge Sistemi</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Trend Analizi</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Webhook Bildirimleri</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="row">
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-vial text-primary" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="text-center mb-3">Otomatik Testler</h5>
+                    <p class="text-muted">
+                        Manifest, Service Worker, HTML entegrasyonu, offline capability
+                        ve performans metriklerini otomatik olarak test eder.
+                    </p>
+                    <div class="text-center">
+                        <a href="README.md#test-kategorileri" class="btn btn-outline-primary btn-sm">
+                            Detaylar <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-chart-bar text-success" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="text-center mb-3">İnteraktif Dashboard</h5>
+                    <p class="text-muted">
+                        Chart.js ile görselleştirilmiş test sonuçları, trend analizi
+                        ve performans metrikleri dashboard'u.
+                    </p>
+                    <div class="text-center">
+                        <a href="pwa-dashboard.html" class="btn btn-outline-success btn-sm">
+                            Dashboard'u Görüntüle <i class="fas fa-external-link-alt ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-code text-info" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="text-center mb-3">Geliştirici Dostu</h5>
+                    <p class="text-muted">
+                        Kapsamlı dokümantasyon, kod örnekleri, sorun giderme rehberi
+                        ve API referansları ile geliştirici deneyimini optimize eder.
+                    </p>
+                    <div class="text-center">
+                        <a href="schema.md" class="btn btn-outline-info btn-sm">
+                            API Referansı <i class="fas fa-book ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-shield-alt text-warning" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="text-center mb-3">Güvenlik & Uyumluluk</h5>
+                    <p class="text-muted">
+                        HTTPS kontrolü, CSP başlıkları, GDPR uyumluluk testleri
+                        ve güvenlik standartlarına uygunluk analizi.
+                    </p>
+                    <div class="text-center">
+                        <a href="README.md#guvenlik-testleri" class="btn btn-outline-warning btn-sm">
+                            Güvenlik Detayları <i class="fas fa-lock ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-search text-danger" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="text-center mb-3">SEO Analizi</h5>
+                    <p class="text-muted">
+                        Meta etiketleri, Open Graph, structured data ve arama motoru
+                        optimizasyonu testleri ile SEO performansını analiz eder.
+                    </p>
+                    <div class="text-center">
+                        <a href="README.md#seo-testleri" class="btn btn-outline-danger btn-sm">
+                            SEO Rehberi <i class="fas fa-search ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-bell text-secondary" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="text-center mb-3">Webhook Bildirimleri</h5>
+                    <p class="text-muted">
+                        Slack ve Discord entegrasyonu ile otomatik bildirimler,
+                        CI/CD pipeline entegrasyonu ve ekip uyarıları.
+                    </p>
+                    <div class="text-center">
+                        <a href="README.md#webhook-bildirimleri" class="btn btn-outline-secondary btn-sm">
+                            Bildirim Kurulumu <i class="fas fa-cog ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Start -->
+        <div class="hero-section mt-5">
+            <h3 class="text-white text-center mb-4">
+                <i class="fas fa-play-circle me-2"></i>
+                Hızlı Başlangıç
+            </h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="text-white mb-3">PowerShell ile Test</h5>
+                    <div class="bg-dark p-3 rounded">
+                        <code class="text-light">
+# Temel test<br>
+.\Test-PWA.ps1<br><br>
+# Detaylı test<br>
+.\Test-PWA.ps1 -Verbose -ExportJson<br><br>
+# Dashboard ile<br>
+.\Test-PWA.ps1 -GenerateDashboard
+                        </code>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="text-white mb-3">GitHub Actions ile Otomasyon</h5>
+                    <div class="bg-dark p-3 rounded">
+                        <code class="text-light">
+name: PWA Tests<br>
+on: [push, pull_request]<br>
+jobs:<br>
+  test:<br>
+    runs-on: windows-latest<br>
+    steps:<br>
+      - uses: actions/checkout@v4<br>
+      - run: .\Test-PWA.ps1 -Verbose
+                        </code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center py-5">
+            <div class="text-white-50">
+                <p class="mb-2">
+                    <i class="fas fa-code me-2"></i>
+                    Geliştirici: Vahit Kirbiyik |
+                    <i class="fab fa-github me-2"></i>
+                    <a href="https://github.com/VahitKirbiyik/KesifUygulamasiTemplate" class="text-white-50 text-decoration-none">
+                        GitHub Repository
+                    </a>
+                </p>
+                <p class="mb-0">
+                    <i class="fas fa-calendar me-2"></i>
+                    Son Güncelleme: 30 Ağustos 2025 |
+                    <i class="fas fa-tag me-2"></i>
+                    Versiyon: 4.0
+                </p>
+            </div>
+            <div class="mt-3">
+                <a href="https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/stargazers" class="text-white-50 me-3">
+                    <i class="fas fa-star me-1"></i>Star
+                </a>
+                <a href="https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/forks" class="text-white-50 me-3">
+                    <i class="fas fa-code-branch me-1"></i>Fork
+                </a>
+                <a href="https://github.com/VahitKirbiyik/KesifUygulamasiTemplate/issues" class="text-white-50">
+                    <i class="fas fa-bug me-1"></i>Issues
+                </a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Sayfa yüklendiğinde animasyon efekti
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.feature-card');
+            cards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px)';
+                    card.style.transition = 'all 0.5s ease';
+                    setTimeout(() => {
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, 100);
+                }, index * 100);
+            });
+        });
+    </script>
+</body>
+</html>

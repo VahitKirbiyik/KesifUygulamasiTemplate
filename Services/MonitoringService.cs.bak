@@ -1,0 +1,100 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Uygulama monitoring ve analytics servisi
+    /// </summary>
+    public class MonitoringService
+    {
+        private readonly ILogger<MonitoringService> _logger;
+        private readonly Dictionary<string, int> _providerUsageStats = new();
+        private readonly Dictionary<string, int> _routeTypeStats = new();
+        private readonly string _logFilePath;
+
+        public MonitoringService(ILogger<MonitoringService> logger)
+        {
+            _logger = logger;
+            _logFilePath = Path.Combine(FileSystem.AppDataDirectory, "monitoring_logs.json");
+        }
+
+        /// <summary>
+        /// Provider kullanımını loglar
+        /// </summary>
+        public void LogProviderUsage(string provider)
+        {
+            if (!_providerUsageStats.ContainsKey(provider))
+                _providerUsageStats[provider] = 0;
+
+            _providerUsageStats[provider]++;
+
+            _logger.LogInformation($"ProviderUsed: {provider}, TotalUsage: {_providerUsageStats[provider]}");
+        }
+
+        /// <summary>
+        /// Rota türünü loglar
+        /// </summary>
+        public void LogRouteTypeUsage(string routeType)
+        {
+            if (!_routeTypeStats.ContainsKey(routeType))
+                _routeTypeStats[routeType] = 0;
+
+            _routeTypeStats[routeType]++;
+
+            _logger.LogInformation($"RouteTypeUsed: {routeType}, TotalUsage: {_routeTypeStats[routeType]}");
+        }
+
+        /// <summary>
+        /// Günlük rapor oluşturur
+        /// </summary>
+        public async Task GenerateDailyReportAsync()
+        {
+            var report = new
+            {
+                Date = DateTime.Now.ToString("yyyy-MM-dd"),
+                ProviderStats = _providerUsageStats,
+                RouteTypeStats = _routeTypeStats,
+                TotalRequests = _providerUsageStats.Values.Sum() + _routeTypeStats.Values.Sum()
+            };
+
+            try
+            {
+                var json = JsonSerializer.Serialize(report, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+
+                await File.WriteAllTextAsync(_logFilePath, json);
+                _logger.LogInformation("Daily monitoring report generated");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to generate monitoring report: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Mevcut istatistikleri döndürür
+        /// </summary>
+        public (Dictionary<string, int> ProviderStats, Dictionary<string, int> RouteStats) GetCurrentStats()
+        {
+            return (_providerUsageStats.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                   _routeTypeStats.ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
+        }
+
+        /// <summary>
+        /// İstatistikleri sıfırlar
+        /// </summary>
+        public void ResetStats()
+        {
+            _providerUsageStats.Clear();
+            _routeTypeStats.Clear();
+            _logger.LogInformation("Monitoring statistics reset");
+        }
+    }
+}

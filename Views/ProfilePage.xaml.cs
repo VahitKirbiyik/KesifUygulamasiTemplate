@@ -1,0 +1,1 @@
+using KesifUygulamasiTemplate.ViewModels;\n\nnamespace KesifUygulamasiTemplate.Views;\n\npublic partial class ProfilePage : ContentPage\n{\n    public ProfilePage(ProfileViewModel viewModel)\n    {\n        InitializeComponent();\n        BindingContext = viewModel;\n    }\n}\n

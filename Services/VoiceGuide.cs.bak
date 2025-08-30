@@ -1,0 +1,705 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Voice guidance service with TTS integration and offline voice navigation
+    /// Provides turn-by-turn voice instructions and offline voice synthesis
+    /// </summary>
+    public class VoiceGuide
+    {
+        private readonly ILogger<VoiceGuide> _logger;
+        private readonly string _voiceCachePath;
+        private readonly string _logsPath;
+        private readonly bool _enableVoiceGuidance;
+        private readonly bool _enableOfflineVoice;
+        private readonly string _defaultVoiceLanguage;
+        private readonly double _voiceSpeed;
+        private readonly int _maxCacheSizeMB;
+
+        public VoiceGuide(ILogger<VoiceGuide> logger)
+        {
+            _logger = logger;
+            _voiceCachePath = Environment.GetEnvironmentVariable("VOICE_CACHE_PATH") ?? "cache/voice";
+            _logsPath = Environment.GetEnvironmentVariable("VOICE_LOGS_PATH") ?? "logs/voice";
+            _enableVoiceGuidance = bool.Parse(Environment.GetEnvironmentVariable("ENABLE_VOICE_GUIDANCE") ?? "true");
+            _enableOfflineVoice = bool.Parse(Environment.GetEnvironmentVariable("ENABLE_OFFLINE_VOICE") ?? "true");
+            _defaultVoiceLanguage = Environment.GetEnvironmentVariable("DEFAULT_VOICE_LANGUAGE") ?? "en-US";
+            _voiceSpeed = double.Parse(Environment.GetEnvironmentVariable("VOICE_SPEED") ?? "1.0");
+            _maxCacheSizeMB = int.Parse(Environment.GetEnvironmentVariable("MAX_VOICE_CACHE_SIZE_MB") ?? "100");
+
+            // Gerekli klasörleri oluştur
+            Directory.CreateDirectory(_voiceCachePath);
+            Directory.CreateDirectory(_logsPath);
+        }
+
+        /// <summary>
+        /// Sesli yönlendirme başlat
+        /// </summary>
+        public async Task<VoiceResult> StartVoiceGuidance(List<NavigationInstruction> instructions, string? language = null)
+        {
+            try
+            {
+                if (!_enableVoiceGuidance)
+                {
+                    return new VoiceResult
+                    {
+                        Success = false,
+                        Message = "Voice guidance is disabled"
+                    };
+                }
+
+                var voiceLanguage = language ?? _defaultVoiceLanguage;
+                var sessionId = Guid.NewGuid().ToString();
+
+                var result = new VoiceResult
+                {
+                    Success = true,
+                    SessionId = sessionId,
+                    Language = voiceLanguage,
+                    TotalInstructions = instructions.Count,
+                    Message = $"Voice guidance started with {instructions.Count} instructions"
+                };
+
+                // İlk yönlendirmeyi oynat
+                if (instructions.Count > 0)
+                {
+                    var firstInstruction = instructions[0];
+                    var playResult = await PlayVoiceInstruction(firstInstruction, voiceLanguage, sessionId);
+
+                    if (!playResult.Success)
+                    {
+                        result.Success = false;
+                        result.Message = $"Failed to play first instruction: {playResult.ErrorMessage}";
+                    }
+                }
+
+                await LogVoiceSession(result);
+                _logger.LogInformation($"Voice guidance started: {sessionId} with {instructions.Count} instructions");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Voice guidance start failed: {ex.Message}");
+                return new VoiceResult
+                {
+                    Success = false,
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        /// <summary>
+        /// Sesli yönlendirme durdur
+        /// </summary>
+        public async Task<VoiceResult> StopVoiceGuidance(string sessionId)
+        {
+            try
+            {
+                // Mevcut ses oynatmayı durdur (platform specific implementation)
+                await StopCurrentPlayback();
+
+                var result = new VoiceResult
+                {
+                    Success = true,
+                    SessionId = sessionId,
+                    Message = "Voice guidance stopped"
+                };
+
+                await LogVoiceSession(result);
+                _logger.LogInformation($"Voice guidance stopped: {sessionId}");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Voice guidance stop failed: {ex.Message}");
+                return new VoiceResult
+                {
+                    Success = false,
+                    SessionId = sessionId,
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        /// <summary>
+        /// Tek bir sesli yönlendirme oynat
+        /// </summary>
+        public async Task<VoiceResult> PlayVoiceInstruction(NavigationInstruction instruction, string? language = null, string? sessionId = null)
+        {
+            try
+            {
+                var voiceLanguage = language ?? _defaultVoiceLanguage;
+                var currentSessionId = sessionId ?? Guid.NewGuid().ToString();
+
+                // Cache'de bu yönerge için ses dosyası var mı kontrol et
+                var cacheKey = GenerateCacheKey(instruction.Text, voiceLanguage);
+                var cachedFile = Path.Combine(_voiceCachePath, $"{cacheKey}.wav");
+
+                if (_enableOfflineVoice && File.Exists(cachedFile))
+                {
+                    // Cache'den oynat
+                    return await PlayCachedVoiceFile(cachedFile, instruction, currentSessionId);
+                }
+                else
+                {
+                    // TTS ile oluştur ve oynat
+                    return await GenerateAndPlayVoice(instruction, voiceLanguage, currentSessionId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Voice instruction play failed: {ex.Message}");
+                return new VoiceResult
+                {
+                    Success = false,
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        /// <summary>
+        /// Ses hızını ayarla
+        /// </summary>
+        public async Task<VoiceResult> SetVoiceSpeed(double speed)
+        {
+            try
+            {
+                if (speed < 0.5 || speed > 2.0)
+                {
+                    return new VoiceResult
+                    {
+                        Success = false,
+                        Message = "Voice speed must be between 0.5 and 2.0"
+                    };
+                }
+
+                // Platform specific voice speed implementation
+                await SetPlatformVoiceSpeed(speed);
+
+                var result = new VoiceResult
+                {
+                    Success = true,
+                    Message = $"Voice speed set to {speed}x"
+                };
+
+                await LogVoiceSession(result);
+                _logger.LogInformation($"Voice speed changed to {speed}x");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Voice speed change failed: {ex.Message}");
+                return new VoiceResult
+                {
+                    Success = false,
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        /// <summary>
+        /// Ses dilini değiştir
+        /// </summary>
+        public async Task<VoiceResult> ChangeVoiceLanguage(string language)
+        {
+            try
+            {
+                // Desteklenen dilleri kontrol et
+                var supportedLanguages = new[] { "en-US", "en-GB", "tr-TR", "de-DE", "fr-FR", "es-ES" };
+
+                if (!supportedLanguages.Contains(language))
+                {
+                    return new VoiceResult
+                    {
+                        Success = false,
+                        Message = $"Unsupported language: {language}"
+                    };
+                }
+
+                // Platform specific language change implementation
+                await SetPlatformVoiceLanguage(language);
+
+                var result = new VoiceResult
+                {
+                    Success = true,
+                    Language = language,
+                    Message = $"Voice language changed to {language}"
+                };
+
+                await LogVoiceSession(result);
+                _logger.LogInformation($"Voice language changed to {language}");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Voice language change failed: {ex.Message}");
+                return new VoiceResult
+                {
+                    Success = false,
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        /// <summary>
+        /// Ses önbelleğini temizle
+        /// </summary>
+        public async Task<VoiceResult> ClearVoiceCache()
+        {
+            try
+            {
+                var cacheFiles = Directory.GetFiles(_voiceCachePath, "*.wav");
+                var totalSize = cacheFiles.Sum(f => new FileInfo(f).Length);
+
+                foreach (var file in cacheFiles)
+                {
+                    File.Delete(file);
+                }
+
+                var result = new VoiceResult
+                {
+                    Success = true,
+                    Message = $"Voice cache cleared: {cacheFiles.Length} files, {totalSize / 1024 / 1024:F1} MB"
+                };
+
+                await LogVoiceSession(result);
+                _logger.LogInformation($"Voice cache cleared: {cacheFiles.Length} files");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Voice cache clear failed: {ex.Message}");
+                return new VoiceResult
+                {
+                    Success = false,
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        /// <summary>
+        /// Ses önbellek istatistiklerini al
+        /// </summary>
+        public async Task<VoiceCacheStats> GetVoiceCacheStats()
+        {
+            try
+            {
+                var cacheFiles = Directory.GetFiles(_voiceCachePath, "*.wav");
+                var totalSize = cacheFiles.Sum(f => new FileInfo(f).Length);
+                var totalFiles = cacheFiles.Length;
+
+                return new VoiceCacheStats
+                {
+                    TotalFiles = totalFiles,
+                    TotalSizeBytes = totalSize,
+                    TotalSizeMB = totalSize / 1024.0 / 1024.0,
+                    CachePath = _voiceCachePath,
+                    MaxCacheSizeMB = _maxCacheSizeMB,
+                    CacheUtilizationPercent = _maxCacheSizeMB > 0 ? (totalSize / 1024.0 / 1024.0 / _maxCacheSizeMB) * 100 : 0
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Voice cache stats failed: {ex.Message}");
+                return new VoiceCacheStats
+                {
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        /// <summary>
+        /// Ses geçmişini al
+        /// </summary>
+        public async Task<List<VoiceLog>> GetVoiceHistory(string? sessionId = null, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            try
+            {
+                var logFiles = Directory.GetFiles(_logsPath, "voice-*.json")
+                    .Where(f => !startDate.HasValue || File.GetCreationTime(f) >= startDate.Value)
+                    .Where(f => !endDate.HasValue || File.GetCreationTime(f) <= endDate.Value)
+                    .OrderByDescending(f => File.GetCreationTime(f))
+                    .Take(100);
+
+                var history = new List<VoiceLog>();
+
+                foreach (var logFile in logFiles)
+                {
+                    try
+                    {
+                        var content = await File.ReadAllTextAsync(logFile);
+                        var logs = JsonSerializer.Deserialize<List<VoiceLog>>(content);
+
+                        if (logs != null)
+                        {
+                            var filteredLogs = logs.Where(l => sessionId == null || l.SessionId == sessionId).ToList();
+                            history.AddRange(filteredLogs);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning($"Failed to read voice log {logFile}: {ex.Message}");
+                    }
+                }
+
+                return history.OrderByDescending(l => l.Timestamp).Take(1000).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to get voice history: {ex.Message}");
+                return new List<VoiceLog>();
+            }
+        }
+
+        /// <summary>
+        /// Cache anahtarı oluştur
+        /// </summary>
+        private string GenerateCacheKey(string text, string language)
+        {
+            using var sha256 = System.Security.Cryptography.SHA256.Create();
+            var hash = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes($"{text}|{language}|{_voiceSpeed}"));
+            return BitConverter.ToString(hash).Replace("-", "").ToLower();
+        }
+
+        /// <summary>
+        /// Cache'den ses dosyasını oynat
+        /// </summary>
+        private async Task<VoiceResult> PlayCachedVoiceFile(string filePath, NavigationInstruction instruction, string sessionId)
+        {
+            try
+            {
+                // Platform specific audio playback implementation
+                await PlayAudioFile(filePath);
+
+                var result = new VoiceResult
+                {
+                    Success = true,
+                    SessionId = sessionId,
+                    Instruction = instruction,
+                    Message = "Voice instruction played from cache",
+                    FromCache = true
+                };
+
+                await LogVoiceInstruction(result);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Cached voice playback failed, falling back to TTS: {ex.Message}");
+                return await GenerateAndPlayVoice(instruction, _defaultVoiceLanguage, sessionId);
+            }
+        }
+
+        /// <summary>
+        /// TTS ile ses oluştur ve oynat
+        /// </summary>
+        private async Task<VoiceResult> GenerateAndPlayVoice(NavigationInstruction instruction, string language, string sessionId)
+        {
+            try
+            {
+                // Platform specific TTS implementation
+                var audioData = await GenerateTTS(instruction.Text, language, _voiceSpeed);
+
+                if (audioData == null || audioData.Length == 0)
+                {
+                    return new VoiceResult
+                    {
+                        Success = false,
+                        SessionId = sessionId,
+                        Instruction = instruction,
+                        ErrorMessage = "TTS generation failed"
+                    };
+                }
+
+                // Cache'e kaydet
+                if (_enableOfflineVoice)
+                {
+                    var cacheKey = GenerateCacheKey(instruction.Text, language);
+                    var cacheFile = Path.Combine(_voiceCachePath, $"{cacheKey}.wav");
+
+                    await File.WriteAllBytesAsync(cacheFile, audioData);
+
+                    // Cache boyutu kontrolü
+                    await ManageCacheSize();
+                }
+
+                // Oynat
+                await PlayAudioData(audioData);
+
+                var result = new VoiceResult
+                {
+                    Success = true,
+                    SessionId = sessionId,
+                    Instruction = instruction,
+                    Language = language,
+                    Message = "Voice instruction generated and played",
+                    FromCache = false
+                };
+
+                await LogVoiceInstruction(result);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"TTS generation failed: {ex.Message}");
+                return new VoiceResult
+                {
+                    Success = false,
+                    SessionId = sessionId,
+                    Instruction = instruction,
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        /// <summary>
+        /// Cache boyutunu yönet
+        /// </summary>
+        private async Task ManageCacheSize()
+        {
+            try
+            {
+                var cacheFiles = Directory.GetFiles(_voiceCachePath, "*.wav")
+                    .Select(f => new FileInfo(f))
+                    .OrderBy(f => f.LastAccessTime)
+                    .ToList();
+
+                var totalSize = cacheFiles.Sum(f => f.Length);
+                var maxSizeBytes = _maxCacheSizeMB * 1024 * 1024;
+
+                if (totalSize > maxSizeBytes)
+                {
+                    foreach (var file in cacheFiles)
+                    {
+                        if (totalSize <= maxSizeBytes)
+                            break;
+
+                        totalSize -= file.Length;
+                        file.Delete();
+                    }
+
+                    _logger.LogInformation($"Voice cache cleaned: {cacheFiles.Count - Directory.GetFiles(_voiceCachePath, "*.wav").Length} files removed");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Cache size management failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Platform specific implementations (mock)
+        /// </summary>
+        private async Task<byte[]> GenerateTTS(string text, string language, double speed)
+        {
+            await Task.Delay(500); // Simüle edilmiş TTS süresi
+            // Mock audio data - gerçek implementasyonda TTS API çağrısı yapılacak
+            return new byte[1024]; // Mock data
+        }
+
+        private async Task PlayAudioFile(string filePath)
+        {
+            await Task.Delay(200); // Simüle edilmiş oynatma süresi
+            // Platform specific audio playback implementation
+        }
+
+        private async Task PlayAudioData(byte[] audioData)
+        {
+            await Task.Delay(200); // Simüle edilmiş oynatma süresi
+            // Platform specific audio playback implementation
+        }
+
+        private async Task StopCurrentPlayback()
+        {
+            await Task.Delay(100); // Simüle edilmiş durdurma süresi
+            // Platform specific audio stop implementation
+        }
+
+        private async Task SetPlatformVoiceSpeed(double speed)
+        {
+            await Task.Delay(100); // Simüle edilmiş ayar süresi
+            // Platform specific voice speed implementation
+        }
+
+        private async Task SetPlatformVoiceLanguage(string language)
+        {
+            await Task.Delay(100); // Simüle edilmiş ayar süresi
+            // Platform specific voice language implementation
+        }
+
+        /// <summary>
+        /// Ses oturumunu logla
+        /// </summary>
+        private async Task LogVoiceSession(VoiceResult result)
+        {
+            try
+            {
+                var logEntry = new VoiceLog
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    SessionId = result.SessionId,
+                    Type = VoiceLogType.Session,
+                    Language = result.Language,
+                    Success = result.Success,
+                    Message = result.Message,
+                    ErrorMessage = result.ErrorMessage,
+                    Timestamp = DateTime.UtcNow
+                };
+
+                await WriteVoiceLog(logEntry);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to log voice session: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Ses yönergesini logla
+        /// </summary>
+        private async Task LogVoiceInstruction(VoiceResult result)
+        {
+            try
+            {
+                var logEntry = new VoiceLog
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    SessionId = result.SessionId,
+                    Type = VoiceLogType.Instruction,
+                    Language = result.Language,
+                    InstructionText = result.Instruction?.Text,
+                    Success = result.Success,
+                    FromCache = result.FromCache,
+                    Message = result.Message,
+                    ErrorMessage = result.ErrorMessage,
+                    Timestamp = DateTime.UtcNow
+                };
+
+                await WriteVoiceLog(logEntry);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to log voice instruction: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Ses logunu yaz
+        /// </summary>
+        private async Task WriteVoiceLog(VoiceLog logEntry)
+        {
+            var logFile = Path.Combine(_logsPath, $"voice-{DateTime.UtcNow:yyyy-MM-dd}.json");
+
+            List<VoiceLog> existingLogs = new List<VoiceLog>();
+
+            if (File.Exists(logFile))
+            {
+                try
+                {
+                    var content = await File.ReadAllTextAsync(logFile);
+                    existingLogs = JsonSerializer.Deserialize<List<VoiceLog>>(content) ?? new List<VoiceLog>();
+                }
+                catch
+                {
+                    // Log dosyası bozuk ise yeni liste oluştur
+                }
+            }
+
+            existingLogs.Add(logEntry);
+
+            var json = JsonSerializer.Serialize(existingLogs, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            await File.WriteAllTextAsync(logFile, json);
+        }
+    }
+
+    public class NavigationInstruction
+    {
+        public string? Text { get; set; }
+        public InstructionType Type { get; set; }
+        public double? Distance { get; set; }
+        public TimeSpan? TimeToDestination { get; set; }
+        public string? StreetName { get; set; }
+        public TurnDirection? TurnDirection { get; set; }
+    }
+
+    public class VoiceResult
+    {
+        public bool Success { get; set; }
+        public string? SessionId { get; set; }
+        public string? Language { get; set; }
+        public NavigationInstruction? Instruction { get; set; }
+        public int TotalInstructions { get; set; }
+        public bool FromCache { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public string? Message { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    public class VoiceCacheStats
+    {
+        public int TotalFiles { get; set; }
+        public long TotalSizeBytes { get; set; }
+        public double TotalSizeMB { get; set; }
+        public string? CachePath { get; set; }
+        public int MaxCacheSizeMB { get; set; }
+        public double CacheUtilizationPercent { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    public class VoiceLog
+    {
+        public string? Id { get; set; }
+        public string? SessionId { get; set; }
+        public VoiceLogType Type { get; set; }
+        public string? Language { get; set; }
+        public string? InstructionText { get; set; }
+        public bool Success { get; set; }
+        public bool FromCache { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string? Message { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    public enum InstructionType
+    {
+        Start,
+        Turn,
+        Continue,
+        Arrive,
+        Recalculate,
+        OffRoute
+    }
+
+    public enum TurnDirection
+    {
+        Left,
+        Right,
+        Straight,
+        UTurn,
+        Roundabout
+    }
+
+    public enum VoiceLogType
+    {
+        Session,
+        Instruction,
+        Error
+    }
+}

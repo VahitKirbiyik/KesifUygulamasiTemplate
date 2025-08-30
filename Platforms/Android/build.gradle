@@ -1,0 +1,74 @@
+plugins {
+    id 'com.android.application'
+    id 'dotnet.maui' version '8.0.0'
+}
+
+android {
+    namespace 'com.vahit.kesifuygulamasi'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.vahit.kesifuygulamasi"
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+
+        // Keystore'dan Google Maps API key'ini oku
+        resValue "string", "google_maps_key", getKeystoreValue("GOOGLE_MAPS_API_KEY")
+    }
+
+    signingConfigs {
+        release {
+            storeFile file(getKeystoreValue("KEYSTORE_FILE"))
+            storePassword getKeystoreValue("KEYSTORE_PASSWORD")
+            keyAlias getKeystoreValue("KEY_ALIAS")
+            keyPassword getKeystoreValue("KEY_PASSWORD")
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ".debug"
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+// Keystore değerlerini keystore.properties dosyasından oku
+def getKeystoreValue(String keyName) {
+    def props = new Properties()
+    def keystoreFile = rootProject.file("keystore.properties")
+    if (keystoreFile.exists()) {
+        props.load(new FileInputStream(keystoreFile))
+        def value = props[keyName]
+        if (value != null) {
+            return value
+        }
+    }
+
+    // Fallback değerler
+    switch (keyName) {
+        case "GOOGLE_MAPS_API_KEY":
+            return "YOUR_GOOGLE_MAPS_API_KEY_HERE"
+        case "KEYSTORE_FILE":
+            return "keystore.jks"
+        case "KEYSTORE_PASSWORD":
+            return "password"
+        case "KEY_ALIAS":
+            return "key0"
+        case "KEY_PASSWORD":
+            return "password"
+        default:
+            return ""
+    }
+}

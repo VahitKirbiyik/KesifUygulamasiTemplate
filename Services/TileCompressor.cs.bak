@@ -1,0 +1,320 @@
+using System;
+using System.IO;
+using System.IO.Compression;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Offline tile compression servisi
+    /// Harita tile'larını sıkıştırma ve optimizasyon sistemi
+    /// </summary>
+    public class TileCompressor
+    {
+        private readonly ILogger<TileCompressor> _logger;
+        private readonly string _cachePath;
+        private readonly string _compressedPath;
+        private readonly int _compressionLevel;
+        private readonly long _maxTileSize;
+        private readonly bool _enableCompression;
+
+        public TileCompressor(ILogger<TileCompressor> logger)
+        {
+            _logger = logger;
+            _cachePath = Environment.GetEnvironmentVariable("TILE_CACHE_PATH") ?? "cache/tiles";
+            _compressedPath = Environment.GetEnvironmentVariable("COMPRESSED_TILE_PATH") ?? "cache/compressed";
+            _compressionLevel = int.Parse(Environment.GetEnvironmentVariable("COMPRESSION_LEVEL") ?? "6");
+            _maxTileSize = long.Parse(Environment.GetEnvironmentVariable("MAX_TILE_SIZE_MB") ?? "10") * 1024 * 1024;
+            _enableCompression = bool.Parse(Environment.GetEnvironmentVariable("ENABLE_TILE_COMPRESSION") ?? "true");
+
+            // Klasörleri oluştur
+            Directory.CreateDirectory(_cachePath);
+            Directory.CreateDirectory(_compressedPath);
+        }
+
+        /// <summary>
+        /// Tile verisini sıkıştır
+        /// </summary>
+        public async Task<byte[]> CompressTile(byte[] tileData)
+        {
+            if (!_enableCompression || tileData == null || tileData.Length == 0)
+            {
+                return tileData;
+            }
+
+            try
+            {
+                using var inputStream = new MemoryStream(tileData);
+                using var outputStream = new MemoryStream();
+
+                // GZip sıkıştırma
+                using (var gzipStream = new GZipStream(outputStream, (CompressionLevel)_compressionLevel))
+                {
+                    await inputStream.CopyToAsync(gzipStream);
+                }
+
+                var compressedData = outputStream.ToArray();
+
+                // Sıkıştırma oranını logla
+                double compressionRatio = (double)compressedData.Length / tileData.Length;
+                _logger.LogInformation($"Tile compressed: {tileData.Length} -> {compressedData.Length} bytes ({compressionRatio:P2})");
+
+                return compressedData;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Tile compression failed: {ex.Message}");
+                return tileData; // Hata durumunda orijinal veriyi döndür
+            }
+        }
+
+        /// <summary>
+        /// Sıkıştırılmış tile verisini aç
+        /// </summary>
+        public async Task<byte[]> DecompressTile(byte[] compressedData)
+        {
+            if (compressedData == null || compressedData.Length == 0)
+            {
+                return compressedData;
+            }
+
+            try
+            {
+                using var inputStream = new MemoryStream(compressedData);
+                using var outputStream = new MemoryStream();
+
+                // GZip açma
+                using (var gzipStream = new GZipStream(inputStream, CompressionMode.Decompress))
+                {
+                    await gzipStream.CopyToAsync(outputStream);
+                }
+
+                return outputStream.ToArray();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Tile decompression failed: {ex.Message}");
+                return compressedData; // Hata durumunda sıkıştırılmış veriyi döndür
+            }
+        }
+
+        /// <summary>
+        /// Tile'ı dosyaya sıkıştırılmış olarak kaydet
+        /// </summary>
+        public async Task<bool> SaveCompressedTile(string tileKey, byte[] tileData)
+        {
+            try
+            {
+                var compressedData = await CompressTile(tileData);
+
+                // Dosya boyutu kontrolü
+                if (compressedData.Length > _maxTileSize)
+                {
+                    _logger.LogWarning($"Tile size exceeds maximum: {compressedData.Length} > {_maxTileSize}");
+                    return false;
+                }
+
+                var filePath = GetCompressedTilePath(tileKey);
+                Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+
+                await File.WriteAllBytesAsync(filePath, compressedData);
+
+                _logger.LogInformation($"Compressed tile saved: {tileKey} ({compressedData.Length} bytes)");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to save compressed tile {tileKey}: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Sıkıştırılmış tile'ı dosyadan yükle
+        /// </summary>
+        public async Task<byte[]> LoadCompressedTile(string tileKey)
+        {
+            try
+            {
+                var filePath = GetCompressedTilePath(tileKey);
+
+                if (!File.Exists(filePath))
+                {
+                    return null;
+                }
+
+                var compressedData = await File.ReadAllBytesAsync(filePath);
+                var decompressedData = await DecompressTile(compressedData);
+
+                _logger.LogInformation($"Compressed tile loaded: {tileKey} ({compressedData.Length} -> {decompressedData.Length} bytes)");
+                return decompressedData;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to load compressed tile {tileKey}: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Tile sıkıştırma istatistiklerini getir
+        /// </summary>
+        public async Task<TileCompressionStats> GetCompressionStats()
+        {
+            try
+            {
+                var stats = new TileCompressionStats
+                {
+                    TotalTiles = 0,
+                    TotalOriginalSize = 0,
+                    TotalCompressedSize = 0,
+                    CompressionRatio = 0,
+                    CacheHitRate = 0
+                };
+
+                // Sıkıştırılmış tile dosyalarını tara
+                var compressedFiles = Directory.GetFiles(_compressedPath, "*.tile", SearchOption.AllDirectories);
+
+                foreach (var file in compressedFiles)
+                {
+                    try
+                    {
+                        var fileInfo = new FileInfo(file);
+                        var compressedSize = fileInfo.Length;
+
+                        // Dosya adından orijinal boyutu çıkar (varsa)
+                        var fileName = Path.GetFileNameWithoutExtension(file);
+                        var parts = fileName.Split('_');
+                        if (parts.Length >= 3 && long.TryParse(parts[parts.Length - 1], out long originalSize))
+                        {
+                            stats.TotalTiles++;
+                            stats.TotalOriginalSize += originalSize;
+                            stats.TotalCompressedSize += compressedSize;
+                        }
+                    }
+                    catch
+                    {
+                        // Dosya okunamazsa atla
+                    }
+                }
+
+                // Sıkıştırma oranını hesapla
+                if (stats.TotalOriginalSize > 0)
+                {
+                    stats.CompressionRatio = (double)stats.TotalCompressedSize / stats.TotalOriginalSize;
+                }
+
+                return stats;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to get compression stats: {ex.Message}");
+                return new TileCompressionStats();
+            }
+        }
+
+        /// <summary>
+        /// Eski sıkıştırılmış tile'ları temizle
+        /// </summary>
+        public async Task<int> CleanupOldTiles(int maxAgeDays = 30)
+        {
+            try
+            {
+                var cutoffDate = DateTime.Now.AddDays(-maxAgeDays);
+                var oldFiles = Directory.GetFiles(_compressedPath, "*.tile", SearchOption.AllDirectories)
+                    .Where(f => File.GetLastAccessTimeUtc(f) < cutoffDate)
+                    .ToArray();
+
+                foreach (var file in oldFiles)
+                {
+                    File.Delete(file);
+                }
+
+                _logger.LogInformation($"Cleaned up {oldFiles.Length} old compressed tiles");
+                return oldFiles.Length;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to cleanup old tiles: {ex.Message}");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Cache boyutunu optimize et
+        /// </summary>
+        public async Task<long> OptimizeCacheSize(long maxCacheSizeMB = 500)
+        {
+            try
+            {
+                var maxCacheSize = maxCacheSizeMB * 1024 * 1024;
+                var compressedFiles = Directory.GetFiles(_compressedPath, "*.tile", SearchOption.AllDirectories)
+                    .Select(f => new FileInfo(f))
+                    .OrderBy(f => f.LastAccessTimeUtc)
+                    .ToList();
+
+                var totalSize = compressedFiles.Sum(f => f.Length);
+                var removedSize = 0L;
+
+                // Cache boyutu aşılırsa eski dosyaları sil
+                if (totalSize > maxCacheSize)
+                {
+                    foreach (var file in compressedFiles)
+                    {
+                        if (totalSize <= maxCacheSize)
+                            break;
+
+                        removedSize += file.Length;
+                        totalSize -= file.Length;
+                        file.Delete();
+                    }
+                }
+
+                _logger.LogInformation($"Cache optimized: {removedSize / 1024 / 1024:F2} MB removed");
+                return removedSize;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to optimize cache: {ex.Message}");
+                return 0;
+            }
+        }
+
+        private string GetCompressedTilePath(string tileKey)
+        {
+            // Tile key'i klasör yapısına dönüştür (örn: 12/3456/7890 -> 12/34/56)
+            var parts = tileKey.Split('/');
+            if (parts.Length >= 3)
+            {
+                var z = parts[0];
+                var x = parts[1].PadLeft(4, '0');
+                var y = parts[2].PadLeft(4, '0');
+
+                return Path.Combine(_compressedPath, z, x.Substring(0, 2), x.Substring(2, 2), $"{x}_{y}.tile");
+            }
+
+            return Path.Combine(_compressedPath, $"{tileKey.Replace("/", "_")}.tile");
+        }
+    }
+
+    public class TileCompressionStats
+    {
+        public int TotalTiles { get; set; }
+        public long TotalOriginalSize { get; set; }
+        public long TotalCompressedSize { get; set; }
+        public double CompressionRatio { get; set; }
+        public double CacheHitRate { get; set; }
+
+        public string GetCompressionRatioString()
+        {
+            return $"{CompressionRatio:P2}";
+        }
+
+        public string GetTotalSavingsString()
+        {
+            var savings = TotalOriginalSize - TotalCompressedSize;
+            return $"{savings / 1024 / 1024:F2} MB";
+        }
+    }
+}

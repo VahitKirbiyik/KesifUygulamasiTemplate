@@ -1,11 +1,1 @@
-$#!/usr/bin/env pwsh
-# Use the repository root (parent of the scripts folder)
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$root = Resolve-Path (Join-Path $scriptDir '..') | Select-Object -ExpandProperty Path
-$hidden = Join-Path $root '.hidden-archive'
-if (-not (Test-Path $hidden)) { New-Item -ItemType Directory -Path $hidden | Out-Null }
-Get-ChildItem -Path $root -Filter 'backup-aihelper-*' -Directory | ForEach-Object {
-    $dest = Join-Path $hidden $_.Name
-    Write-Host "Moving '$($_.FullName)' to '$dest'"
-    Move-Item -Path $_.FullName -Destination $dest -Force
-}
+$#!/usr/bin/env pwsh\n# Use the repository root (parent of the scripts folder)\n$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition\n$root = Resolve-Path (Join-Path $scriptDir '..') | Select-Object -ExpandProperty Path\n$hidden = Join-Path $root '.hidden-archive'\nif (-not (Test-Path $hidden)) { New-Item -ItemType Directory -Path $hidden | Out-Null }\nGet-ChildItem -Path $root -Filter 'backup-aihelper-*' -Directory | ForEach-Object {\n    $dest = Join-Path $hidden $_.Name\n    Write-Host "Moving '$($_.FullName)' to '$dest'"\n    Move-Item -Path $_.FullName -Destination $dest -Force\n}\n

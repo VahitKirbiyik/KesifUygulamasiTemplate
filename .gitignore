@@ -38,3 +38,16 @@ artifacts/
 # CI/CD build outputs
 build.log
 test.log
+
+# Güvenlik dosyaları - asla commit edilmemeli!
+keystore.properties
+*.jks
+*.keystore
+debug.keystore
+release.keystore
+
+# API anahtarları ve gizli bilgiler
+secrets.json
+.env
+.env.local
+.env.*.local

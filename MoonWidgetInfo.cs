@@ -1,7 +1,1 @@
-public class MoonWidgetInfo
-{
-    public string Phase { get; set; }
-    public string RiseTime { get; set; }
-    public string SetTime { get; set; }
-    public string ShortInfo { get; set; }
-}
+public class MoonWidgetInfo\n{\n    public string Phase { get; set; }\n    public string RiseTime { get; set; }\n    public string SetTime { get; set; }\n    public string ShortInfo { get; set; }\n}\n

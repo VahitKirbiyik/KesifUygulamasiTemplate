@@ -1,0 +1,371 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Storage;
+using KesifUygulamasiTemplate.Models;
+
+// Alias for Models.AppTheme to avoid conflicts
+using AppThemeModel = KesifUygulamasiTemplate.Models.AppTheme;
+
+namespace KesifUygulamasiTemplate.UI
+{
+    /// <summary>
+    /// Uygulama genelinde tema yönetimini sağlayan sınıf
+    /// </summary>
+    public class ThemeManager : INotifyPropertyChanged
+    {
+        private static ThemeManager? _instance;
+        private AppThemeModel _currentTheme;
+        private ResourceDictionary _currentThemeResources;
+
+        // Tema anahtarları
+        private const string ThemePreferenceKey = "AppTheme";
+        private const string PrimaryColorKey = "PrimaryColor";
+        private const string SecondaryColorKey = "SecondaryColor";
+        private const string BackgroundColorKey = "BackgroundColor";
+        private const string TextColorKey = "TextColor";
+        private const string SurfaceColorKey = "SurfaceColor";
+        private const string AccentColorKey = "AccentColor";
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public event EventHandler<ThemeChangedEventArgs>? ThemeChanged;
+
+        /// <summary>
+        /// Singleton instance
+        /// </summary>
+        public static ThemeManager Instance => _instance ??= new ThemeManager();
+
+        /// <summary>
+        /// Mevcut tema
+        /// </summary>
+        public AppThemeModel CurrentTheme
+        {
+            get => _currentTheme;
+            private set
+            {
+                if (_currentTheme != value)
+                {
+                    var oldTheme = _currentTheme;
+                    _currentTheme = value;
+                    OnPropertyChanged();
+                    ThemeChanged?.Invoke(this, new ThemeChangedEventArgs(oldTheme, value));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tema koyu mod mu?
+        /// </summary>
+        public bool IsDarkMode => CurrentTheme == AppThemeModel.Dark;
+
+        /// <summary>
+        /// Tema açık mod mu?
+        /// </summary>
+        public bool IsLightMode => CurrentTheme == AppThemeModel.Light;
+
+        /// <summary>
+        /// Özel tema mı?
+        /// </summary>
+        public bool IsCustomTheme => CurrentTheme == AppThemeModel.Custom;
+
+        private ThemeManager()
+        {
+            // Initialize theme resources
+            _currentThemeResources = new ResourceDictionary();
+            LoadThemeFromPreferences();
+            ApplyThemeResources();
+        }
+
+        /// <summary>
+        /// Temayı değiştirir
+        /// </summary>
+        public void SetTheme(AppThemeModel theme)
+        {
+            if (CurrentTheme == theme)
+                return;
+
+            CurrentTheme = theme;
+            SaveThemeToPreferences();
+            ApplyThemeResources();
+            ApplySystemTheme();
+        }
+
+        /// <summary>
+        /// Açık temaya geçiş
+        /// </summary>
+        public void SetLightTheme()
+        {
+            SetTheme(AppThemeModel.Light);
+        }
+
+        /// <summary>
+        /// Koyu temaya geçiş
+        /// </summary>
+        public void SetDarkTheme()
+        {
+            SetTheme(AppThemeModel.Dark);
+        }
+
+        /// <summary>
+        /// Özel temaya geçiş
+        /// </summary>
+        public void SetCustomTheme()
+        {
+            SetTheme(AppThemeModel.Custom);
+        }
+
+        /// <summary>
+        /// Sistem temasını takip et
+        /// </summary>
+        public void FollowSystemTheme()
+        {
+            var systemTheme = Application.Current?.RequestedTheme ?? Microsoft.Maui.ApplicationModel.AppTheme.Light;
+            var appTheme = systemTheme == Microsoft.Maui.ApplicationModel.AppTheme.Dark
+                ? AppThemeModel.Dark
+                : AppThemeModel.Light;
+            SetTheme(appTheme);
+        }
+
+        /// <summary>
+        /// Tema kaynaklarını uygular
+        /// </summary>
+        private void ApplyThemeResources()
+        {
+            var app = Application.Current;
+            if (app == null)
+                return;
+
+            // Mevcut tema kaynaklarını temizle
+            _currentThemeResources.Clear();
+
+            // Yeni tema kaynaklarını ekle
+            switch (CurrentTheme)
+            {
+                case AppThemeModel.Light:
+                    ApplyLightThemeResources();
+                    break;
+                case AppThemeModel.Dark:
+                    ApplyDarkThemeResources();
+                    break;
+                case AppThemeModel.Custom:
+                    ApplyCustomThemeResources();
+                    break;
+            }
+
+            // Uygulama kaynaklarını güncelle
+            if (app.Resources is ResourceDictionary appResources)
+            {
+                // Tema kaynaklarını birleştir
+                foreach (var resource in _currentThemeResources)
+                {
+                    if (appResources.ContainsKey(resource.Key))
+                    {
+                        appResources[resource.Key] = resource.Value;
+                    }
+                    else
+                    {
+                        appResources.Add(resource.Key, resource.Value);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Açık tema kaynaklarını uygular
+        /// </summary>
+        private void ApplyLightThemeResources()
+        {
+            _currentThemeResources.Add(PrimaryColorKey, Color.FromArgb("#2196F3"));
+            _currentThemeResources.Add(SecondaryColorKey, Color.FromArgb("#00BCD4"));
+            _currentThemeResources.Add(AccentColorKey, Color.FromArgb("#FFC107"));
+            _currentThemeResources.Add(BackgroundColorKey, Color.FromArgb("#F5F5F5"));
+            _currentThemeResources.Add(SurfaceColorKey, Color.FromArgb("#FFFFFF"));
+            _currentThemeResources.Add(TextColorKey, Color.FromArgb("#212121"));
+
+            // Button stilleri
+            var buttonStyle = new Style(typeof(Button));
+            buttonStyle.Setters.Add(new Setter { Property = Button.BackgroundColorProperty, Value = Color.FromArgb("#2196F3") });
+            buttonStyle.Setters.Add(new Setter { Property = Button.TextColorProperty, Value = Colors.White });
+            buttonStyle.Setters.Add(new Setter { Property = Button.FontAttributesProperty, Value = FontAttributes.Bold });
+            buttonStyle.Setters.Add(new Setter { Property = Button.CornerRadiusProperty, Value = 10 });
+            buttonStyle.Setters.Add(new Setter { Property = Button.PaddingProperty, Value = new Thickness(20, 10) });
+
+            _currentThemeResources.Add("ButtonStyle", buttonStyle);
+
+            // Label stilleri
+            var labelStyle = new Style(typeof(Label));
+            labelStyle.Setters.Add(new Setter { Property = Label.TextColorProperty, Value = Color.FromArgb("#212121") });
+
+            _currentThemeResources.Add("LabelStyle", labelStyle);
+        }
+
+        /// <summary>
+        /// Koyu tema kaynaklarını uygular
+        /// </summary>
+        private void ApplyDarkThemeResources()
+        {
+            _currentThemeResources.Add(PrimaryColorKey, Color.FromArgb("#BB86FC"));
+            _currentThemeResources.Add(SecondaryColorKey, Color.FromArgb("#03DAC6"));
+            _currentThemeResources.Add(AccentColorKey, Color.FromArgb("#CF6679"));
+            _currentThemeResources.Add(BackgroundColorKey, Color.FromArgb("#121212"));
+            _currentThemeResources.Add(SurfaceColorKey, Color.FromArgb("#1E1E1E"));
+            _currentThemeResources.Add(TextColorKey, Color.FromArgb("#FFFFFF"));
+
+            // Button stilleri
+            var buttonStyle = new Style(typeof(Button));
+            buttonStyle.Setters.Add(new Setter { Property = Button.BackgroundColorProperty, Value = Color.FromArgb("#BB86FC") });
+            buttonStyle.Setters.Add(new Setter { Property = Button.TextColorProperty, Value = Color.FromArgb("#121212") });
+            buttonStyle.Setters.Add(new Setter { Property = Button.FontAttributesProperty, Value = FontAttributes.Bold });
+            buttonStyle.Setters.Add(new Setter { Property = Button.CornerRadiusProperty, Value = 10 });
+            buttonStyle.Setters.Add(new Setter { Property = Button.PaddingProperty, Value = new Thickness(20, 10) });
+
+            _currentThemeResources.Add("ButtonStyle", buttonStyle);
+
+            // Label stilleri
+            var labelStyle = new Style(typeof(Label));
+            labelStyle.Setters.Add(new Setter { Property = Label.TextColorProperty, Value = Color.FromArgb("#FFFFFF") });
+
+            _currentThemeResources.Add("LabelStyle", labelStyle);
+        }
+
+        /// <summary>
+        /// Özel tema kaynaklarını uygular
+        /// </summary>
+        private void ApplyCustomThemeResources()
+        {
+            // Özel tema için varsayılan koyu tema kullan
+            // İleride kullanıcı tarafından özelleştirilebilir
+            ApplyDarkThemeResources();
+        }
+
+        /// <summary>
+        /// Sistem temasını uygular
+        /// </summary>
+        private void ApplySystemTheme()
+        {
+            var app = Application.Current;
+            if (app == null)
+                return;
+
+            Microsoft.Maui.ApplicationModel.AppTheme systemTheme;
+            switch (CurrentTheme)
+            {
+                case AppThemeModel.Light:
+                    systemTheme = Microsoft.Maui.ApplicationModel.AppTheme.Light;
+                    break;
+                case AppThemeModel.Dark:
+                    systemTheme = Microsoft.Maui.ApplicationModel.AppTheme.Dark;
+                    break;
+                case AppThemeModel.Custom:
+                    systemTheme = Microsoft.Maui.ApplicationModel.AppTheme.Dark; // Custom için koyu baz al
+                    break;
+                default:
+                    systemTheme = Microsoft.Maui.ApplicationModel.AppTheme.Light;
+                    break;
+            }
+
+            app.UserAppTheme = systemTheme;
+        }
+
+        /// <summary>
+        /// Temayı tercihlerden yükler
+        /// </summary>
+        private void LoadThemeFromPreferences()
+        {
+            try
+            {
+                var themeString = Preferences.Get(ThemePreferenceKey, AppThemeModel.Light.ToString());
+                if (Enum.TryParse<AppThemeModel>(themeString, out var theme))
+                {
+                    _currentTheme = theme;
+                }
+                else
+                {
+                    _currentTheme = AppThemeModel.Light;
+                }
+            }
+            catch
+            {
+                _currentTheme = AppThemeModel.Light;
+            }
+        }
+
+        /// <summary>
+        /// Temayı tercihlerden kaydeder
+        /// </summary>
+        private void SaveThemeToPreferences()
+        {
+            try
+            {
+                Preferences.Set(ThemePreferenceKey, CurrentTheme.ToString());
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't crash
+                System.Diagnostics.Debug.WriteLine($"Failed to save theme preference: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Tema rengini alır
+        /// </summary>
+        public Color GetThemeColor(string key)
+        {
+            if (_currentThemeResources.TryGetValue(key, out var value) && value is Color color)
+            {
+                return color;
+            }
+
+            // Fallback renkler
+            return key switch
+            {
+                PrimaryColorKey => Color.FromArgb("#2196F3"),
+                SecondaryColorKey => Color.FromArgb("#00BCD4"),
+                AccentColorKey => Color.FromArgb("#FFC107"),
+                BackgroundColorKey => IsDarkMode ? Color.FromArgb("#121212") : Color.FromArgb("#F5F5F5"),
+                SurfaceColorKey => IsDarkMode ? Color.FromArgb("#1E1E1E") : Color.FromArgb("#FFFFFF"),
+                TextColorKey => IsDarkMode ? Color.FromArgb("#FFFFFF") : Color.FromArgb("#212121"),
+                _ => Colors.Black
+            };
+        }
+
+        /// <summary>
+        /// Tema stilini alır
+        /// </summary>
+        public Style GetThemeStyle(string key)
+        {
+            if (_currentThemeResources.TryGetValue(key, out var value) && value is Style style)
+            {
+                return style;
+            }
+
+            return new Style(typeof(object));
+        }
+
+        /// <summary>
+        /// Property değişikliği bildirimi
+        /// </summary>
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+    /// <summary>
+    /// Tema değişikliği olay argümanları
+    /// </summary>
+    public class ThemeChangedEventArgs : EventArgs
+    {
+        public AppThemeModel OldTheme { get; }
+        public AppThemeModel NewTheme { get; }
+
+        public ThemeChangedEventArgs(AppThemeModel oldTheme, AppThemeModel newTheme)
+        {
+            OldTheme = oldTheme;
+            NewTheme = newTheme;
+        }
+    }
+}

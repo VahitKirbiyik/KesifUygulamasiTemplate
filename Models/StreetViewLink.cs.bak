@@ -1,0 +1,94 @@
+using System;
+
+namespace KesifUygulamasiTemplate.Models
+{
+    /// <summary>
+    /// Represents a connection between two Street View panoramas
+    /// </summary>
+    public class StreetViewLink
+    {
+        /// <summary>
+        /// ID of the source panorama
+        /// </summary>
+        public string FromId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// ID of the target panorama
+        /// </summary>
+        public string ToId { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Bearing angle in degrees (0 = North, 90 = East)
+        /// </summary>
+        public double Bearing { get; set; }
+
+        /// <summary>
+        /// Description of the link direction
+        /// </summary>
+        public string Description { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Distance to the target panorama in meters
+        /// </summary>
+        public double Distance { get; set; }
+
+        /// <summary>
+        /// Creates a new StreetViewLink instance
+        /// </summary>
+        public StreetViewLink() { }
+
+        /// <summary>
+        /// Creates a new StreetViewLink instance with basic information
+        /// </summary>
+        public StreetViewLink(string fromId, string toId, double bearing)
+        {
+            FromId = fromId;
+            ToId = toId;
+            Bearing = bearing;
+        }
+
+        /// <summary>
+        /// Creates a new StreetViewLink instance with full information
+        /// </summary>
+        public StreetViewLink(string fromId, string toId, double bearing, string description, double distance)
+        {
+            FromId = fromId;
+            ToId = toId;
+            Bearing = bearing;
+            Description = description;
+            Distance = distance;
+        }
+
+        /// <summary>
+        /// Gets the cardinal direction name for the bearing
+        /// </summary>
+        public string GetCardinalDirection()
+        {
+            var directions = new[] { "North", "Northeast", "East", "Southeast", "South", "Southwest", "West", "Northwest" };
+            var index = (int)Math.Round(Bearing / 45) % 8;
+            return directions[index];
+        }
+
+        /// <summary>
+        /// Gets a user-friendly description of the link
+        /// </summary>
+        public string GetDirectionDescription()
+        {
+            if (!string.IsNullOrEmpty(Description))
+                return Description;
+
+            var direction = GetCardinalDirection();
+            return $"{direction} ({Math.Round(Bearing)}°)";
+        }
+
+        /// <summary>
+        /// Checks if this link points approximately in the given direction
+        /// </summary>
+        public bool IsInDirection(double targetBearing, double tolerance = 22.5)
+        {
+            var diff = Math.Abs(Bearing - targetBearing);
+            diff = Math.Min(diff, 360 - diff); // Handle wraparound
+            return diff <= tolerance;
+        }
+    }
+}

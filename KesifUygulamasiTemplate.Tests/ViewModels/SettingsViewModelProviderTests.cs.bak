@@ -1,0 +1,110 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Moq;
+using Xunit;
+using KesifUygulamasiTemplate.ViewModels;
+using KesifUygulamasiTemplate.Services.Interfaces;
+
+namespace KesifUygulamasiTemplate.Tests.ViewModels
+{
+    public class SettingsViewModelProviderTests
+    {
+        private readonly Mock<IPreferencesService> _mockPreferencesService;
+        private readonly Mock<ILocationPrivacyService> _mockLocationPrivacyService;
+        private readonly SettingsViewModel _viewModel;
+
+        public SettingsViewModelProviderTests()
+        {
+            _mockPreferencesService = new Mock<IPreferencesService>();
+            _mockLocationPrivacyService = new Mock<ILocationPrivacyService>();
+            _viewModel = new SettingsViewModel(_mockPreferencesService.Object, _mockLocationPrivacyService.Object);
+        }
+
+        [Fact]
+        public void MapProviders_ContainsAllExpectedProviders()
+        {
+            // Arrange & Act
+            var providers = _viewModel.MapProviders;
+
+            // Assert
+            Assert.Contains("Google", providers);
+            Assert.Contains("Mapbox", providers);
+            Assert.Contains("HERE", providers);
+            Assert.Contains("Offline", providers);
+            Assert.Equal(4, providers.Length);
+        }
+
+        [Fact]
+        public void RouteOptimizationTypes_ContainsAllExpectedTypes()
+        {
+            // Arrange & Act
+            var types = _viewModel.RouteOptimizationTypes;
+
+            // Assert
+            Assert.Contains("Fastest", types);
+            Assert.Contains("Shortest", types);
+            Assert.Contains("Eco", types);
+            Assert.Contains("Safe", types);
+            Assert.Equal(4, types.Length);
+        }
+
+        [Fact]
+        public void SelectedMapProvider_PropertyChanged_NotifiesCorrectly()
+        {
+            // Arrange
+            var propertyChangedCalled = false;
+            _viewModel.PropertyChanged += (sender, e) =>
+            {
+                if (e.PropertyName == nameof(_viewModel.SelectedMapProvider))
+                    propertyChangedCalled = true;
+            };
+
+            // Act
+            _viewModel.SelectedMapProvider = "Mapbox";
+
+            // Assert
+            Assert.True(propertyChangedCalled);
+            Assert.Equal("Mapbox", _viewModel.SelectedMapProvider);
+        }
+
+        [Fact]
+        public void SelectedRouteOptimization_PropertyChanged_NotifiesCorrectly()
+        {
+            // Arrange
+            var propertyChangedCalled = false;
+            _viewModel.PropertyChanged += (sender, e) =>
+            {
+                if (e.PropertyName == nameof(_viewModel.SelectedRouteOptimization))
+                    propertyChangedCalled = true;
+            };
+
+            // Act
+            _viewModel.SelectedRouteOptimization = "Eco";
+
+            // Assert
+            Assert.True(propertyChangedCalled);
+            Assert.Equal("Eco", _viewModel.SelectedRouteOptimization);
+        }
+
+        [Fact]
+        public void SelectedMapProvider_DefaultValue_IsGoogle()
+        {
+            // Arrange & Act
+            var defaultProvider = _viewModel.SelectedMapProvider;
+
+            // Assert
+            Assert.Equal("Google", defaultProvider);
+        }
+
+        [Fact]
+        public void SelectedRouteOptimization_DefaultValue_IsFastest()
+        {
+            // Arrange & Act
+            var defaultType = _viewModel.SelectedRouteOptimization;
+
+            // Assert
+            Assert.Equal("Fastest", defaultType);
+        }
+    }
+}

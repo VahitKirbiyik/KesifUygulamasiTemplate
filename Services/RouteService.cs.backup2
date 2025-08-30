@@ -1,0 +1,376 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Net.Http;
+using System.Text.Json;
+using KesifUygulamasiTemplate.Models;
+using KesifUygulamasiTemplate.Services;
+using KesifUygulamasiTemplate.Services.Interfaces;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// İki konum arası rota bilgisini sağlayan servis implementasyonu
+    /// Google Maps Directions API, Mapbox Directions API ve HERE Maps desteği
+    /// </summary>
+    public class RouteService : IRouteService
+    {
+        private readonly HttpClient _httpClient;
+        private readonly ConnectivityService _connectivityService;
+        private readonly ILogger<RouteService> _logger;
+        private readonly LocalizationService _localizationService;
+        private readonly MonitoringService _monitoringService;
+        private readonly string _googleMapsApiKey;
+        private readonly string _mapboxApiKey;
+        private readonly string? _hereApiKey;
+        private readonly string? _hereAppId;
+        private const string GOOGLE_MAPS_API_URL = "https://maps.googleapis.com/maps/api/directions/json";
+        private const string MAPBOX_API_URL = "https://api.mapbox.com/directions/v5/mapbox/driving";
+        private const string HERE_API_URL = "https://router.hereapi.com/v8/routes";
+
+        public RouteService(HttpClient httpClient, ConnectivityService connectivityService, ILogger<RouteService> logger, LocalizationService localizationService, MonitoringService monitoringService)
+        {
+            _httpClient = httpClient;
+            _connectivityService = connectivityService;
+            _logger = logger;
+            _localizationService = localizationService;
+            _monitoringService = monitoringService;
+
+            // API anahtarları - gerçek uygulamada secure storage'dan alınmalı
+            _googleMapsApiKey = Environment.GetEnvironmentVariable("GOOGLE_MAPS_API_KEY") ?? "YOUR_GOOGLE_MAPS_API_KEY";
+            _mapboxApiKey = Environment.GetEnvironmentVariable("MAPBOX_API_KEY") ?? "YOUR_MAPBOX_API_KEY";
+            _hereApiKey = Environment.GetEnvironmentVariable("HERE_API_KEY") ?? "YOUR_HERE_API_KEY";
+            _hereAppId = Environment.GetEnvironmentVariable("HERE_APP_ID") ?? "YOUR_HERE_APP_ID";
+        }
+
+        /// <summary>
+        /// Gerçek rota API'leri kullanarak rota hesaplar
+        /// </summary>
+        public async Task<System.Collections.Generic.List<LocationModel>> GetRouteAsync(LocationModel start, LocationModel end, RouteOptimizationType optimizationType = RouteOptimizationType.Fastest)
+        {
+            // Offline kontrolü
+            if (!_connectivityService.IsConnected)
+            {
+                return await GetOfflineRouteAsync(start, end, optimizationType);
+            }
+
+            try
+            {
+                // Provider seçimi ve loglama
+                var provider = await GetBestProviderAsync(optimizationType);
+                _logger.LogInformation($"Routing provider: {provider}, Optimization: {optimizationType}");
+
+                // Monitoring loglama
+                _monitoringService.LogProviderUsage(provider);
+                _monitoringService.LogRouteTypeUsage(optimizationType.ToString());
+
+                List<LocationModel>? route = null;
+
+                // Provider'a göre rota hesapla
+                switch (provider)
+                {
+                    case "Google":
+                        route = await GetGoogleMapsRouteAsync(start, end, optimizationType);
+                        break;
+                    case "Mapbox":
+                        route = await GetMapboxRouteAsync(start, end, optimizationType);
+                        break;
+                    case "HERE":
+                        route = await GetHereMapsRouteAsync(start, end, optimizationType);
+                        break;
+                }
+
+                if (route != null && route.Count > 0)
+                {
+                    return route;
+                }
+
+                // Tüm API'ler başarısız olursa basit rota döndür
+                _logger.LogInformation("Routing provider: Offline/Simple Route");
+                return await GetSimpleRouteAsync(start, end);
+            }
+            catch (Exception ex)
+            {
+                // Hata durumunda basit rota
+                System.Diagnostics.Debug.WriteLine($"Rota hesaplanırken hata: {ex.Message}");
+                return await GetSimpleRouteAsync(start, end);
+            }
+        }
+
+        /// <summary>
+        /// En iyi provider'ı seçer
+        /// </summary>
+        private Task<string> GetBestProviderAsync(RouteOptimizationType optimizationType)
+        {
+            // Basit fallback mantığı - gerçek uygulamada daha sofistike olabilir
+            if (!string.IsNullOrEmpty(_googleMapsApiKey) && !_googleMapsApiKey.Contains("YOUR_"))
+                return Task.FromResult("Google");
+            if (!string.IsNullOrEmpty(_mapboxApiKey) && !_mapboxApiKey.Contains("YOUR_"))
+                return Task.FromResult("Mapbox");
+            if (!string.IsNullOrEmpty(_hereApiKey) && !_hereApiKey.Contains("YOUR_"))
+                return Task.FromResult("HERE");
+            return Task.FromResult("Offline");
+        }
+
+        /// <summary>
+        /// Google Maps Directions API ile rota hesaplar
+        /// </summary>
+        private async Task<List<LocationModel>> GetGoogleMapsRouteAsync(LocationModel start, LocationModel end, RouteOptimizationType optimizationType)
+        {
+            if (string.IsNullOrEmpty(_googleMapsApiKey) || _googleMapsApiKey.Contains("YOUR_"))
+                return new List<LocationModel>();
+
+            // Optimizasyon türüne göre mode belirle
+            string mode = optimizationType switch
+            {
+                RouteOptimizationType.Fastest => "driving",
+                RouteOptimizationType.Shortest => "driving",
+                RouteOptimizationType.Eco => "driving",
+                RouteOptimizationType.Safe => "walking", // Güvenli rota için yürüyüş
+                _ => "driving"
+            };
+
+            var url = $"{GOOGLE_MAPS_API_URL}?origin={start.Latitude},{start.Longitude}&destination={end.Latitude},{end.Longitude}&key={_googleMapsApiKey}&mode={mode}&avoid=tolls";
+
+            var response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+                return new List<LocationModel>();
+
+            var content = await response.Content.ReadAsStringAsync();
+            var googleResponse = JsonSerializer.Deserialize<GoogleMapsResponse>(content);
+
+            if (googleResponse?.Status != "OK" || googleResponse.Routes == null || googleResponse.Routes.Length == 0)
+                return new List<LocationModel>();
+
+            var route = new List<LocationModel>();
+            var overviewPath = googleResponse.Routes[0]?.OverviewPolyline?.Points;
+
+            if (string.IsNullOrEmpty(overviewPath))
+            {
+                route.Add(start);
+                route.Add(end);
+                return route;
+            }
+
+            return route;
+        }
+
+        /// <summary>
+        /// Mapbox Directions API ile rota hesaplar
+        /// </summary>
+        private async Task<List<LocationModel>> GetMapboxRouteAsync(LocationModel start, LocationModel end, RouteOptimizationType optimizationType)
+        {
+            if (string.IsNullOrEmpty(_mapboxApiKey) || _mapboxApiKey.Contains("YOUR_"))
+                return new List<LocationModel>();
+
+            // Optimizasyon türüne göre profile belirle
+            string profile = optimizationType switch
+            {
+                RouteOptimizationType.Fastest => "driving",
+                RouteOptimizationType.Shortest => "driving",
+                RouteOptimizationType.Eco => "driving",
+                RouteOptimizationType.Safe => "walking",
+                _ => "driving"
+            };
+
+            var url = $"{MAPBOX_API_URL}/{start.Longitude},{start.Latitude};{end.Longitude},{end.Latitude}?access_token={_mapboxApiKey}&geometries=geojson&profile=mapbox/{profile}";
+
+            var response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+                return new List<LocationModel>();
+
+            var content = await response.Content.ReadAsStringAsync();
+            var mapboxResponse = JsonSerializer.Deserialize<MapboxResponse>(content);
+
+            if (mapboxResponse?.Routes == null || mapboxResponse.Routes.Length == 0)
+                return new List<LocationModel>();
+
+            var route = new List<LocationModel>();
+            var geometry = mapboxResponse.Routes[0]?.Geometry;
+            var coordinates = geometry?.Coordinates;
+
+            if (coordinates == null)
+                return new List<LocationModel>();
+
+            foreach (var coord in coordinates)
+            {
+                route.Add(new LocationModel
+                {
+                    Latitude = coord[1],
+                    Longitude = coord[0]
+                });
+            }
+
+            return route;
+        }
+
+        /// <summary>
+        /// Offline durumda basit rota hesaplar
+        /// </summary>
+        private async Task<List<LocationModel>> GetOfflineRouteAsync(LocationModel start, LocationModel end, RouteOptimizationType optimizationType)
+        {
+            // Offline önbellekten rota kontrolü
+            // Gerçek implementasyonda veritabanından rota çekilmeli
+
+            // Mesafe hesapla (basit Haversine formülü)
+            double distanceKm = CalculateDistance(start.Latitude, start.Longitude, end.Latitude, end.Longitude);
+
+            // Offline ETA hesaplama
+            var eta = OfflineRouteSimulator.EstimateDuration(distanceKm);
+            var etaMessage = _localizationService.GetString("OfflineETA", eta.TotalMinutes);
+            _logger.LogInformation(etaMessage);
+
+            return await GetSimpleRouteAsync(start, end);
+        }
+
+        /// <summary>
+        /// Basit doğrusal rota hesaplar (fallback)
+        /// </summary>
+        private async Task<List<LocationModel>> GetSimpleRouteAsync(LocationModel start, LocationModel end)
+        {
+            await Task.Delay(100); // Simüle edilmiş ağ gecikmesi
+
+            var route = new List<LocationModel>();
+
+            // Başlangıç noktasını ekleyin
+            route.Add(start);
+
+            // İki nokta arasında birkaç ara nokta oluşturun
+            int steps = 10;
+            for (int i = 1; i < steps; i++)
+            {
+                double factor = (double)i / steps;
+                double latitude = start.Latitude + (end.Latitude - start.Latitude) * factor;
+                double longitude = start.Longitude + (end.Longitude - start.Longitude) * factor;
+                route.Add(new LocationModel { Latitude = latitude, Longitude = longitude });
+            }
+
+            return route;
+        }
+
+        /// <summary>
+        /// İki konum arası mesafeyi hesaplar (Haversine formülü)
+        /// </summary>
+        private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
+        {
+            const double R = 6371; // Dünya yarıçapı km
+            double dLat = (lat2 - lat1) * Math.PI / 180;
+            double dLon = (lon2 - lon1) * Math.PI / 180;
+            double a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                      Math.Cos(lat1 * Math.PI / 180) * Math.Cos(lat2 * Math.PI / 180) *
+                      Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+            double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+            return R * c;
+        }
+
+        /// <summary>
+        /// HERE Maps Directions API ile rota hesaplar
+        /// </summary>
+        private async Task<List<LocationModel>> GetHereMapsRouteAsync(LocationModel start, LocationModel end, RouteOptimizationType optimizationType)
+        {
+            if (string.IsNullOrEmpty(_hereApiKey) || string.IsNullOrEmpty(_hereAppId))
+                return new List<LocationModel>();
+
+            try
+            {
+                // Optimizasyon türüne göre transport mode belirle
+                string transportMode = optimizationType switch
+                {
+                    RouteOptimizationType.Fastest => "car",
+                    RouteOptimizationType.Shortest => "car",
+                    RouteOptimizationType.Eco => "car",
+                    RouteOptimizationType.Safe => "pedestrian",
+                    _ => "car"
+                };
+
+                var url = $"{HERE_API_URL}?transportMode={transportMode}&origin={start.Latitude},{start.Longitude}&destination={end.Latitude},{end.Longitude}&return=polyline&apiKey={_hereApiKey}";
+
+                var response = await _httpClient.GetAsync(url);
+                if (!response.IsSuccessStatusCode)
+                    return new List<LocationModel>();
+
+                var content = await response.Content.ReadAsStringAsync();
+                var hereResponse = JsonSerializer.Deserialize<HereMapsResponse>(content, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (hereResponse?.Routes == null || hereResponse.Routes.Length == 0)
+                    return new List<LocationModel>();
+
+                var route = new List<LocationModel>();
+                var sections = hereResponse.Routes[0]?.Sections;
+                if (sections == null || sections.Length == 0)
+                    return new List<LocationModel>();
+
+                var polyline = sections[0]?.Polyline;
+
+                if (string.IsNullOrEmpty(polyline))
+                    return new List<LocationModel>();
+
+                // HERE Maps polyline'ı decode et
+                var decodedCoords = PolylineDecoder.Decode(polyline);
+                foreach (var coord in decodedCoords)
+                {
+                    route.Add(new LocationModel { Latitude = coord.Lat, Longitude = coord.Lng });
+                }
+
+                return route;
+            }
+            catch
+            {
+                return new List<LocationModel>();
+            }
+        }
+    }
+
+    // API Response modelleri
+    public class GoogleMapsResponse
+    {
+        public string? Status { get; set; }
+        public GoogleRoute[]? Routes { get; set; }
+    }
+
+    public class GoogleRoute
+    {
+        public GooglePolyline? OverviewPolyline { get; set; }
+    }
+
+    public class GooglePolyline
+    {
+        public string? Points { get; set; }
+    }
+
+    public class MapboxResponse
+    {
+        public MapboxRoute[]? Routes { get; set; }
+    }
+
+    public class MapboxRoute
+    {
+        public MapboxGeometry? Geometry { get; set; }
+    }
+
+    public class MapboxGeometry
+    {
+        public double[][]? Coordinates { get; set; }
+    }
+
+    // HERE Maps API Response modelleri
+    public class HereMapsResponse
+    {
+        public HereRoute[]? Routes { get; set; }
+    }
+
+    public class HereRoute
+    {
+        public HereSection[]? Sections { get; set; }
+    }
+
+    public class HereSection
+    {
+        public string? Polyline { get; set; }
+    }
+}

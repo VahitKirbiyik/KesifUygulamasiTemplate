@@ -1,0 +1,560 @@
+# Test-VoiceGuidance.ps1
+# Voice guidance playback and offline validation test script
+# Tests TTS integration and offline voice navigation
+
+param(
+    [string]$ProjectPath = $PSScriptRoot,
+    [string]$TestEnvironment = "Development",
+    [switch]$EnableVoicePlayback = $true,
+    [switch]$TestOfflineMode = $true,
+    [switch]$EnableBadgeTrigger = $true,
+    [switch]$GenerateTestReport = $true,
+    [int]$VoiceInstructions = 10,
+    [string]$TtsEngine = "System.Speech",  # System.Speech or Azure Cognitive Services
+    [string]$VoiceLanguage = "tr-TR",
+    [string]$VoiceName = "Microsoft Server Speech Text to Speech Voice (tr-TR, Tolga)",
+    [int]$PlaybackDelayMs = 500,
+    [switch]$CacheVoiceFiles = $true
+)
+
+# Environment variables for voice guidance testing
+$env:VOICE_GUIDANCE_TEST_ENABLED = $EnableVoicePlayback.ToString().ToLower()
+$env:OFFLINE_VOICE_MODE = $TestOfflineMode.ToString().ToLower()
+$env:TTS_ENGINE = $TtsEngine
+$env:VOICE_LANGUAGE = $VoiceLanguage
+$env:BADGE_TRIGGER_ENABLED = $EnableBadgeTrigger.ToString().ToLower()
+
+# Test configuration
+$testConfig = @{
+    ProjectPath = $ProjectPath
+    TestEnvironment = $TestEnvironment
+    StartTime = Get-Date
+    VoiceInstructions = $VoiceInstructions
+    VoiceFilesGenerated = 0
+    VoiceFilesPlayed = 0
+    OfflineTestsPassed = 0
+    CacheHits = 0
+    TestResults = @()
+    BadgeTriggers = @()
+}
+
+# Create test output directories
+$testOutputPath = Join-Path $ProjectPath "test-results\voice-guidance"
+$voiceCachePath = Join-Path $testOutputPath "voice-cache"
+New-Item -ItemType Directory -Force -Path $testOutputPath | Out-Null
+New-Item -ItemType Directory -Force -Path $voiceCachePath | Out-Null
+
+Write-Host "=== Voice Guidance Test Started ===" -ForegroundColor Cyan
+Write-Host "Project Path: $ProjectPath" -ForegroundColor Gray
+Write-Host "Test Environment: $TestEnvironment" -ForegroundColor Gray
+Write-Host "Voice Instructions: $VoiceInstructions" -ForegroundColor Gray
+Write-Host "TTS Engine: $TtsEngine" -ForegroundColor Gray
+Write-Host ""
+
+# Test classes
+class VoiceInstruction {
+    [string]$Id
+    [string]$Text
+    [string]$Type  # Navigation, Warning, Confirmation
+    [int]$Priority  # 1-5, higher is more important
+    [DateTime]$CreatedTime
+    [string]$Language
+    [hashtable]$Metadata
+
+    VoiceInstruction([string]$text, [string]$type, [int]$priority) {
+        $this.Id = [guid]::NewGuid().ToString()
+        $this.Text = $text
+        $this.Type = $type
+        $this.Priority = $priority
+        $this.CreatedTime = Get-Date
+        $this.Language = "tr-TR"
+        $this.Metadata = @{}
+    }
+}
+
+class VoicePlaybackResult {
+    [string]$InstructionId
+    [string]$Text
+    [bool]$Generated
+    [bool]$Played
+    [bool]$Cached
+    [DateTime]$GenerationTime
+    [DateTime]$PlaybackTime
+    [TimeSpan]$PlaybackDuration
+    [string]$CacheFilePath
+    [string]$ErrorMessage
+    [hashtable]$Metadata
+
+    VoicePlaybackResult([VoiceInstruction]$instruction) {
+        $this.InstructionId = $instruction.Id
+        $this.Text = $instruction.Text
+        $this.Generated = $false
+        $this.Played = $false
+        $this.Cached = $false
+        $this.Metadata = @{}
+    }
+}
+
+class MockVoiceGuide {
+    [string]$TtsEngine
+    [string]$VoiceLanguage
+    [string]$VoiceName
+    [string]$CacheDirectory
+    [System.Collections.Generic.Queue[VoiceInstruction]]$VoiceQueue
+    [System.Collections.Generic.Dictionary[string, VoicePlaybackResult]]$PlaybackHistory
+    [bool]$OfflineMode
+
+    MockVoiceGuide([string]$engine, [string]$language, [string]$voice, [string]$cacheDir) {
+        $this.TtsEngine = $engine
+        $this.VoiceLanguage = $language
+        $this.VoiceName = $voice
+        $this.CacheDirectory = $cacheDir
+        $this.VoiceQueue = New-Object System.Collections.Generic.Queue[VoiceInstruction]
+        $this.PlaybackHistory = New-Object System.Collections.Generic.Dictionary[string, VoicePlaybackResult]
+        $this.OfflineMode = $false
+    }
+
+    [void]SetOfflineMode([bool]$offline) {
+        $this.OfflineMode = $offline
+    }
+
+    [VoicePlaybackResult]SpeakText([string]$text, [string]$type = "Navigation", [int]$priority = 3) {
+        $instruction = [VoiceInstruction]::new($text, $type, $priority)
+        return $this.SpeakInstruction($instruction)
+    }
+
+    [VoicePlaybackResult]SpeakInstruction([VoiceInstruction]$instruction) {
+        $result = [VoicePlaybackResult]::new($instruction)
+        $cacheKey = $this.GetCacheKey($instruction.Text)
+        $cacheFilePath = Join-Path $this.CacheDirectory "$cacheKey.wav"
+
+        # Check cache first
+        if ($CacheVoiceFiles -and (Test-Path $cacheFilePath)) {
+            $result.Cached = $true
+            $result.CacheFilePath = $cacheFilePath
+            $testConfig.CacheHits++
+        } else {
+            # Generate voice file
+            try {
+                $result.GenerationTime = Get-Date
+                $generationSuccess = $this.GenerateVoiceFile($instruction.Text, $cacheFilePath)
+                $result.Generated = $generationSuccess
+
+                if ($generationSuccess) {
+                    $result.CacheFilePath = $cacheFilePath
+                    $testConfig.VoiceFilesGenerated++
+                } else {
+                    $result.ErrorMessage = "Voice file generation failed"
+                }
+            }
+            catch {
+                $result.Generated = $false
+                $result.ErrorMessage = "Voice generation error: $($_.Exception.Message)"
+            }
+        }
+
+        # Play voice file
+        if ($result.Generated -or $result.Cached) {
+            try {
+                $result.PlaybackTime = Get-Date
+                $playbackSuccess = $this.PlayVoiceFile($cacheFilePath)
+                $result.Played = $playbackSuccess
+
+                if ($playbackSuccess) {
+                    $result.PlaybackDuration = New-TimeSpan -Start $result.PlaybackTime -End (Get-Date)
+                    $testConfig.VoiceFilesPlayed++
+                } else {
+                    $result.ErrorMessage = "Voice playback failed"
+                }
+            }
+            catch {
+                $result.Played = $false
+                $result.ErrorMessage = "Voice playback error: $($_.Exception.Message)"
+            }
+        }
+
+        $this.PlaybackHistory[$instruction.Id] = $result
+        return $result
+    }
+
+    [bool]GenerateVoiceFile([string]$text, [string]$outputPath) {
+        try {
+            if ($this.OfflineMode) {
+                # Simulate offline voice generation
+                Start-Sleep -Milliseconds (Get-Random -Minimum 200 -Maximum 800)
+                # Create a dummy file to simulate voice file
+                "Simulated voice data for: $text" | Out-File -FilePath $outputPath -Encoding UTF8
+                return $true
+            }
+
+            # Use System.Speech for TTS
+            Add-Type -AssemblyName System.Speech
+            $speechSynthesizer = New-Object System.Speech.Synthesis.SpeechSynthesizer
+
+            if ($this.VoiceName) {
+                try {
+                    $speechSynthesizer.SelectVoice($this.VoiceName)
+                }
+                catch {
+                    # Voice not found, use default
+                    Write-Warning "Voice '$($this.VoiceName)' not found, using default voice"
+                }
+            }
+
+            $speechSynthesizer.SetOutputToWaveFile($outputPath)
+            $speechSynthesizer.Speak($text)
+            $speechSynthesizer.SetOutputToDefaultAudioDevice()
+
+            return $true
+        }
+        catch {
+            Write-Warning "Voice generation failed: $($_.Exception.Message)"
+            return $false
+        }
+    }
+
+    [bool]PlayVoiceFile([string]$filePath) {
+        try {
+            if ($this.OfflineMode) {
+                # Simulate offline playback
+                Start-Sleep -Milliseconds (Get-Random -Minimum 500 -Maximum 2000)
+                return $true
+            }
+
+            # Play the voice file
+            $soundPlayer = New-Object System.Media.SoundPlayer
+            $soundPlayer.SoundLocation = $filePath
+            $soundPlayer.PlaySync()
+
+            return $true
+        }
+        catch {
+            Write-Warning "Voice playback failed: $($_.Exception.Message)"
+            return $false
+        }
+    }
+
+    [string]GetCacheKey([string]$text) {
+        $hash = [System.Security.Cryptography.SHA256]::Create()
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($text.ToLower())
+        $hashBytes = $hash.ComputeHash($bytes)
+        return [BitConverter]::ToString($hashBytes).Replace("-", "").ToLower()
+    }
+
+    [void]QueueVoiceInstruction([VoiceInstruction]$instruction) {
+        $this.VoiceQueue.Enqueue($instruction)
+    }
+
+    [VoicePlaybackResult]ProcessNextInstruction() {
+        if ($this.VoiceQueue.Count -gt 0) {
+            $instruction = $this.VoiceQueue.Dequeue()
+            return $this.SpeakInstruction($instruction)
+        }
+        return $null
+    }
+
+    [int]GetQueueLength() {
+        return $this.VoiceQueue.Count
+    }
+}
+
+# Initialize mock voice guide
+$mockVoiceGuide = [MockVoiceGuide]::new($TtsEngine, $VoiceLanguage, $VoiceName, $voiceCachePath)
+
+# Test functions
+function Test-VoicePlayback {
+    Write-Host "Testing Voice Playback..." -ForegroundColor Yellow
+
+    $playbackResults = @()
+    $testInstructions = @(
+        "100 metre sonra sağa dönün",
+        "Hedefe 500 metre kaldı",
+        "Trafik yoğunluğu nedeniyle alternatif rota öneriliyor",
+        "Hız limitiniz saatte 50 kilometre",
+        "Varış noktasına ulaştınız",
+        "Yol çalışması nedeniyle yönlendirme değişti",
+        "Şeritte kalın ve hızınızı azaltın",
+        "Bir sonraki kavşakta sola dönün",
+        "Park yeri 200 metre ileride",
+        "Navigasyon sona erdi"
+    )
+
+    foreach ($instruction in $testInstructions) {
+        $result = $mockVoiceGuide.SpeakText($instruction, "Navigation", 3)
+        $playbackResults += $result
+
+        if ($result.Played) {
+            Write-Host "✓ Voice played: $($instruction)" -ForegroundColor Green
+        } else {
+            Write-Host "✗ Voice failed: $($instruction) - $($result.ErrorMessage)" -ForegroundColor Red
+        }
+
+        # Add delay between instructions
+        Start-Sleep -Milliseconds $PlaybackDelayMs
+    }
+
+    return $playbackResults
+}
+
+function Test-OfflineMode {
+    Write-Host "Testing Offline Voice Mode..." -ForegroundColor Yellow
+
+    $offlineResults = @()
+
+    # Enable offline mode
+    $mockVoiceGuide.SetOfflineMode($true)
+
+    $offlineInstructions = @(
+        "Offline modda navigasyon aktif",
+        "İnternet bağlantısı kesildi",
+        "Önbellekten sesli yönlendirme kullanılıyor",
+        "Lütfen dikkatli sürün"
+    )
+
+    foreach ($instruction in $offlineInstructions) {
+        $result = $mockVoiceGuide.SpeakText($instruction, "Warning", 5)
+        $offlineResults += $result
+
+        if ($result.Played) {
+            Write-Host "✓ Offline voice played: $($instruction)" -ForegroundColor Green
+            $testConfig.OfflineTestsPassed++
+        } else {
+            Write-Host "✗ Offline voice failed: $($instruction) - $($result.ErrorMessage)" -ForegroundColor Red
+        }
+
+        Start-Sleep -Milliseconds ($PlaybackDelayMs / 2)
+    }
+
+    # Disable offline mode
+    $mockVoiceGuide.SetOfflineMode($false)
+
+    return $offlineResults
+}
+
+function Test-VoiceQueue {
+    Write-Host "Testing Voice Queue Management..." -ForegroundColor Yellow
+
+    $queueResults = @()
+
+    # Queue multiple instructions
+    $queueInstructions = @(
+        ([VoiceInstruction]::new("İlk yönlendirme", "Navigation", 1)),
+        ([VoiceInstruction]::new("Önemli uyarı", "Warning", 5)),
+        ([VoiceInstruction]::new("Normal yönlendirme", "Navigation", 3)),
+        ([VoiceInstruction]::new("Onay mesajı", "Confirmation", 2))
+    )
+
+    foreach ($instruction in $queueInstructions) {
+        $mockVoiceGuide.QueueVoiceInstruction($instruction)
+    }
+
+    Write-Host "  Queue length: $($mockVoiceGuide.GetQueueLength())" -ForegroundColor Cyan
+
+    # Process queue
+    while ($mockVoiceGuide.GetQueueLength() -gt 0) {
+        $result = $mockVoiceGuide.ProcessNextInstruction()
+        if ($result) {
+            $queueResults += $result
+            Write-Host "  Processed: $($result.Text)" -ForegroundColor Green
+        }
+    }
+
+    return $queueResults
+}
+
+function Test-BadgeTriggers {
+    Write-Host "Testing Badge Triggers..." -ForegroundColor Yellow
+
+    $badgeResults = @()
+
+    # Test Voice-Enabled badge (requires 10 successful voice navigations)
+    if ($testConfig.VoiceFilesPlayed -ge 10) {
+        $badge = @{
+            BadgeName = "Voice-Enabled"
+            TriggerReason = "10 successful voice navigation instructions"
+            TriggerTime = Get-Date
+            Triggered = $true
+            Details = "Successfully played $testConfig.VoiceFilesPlayed voice instructions"
+        }
+        $badgeResults += $badge
+        Write-Host "✓ Voice-Enabled badge triggered!" -ForegroundColor Green
+    }
+
+    return $badgeResults
+}
+
+function Test-PerformanceMetrics {
+    Write-Host "Testing Performance Metrics..." -ForegroundColor Yellow
+
+    $metrics = @{
+        TotalInstructions = $VoiceInstructions
+        VoiceFilesGenerated = $testConfig.VoiceFilesGenerated
+        VoiceFilesPlayed = $testConfig.VoiceFilesPlayed
+        CacheHits = $testConfig.CacheHits
+        OfflineTestsPassed = $testConfig.OfflineTestsPassed
+        SuccessRate = [math]::Round(($testConfig.VoiceFilesPlayed / $VoiceInstructions) * 100, 2)
+        CacheHitRate = if (($testConfig.VoiceFilesGenerated + $testConfig.CacheHits) -gt 0) {
+            [math]::Round(($testConfig.CacheHits / ($testConfig.VoiceFilesGenerated + $testConfig.CacheHits)) * 100, 2)
+        } else { 0 }
+        AverageGenerationTime = 0
+        AveragePlaybackDuration = 0
+    }
+
+    # Calculate average times
+    $generationTimes = @()
+    $playbackDurations = @()
+
+    foreach ($result in $mockVoiceGuide.PlaybackHistory.Values) {
+        if ($result.Generated -and $result.GenerationTime) {
+            $generationTimes += (Get-Date) - $result.GenerationTime
+        }
+
+        if ($result.Played -and $result.PlaybackDuration) {
+            $playbackDurations += $result.PlaybackDuration.TotalMilliseconds
+        }
+    }
+
+    if ($generationTimes.Count -gt 0) {
+        $avgGenTime = ($generationTimes | Measure-Object -Average).Average
+        $metrics.AverageGenerationTime = [math]::Round($avgGenTime.TotalMilliseconds, 2)
+    }
+
+    if ($playbackDurations.Count -gt 0) {
+        $metrics.AveragePlaybackDuration = [math]::Round(($playbackDurations | Measure-Object -Average).Average, 2)
+    }
+
+    Write-Host "Performance Metrics:" -ForegroundColor Cyan
+    Write-Host "  Success Rate: $($metrics.SuccessRate)%" -ForegroundColor Yellow
+    Write-Host "  Cache Hit Rate: $($metrics.CacheHitRate)%" -ForegroundColor Yellow
+    Write-Host "  Avg Generation Time: $($metrics.AverageGenerationTime)ms" -ForegroundColor Yellow
+    Write-Host "  Avg Playback Duration: $($metrics.AveragePlaybackDuration)ms" -ForegroundColor Yellow
+
+    return $metrics
+}
+
+# Run tests
+$testResults = @{}
+
+if ($EnableVoicePlayback) {
+    $testResults.PlaybackResults = Test-VoicePlayback
+}
+
+if ($TestOfflineMode) {
+    $testResults.OfflineResults = Test-OfflineMode
+}
+
+$testResults.QueueResults = Test-VoiceQueue
+$testResults.PerformanceMetrics = Test-PerformanceMetrics
+
+if ($EnableBadgeTrigger) {
+    $testResults.BadgeResults = Test-BadgeTriggers
+}
+
+# Generate test report
+if ($GenerateTestReport) {
+    Write-Host ""
+    Write-Host "=== Generating Test Report ===" -ForegroundColor Cyan
+
+    $reportData = @{
+        TestRun = @{
+            StartTime = $testConfig.StartTime
+            EndTime = Get-Date
+            Duration = ((Get-Date) - $testConfig.StartTime).TotalSeconds
+            Environment = $TestEnvironment
+            Configuration = @{
+                VoiceInstructions = $VoiceInstructions
+                TtsEngine = $TtsEngine
+                VoiceLanguage = $VoiceLanguage
+                VoiceName = $VoiceName
+                PlaybackDelayMs = $PlaybackDelayMs
+                CacheVoiceFiles = $CacheVoiceFiles
+                EnableVoicePlayback = $EnableVoicePlayback
+                TestOfflineMode = $TestOfflineMode
+                EnableBadgeTrigger = $EnableBadgeTrigger
+            }
+        }
+        Results = @{
+            TotalInstructions = $VoiceInstructions
+            VoiceFilesGenerated = $testConfig.VoiceFilesGenerated
+            VoiceFilesPlayed = $testConfig.VoiceFilesPlayed
+            CacheHits = $testConfig.CacheHits
+            OfflineTestsPassed = $testConfig.OfflineTestsPassed
+            SuccessRate = [math]::Round(($testConfig.VoiceFilesPlayed / $VoiceInstructions) * 100, 2)
+            BadgeTriggers = $testResults.BadgeResults | ForEach-Object {
+                @{
+                    BadgeName = $_.BadgeName
+                    Triggered = $_.Triggered
+                    Reason = $_.TriggerReason
+                    Details = $_.Details
+                }
+            }
+        }
+        DetailedResults = @{
+            PlaybackResults = $testResults.PlaybackResults | ForEach-Object {
+                @{
+                    InstructionId = $_.InstructionId
+                    Text = $_.Text
+                    Generated = $_.Generated
+                    Played = $_.Played
+                    Cached = $_.Cached
+                    GenerationTime = $_.GenerationTime
+                    PlaybackTime = $_.PlaybackTime
+                    PlaybackDuration = $_.PlaybackDuration.ToString()
+                    CacheFilePath = $_.CacheFilePath
+                    ErrorMessage = $_.ErrorMessage
+                }
+            }
+            OfflineResults = $testResults.OfflineResults | ForEach-Object {
+                @{
+                    InstructionId = $_.InstructionId
+                    Text = $_.Text
+                    Generated = $_.Generated
+                    Played = $_.Played
+                    Cached = $_.Cached
+                    ErrorMessage = $_.ErrorMessage
+                }
+            }
+            PerformanceMetrics = $testResults.PerformanceMetrics
+        }
+    }
+
+    $reportPath = Join-Path $testOutputPath "voice-guidance-test-report.json"
+    $reportData | ConvertTo-Json -Depth 10 | Out-File -FilePath $reportPath -Encoding UTF8
+
+    Write-Host "Test report generated: $reportPath" -ForegroundColor Green
+}
+
+# Summary
+Write-Host ""
+Write-Host "=== Voice Guidance Test Summary ===" -ForegroundColor Cyan
+Write-Host "Total Instructions: $($VoiceInstructions)" -ForegroundColor White
+Write-Host "Voice Files Generated: $($testConfig.VoiceFilesGenerated)" -ForegroundColor Cyan
+Write-Host "Voice Files Played: $($testConfig.VoiceFilesPlayed)" -ForegroundColor Green
+Write-Host "Cache Hits: $($testConfig.CacheHits)" -ForegroundColor Yellow
+Write-Host "Offline Tests Passed: $($testConfig.OfflineTestsPassed)" -ForegroundColor Magenta
+Write-Host "Success Rate: $([math]::Round(($testConfig.VoiceFilesPlayed / $VoiceInstructions) * 100, 2))%" -ForegroundColor Yellow
+
+if ($testResults.BadgeResults) {
+    Write-Host "Badge Triggers: $($testResults.BadgeResults.Count)" -ForegroundColor Magenta
+    foreach ($badge in $testResults.BadgeResults) {
+        if ($badge.Triggered) {
+            Write-Host "  ✓ $($badge.BadgeName): $($badge.Details)" -ForegroundColor Green
+        }
+    }
+}
+
+Write-Host ""
+Write-Host "=== Voice Guidance Test Completed ===" -ForegroundColor Cyan
+
+# Return test results for CI/CD integration
+return @{
+    Success = $testConfig.VoiceFilesPlayed -ge ($VoiceInstructions * 0.8)  # 80% success rate required
+    TotalInstructions = $VoiceInstructions
+    VoiceFilesGenerated = $testConfig.VoiceFilesGenerated
+    VoiceFilesPlayed = $testConfig.VoiceFilesPlayed
+    SuccessRate = [math]::Round(($testConfig.VoiceFilesPlayed / $VoiceInstructions) * 100, 2)
+    CacheHits = $testConfig.CacheHits
+    OfflineTestsPassed = $testConfig.OfflineTestsPassed
+    BadgeTriggers = $testResults.BadgeResults.Count
+    TestDuration = ((Get-Date) - $testConfig.StartTime).TotalSeconds
+}

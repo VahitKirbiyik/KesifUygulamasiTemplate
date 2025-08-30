@@ -1,0 +1,68 @@
+{
+  "ApiKeys": {
+    "GoogleMaps": {
+      "ApiKey": "YOUR_GOOGLE_MAPS_API_KEY_HERE",
+      "DirectionsApiUrl": "https://maps.googleapis.com/maps/api/directions/json",
+      "PlacesApiUrl": "https://maps.googleapis.com/maps/api/place",
+      "MapsApiUrl": "https://maps.googleapis.com/maps/api/js"
+    },
+    "Mapbox": {
+      "ApiKey": "YOUR_MAPBOX_API_KEY_HERE",
+      "DirectionsApiUrl": "https://api.mapbox.com/directions/v5/mapbox/driving",
+      "GeocodingApiUrl": "https://api.mapbox.com/geocoding/v5/mapbox.places",
+      "StylesApiUrl": "https://api.mapbox.com/styles/v1"
+    },
+    "Here": {
+      "ApiKey": "YOUR_HERE_API_KEY_HERE",
+      "AppId": "YOUR_HERE_APP_ID_HERE",
+      "RoutingUrl": "https://router.hereapi.com/v8/routes",
+      "GeocodingUrl": "https://geocode.search.hereapi.com/v1/geocode",
+      "MatrixUrl": "https://matrix.router.hereapi.com/v8/matrix"
+    },
+    "OpenWeatherMap": {
+      "ApiKey": "YOUR_OPENWEATHER_API_KEY_HERE",
+      "BaseUrl": "https://api.openweathermap.org/data/2.5",
+      "OneCallUrl": "https://api.openweathermap.org/data/3.0/onecall"
+    },
+    "AppCenter": {
+      "AndroidSecret": "YOUR_APPCENTER_ANDROID_SECRET",
+      "iOSSecret": "YOUR_APPCENTER_IOS_SECRET",
+      "AnalyticsEnabled": true,
+      "CrashesEnabled": true
+    }
+  },
+  "MapSettings": {
+    "DefaultZoomLevel": 15,
+    "MaxZoomLevel": 20,
+    "MinZoomLevel": 3,
+    "TileServerUrl": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "CacheSizeMB": 500,
+    "CacheExpiryDays": 30
+  },
+  "NotificationSettings": {
+    "NavigationEnabled": true,
+    "WeatherAlertsEnabled": true,
+    "EmergencyPointsEnabled": true,
+    "FavoritePlacesEnabled": true,
+    "MoonCompassEnabled": true,
+    "DefaultSoundEnabled": true
+  },
+  "PrivacySettings": {
+    "LocationTrackingEnabled": true,
+    "AnalyticsEnabled": true,
+    "CrashReportingEnabled": true,
+    "DataSharingEnabled": false
+  },
+  "DonationSettings": {
+    "PayPal": {
+      "ButtonId": "YOUR_PAYPAL_BUTTON_ID",
+      "Currency": "USD",
+      "Language": "en_US"
+    },
+    "Stripe": {
+      "PublishableKey": "YOUR_STRIPE_PUBLISHABLE_KEY",
+      "PriceId": "YOUR_STRIPE_PRICE_ID",
+      "Currency": "usd"
+    }
+  }
+}

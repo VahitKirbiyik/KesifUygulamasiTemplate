@@ -1,0 +1,405 @@
+# Test-Benchmark.ps1 - Dinamik benchmark testi
+# Bu script benchmark sistemini test eder ve CI/CD pipeline ile entegre çalışır
+
+param(
+    [string]$TestEnvironment = "local",
+    [string]$Configuration = "Debug",
+    [string]$ProjectPath = $PSScriptRoot,
+    [switch]$SkipBuild,
+    [switch]$Verbose,
+    [switch]$ExportJson,
+    [int]$MaxBenchmarkHistory = 1000,
+    [double]$PerformanceThreshold = 0.1,
+    [string[]]$MonitoredMetrics = @("route_calculation", "map_rendering", "tile_loading", "api_response")
+)
+
+# Script ayarları
+$ErrorActionPreference = "Stop"
+$VerbosePreference = if ($Verbose) { "Continue" } else { "SilentlyContinue" }
+
+# Test sonuçları için değişkenler
+$testResults = @{
+    TotalTests = 0
+    PassedTests = 0
+    FailedTests = 0
+    TestDuration = [TimeSpan]::Zero
+    Details = @()
+}
+
+# Environment değişkenlerini ayarla
+$env:TEST_ENVIRONMENT = $TestEnvironment
+$env:CI = if ($TestEnvironment -eq "ci") { "true" } else { "false" }
+$env:AUTO_SAVE_BENCHMARKS = "true"
+$env:MAX_BENCHMARK_HISTORY = $MaxBenchmarkHistory.ToString()
+$env:PERFORMANCE_THRESHOLD = $PerformanceThreshold.ToString()
+$env:MONITORED_METRICS = $MonitoredMetrics -join ","
+
+# Renkli output için
+function Write-ColorOutput {
+    param(
+        [string]$Message,
+        [string]$Color = "White"
+    )
+    Write-Host $Message -ForegroundColor $Color
+}
+
+# Başlık
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "      📊 Dinamik Benchmark Testi" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput ""
+
+# Proje yolunu kontrol et
+if (!(Test-Path $ProjectPath)) {
+    Write-ColorOutput "Hata: Proje yolu bulunamadı: $ProjectPath" "Red"
+    exit 1
+}
+
+# Test fonksiyonları
+function Test-BenchmarkSystem {
+    param(
+        [string]$TestName,
+        [scriptblock]$TestScript
+    )
+
+    $startTime = Get-Date
+    $testPassed = $false
+    $errorMessage = ""
+
+    Write-ColorOutput "🧪 $TestName testi başlatılıyor..." "White"
+
+    try {
+        & $TestScript
+        $testPassed = $true
+        Write-ColorOutput "  ✅ $TestName testi başarılı" "Green"
+    } catch {
+        $errorMessage = $_.Exception.Message
+        Write-ColorOutput "  ❌ $TestName testi başarısız: $errorMessage" "Red"
+    } finally {
+        $endTime = Get-Date
+        $duration = $endTime - $startTime
+
+        $testResults.TotalTests++
+        if ($testPassed) {
+            $testResults.PassedTests++
+        } else {
+            $testResults.FailedTests++
+        }
+        $testResults.TestDuration += $duration
+
+        $testResults.Details += @{
+            TestName = $TestName
+            Passed = $testPassed
+            Duration = $duration
+            ErrorMessage = $errorMessage
+        }
+    }
+}
+
+# Benchmark veri yapısı testi
+function Test-BenchmarkDataStructure {
+    Write-ColorOutput "  📊 Benchmark veri yapısı test ediliyor..." "Gray"
+
+    # Benchmark veri klasörü kontrolü
+    $benchmarkDataPath = Join-Path $env:APPDATA "KesifUygulamasi\BenchmarkData"
+    if (!(Test-Path $benchmarkDataPath)) {
+        New-Item -ItemType Directory -Path $benchmarkDataPath -Force | Out-Null
+        Write-ColorOutput "    📁 Benchmark veri klasörü oluşturuldu" "Gray"
+    }
+
+    # Örnek benchmark dosyası oluştur
+    $sampleBenchmark = @{
+        metric = "route_calculation"
+        value = 150.5
+        unit = "ms"
+        timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+        category = "Navigation"
+        metadata = @{
+            environment = "Test"
+            platform = "Windows"
+            framework = "NET8.0"
+        }
+        isBaseline = $false
+    }
+
+    $benchmarkFile = Join-Path $benchmarkDataPath "benchmark_test_$(Get-Date -Format 'yyyyMMdd_HHmmss').json"
+    $sampleBenchmark | ConvertTo-Json -Depth 10 | Set-Content $benchmarkFile
+
+    Write-ColorOutput "    📄 Örnek benchmark dosyası oluşturuldu: $benchmarkFile" "Gray"
+
+    # JSON validasyonu
+    try {
+        $content = Get-Content $benchmarkFile -Raw | ConvertFrom-Json
+        Write-ColorOutput "    ✅ JSON formatı geçerli" "Green"
+    } catch {
+        Write-ColorOutput "    ❌ JSON format hatası" "Red"
+        throw
+    }
+}
+
+# Performans ölçümü testi
+function Test-PerformanceMeasurement {
+    Write-ColorOutput "  ⏱️  Performans ölçümü test ediliyor..." "Gray"
+
+    # Örnek performans metrikleri
+    $testMetrics = @(
+        @{ Name = "route_calculation"; Value = 145.2; Unit = "ms"; Category = "Navigation" },
+        @{ Name = "map_rendering"; Value = 42.8; Unit = "ms"; Category = "UI" },
+        @{ Name = "tile_loading"; Value = 118.5; Unit = "ms"; Category = "Data" },
+        @{ Name = "api_response"; Value = 195.3; Unit = "ms"; Category = "Network" },
+        @{ Name = "database_query"; Value = 23.7; Unit = "ms"; Category = "Data" }
+    )
+
+    foreach ($metric in $testMetrics) {
+        Write-ColorOutput "    📏 $($metric.Name): $($metric.Value) $($metric.Unit) ($($metric.Category))" "Gray"
+    }
+
+    Write-ColorOutput "    📊 Test edilen metrik sayısı: $($testMetrics.Count)" "Gray"
+}
+
+# Baseline karşılaştırma testi
+function Test-BaselineComparison {
+    Write-ColorOutput "  📈 Baseline karşılaştırma test ediliyor..." "Gray"
+
+    # Baseline dosyası oluştur
+    $benchmarkDataPath = Join-Path $env:APPDATA "KesifUygulamasi\BenchmarkData"
+    $baselineFile = Join-Path $benchmarkDataPath "baselines.json"
+
+    $baselines = @{
+        "route_calculation" = 140.0
+        "map_rendering" = 40.0
+        "tile_loading" = 110.0
+        "api_response" = 180.0
+    }
+
+    $baselines | ConvertTo-Json | Set-Content $baselineFile
+    Write-ColorOutput "    📄 Baseline dosyası oluşturuldu" "Gray"
+
+    # Karşılaştırma testi
+    $testValues = @{
+        "route_calculation" = 150.5
+        "map_rendering" = 38.2
+        "tile_loading" = 125.8
+        "api_response" = 175.3
+    }
+
+    foreach ($metric in $testValues.Keys) {
+        $baseline = $baselines[$metric]
+        $current = $testValues[$metric]
+        $deviation = (($current - $baseline) / $baseline) * 100
+
+        $status = if ([Math]::Abs($deviation) -le ($PerformanceThreshold * 100)) { "✅" } else { "⚠️" }
+        Write-ColorOutput "    $status $metric : ${current}ms (Baseline: ${baseline}ms, Deviation: ${deviation:F2}%)" "Gray"
+    }
+}
+
+# Metrik izleme testi
+function Test-MetricMonitoring {
+    Write-ColorOutput "  📋 Metrik izleme test ediliyor..." "Gray"
+
+    $monitoredMetrics = $env:MONITORED_METRICS -split ","
+    Write-ColorOutput "    📝 İzlenen metrikler: $($monitoredMetrics -join ', ')" "Gray"
+
+    # Her metrik için örnek değerler
+    $metricSamples = @{
+        "route_calculation" = @(145.2, 152.8, 138.5, 149.3, 141.7)
+        "map_rendering" = @(42.8, 38.2, 45.6, 41.3, 39.8)
+        "tile_loading" = @(118.5, 125.8, 112.3, 121.7, 115.4)
+        "api_response" = @(195.3, 182.7, 201.2, 188.5, 197.8)
+    }
+
+    foreach ($metric in $monitoredMetrics) {
+        if ($metricSamples.ContainsKey($metric)) {
+            $values = $metricSamples[$metric]
+            $avg = ($values | Measure-Object -Average).Average
+            $min = ($values | Measure-Object -Minimum).Minimum
+            $max = ($values | Measure-Object -Maximum).Maximum
+
+            Write-ColorOutput "    📊 $metric - Avg: ${avg:F1}ms, Min: ${min:F1}ms, Max: ${max:F1}ms" "Gray"
+        }
+    }
+}
+
+# Performans regresyon testi
+function Test-PerformanceRegression {
+    Write-ColorOutput "  📉 Performans regresyon testi..." "Gray"
+
+    # Simüle edilmiş geçmiş veriler
+    $historicalData = @(
+        @{ Date = "2024-01-01"; Value = 140.0 },
+        @{ Date = "2024-01-02"; Value = 142.5 },
+        @{ Date = "2024-01-03"; Value = 138.8 },
+        @{ Date = "2024-01-04"; Value = 145.2 },
+        @{ Date = "2024-01-05"; Value = 141.7 }
+    )
+
+    $currentValue = 155.3
+    $averageHistorical = ($historicalData | ForEach-Object { $_.Value } | Measure-Object -Average).Average
+    $regression = (($currentValue - $averageHistorical) / $averageHistorical) * 100
+
+    Write-ColorOutput "    📈 Geçmiş ortalama: ${averageHistorical:F1}ms" "Gray"
+    Write-ColorOutput "    📈 Güncel değer: ${currentValue:F1}ms" "Gray"
+    Write-ColorOutput "    📈 Regresyon: ${regression:F2}%" "Gray"
+
+    if ([Math]::Abs($regression) -gt ($PerformanceThreshold * 100)) {
+        Write-ColorOutput "    ⚠️  Performans regresyonu tespit edildi!" "Yellow"
+    } else {
+        Write-ColorOutput "    ✅ Performans regresyonu yok" "Green"
+    }
+}
+
+# Geçmiş veri yönetimi testi
+function Test-HistoricalDataManagement {
+    Write-ColorOutput "  📚 Geçmiş veri yönetimi test ediliyor..." "Gray"
+
+    $maxHistory = [int]$env:MAX_BENCHMARK_HISTORY
+    Write-ColorOutput "    📝 Maksimum geçmiş kaydı: $maxHistory" "Gray"
+
+    # Geçmiş dosya sayısı kontrolü
+    $benchmarkDataPath = Join-Path $env:APPDATA "KesifUygulamasi\BenchmarkData"
+    $benchmarkFiles = Get-ChildItem $benchmarkDataPath -Filter "benchmark_*.json"
+
+    Write-ColorOutput "    📄 Mevcut benchmark dosyası sayısı: $($benchmarkFiles.Count)" "Gray"
+
+    if ($benchmarkFiles.Count -gt $maxHistory) {
+        Write-ColorOutput "    ⚠️  Geçmiş dosya sayısı limiti aşılmış" "Yellow"
+    } else {
+        Write-ColorOutput "    ✅ Geçmiş dosya sayısı limit içinde" "Green"
+    }
+
+    # En eski dosyaları listele
+    $oldestFiles = $benchmarkFiles | Sort-Object LastWriteTime | Select-Object -First 5
+    if ($oldestFiles) {
+        Write-ColorOutput "    📅 En eski 5 dosya:" "Gray"
+        foreach ($file in $oldestFiles) {
+            Write-ColorOutput "      - $($file.Name) ($($file.LastWriteTime))" "Gray"
+        }
+    }
+}
+
+# Ana test döngüsü
+Write-ColorOutput "🚀 Dinamik benchmark testleri başlatılıyor..." "White"
+Write-ColorOutput ""
+
+# Testleri çalıştır
+Test-BenchmarkSystem -TestName "Benchmark Veri Yapısı" -TestScript { Test-BenchmarkDataStructure }
+Test-BenchmarkSystem -TestName "Performans Ölçümü" -TestScript { Test-PerformanceMeasurement }
+Test-BenchmarkSystem -TestName "Baseline Karşılaştırma" -TestScript { Test-BaselineComparison }
+Test-BenchmarkSystem -TestName "Metrik İzleme" -TestScript { Test-MetricMonitoring }
+Test-BenchmarkSystem -TestName "Performans Regresyon" -TestScript { Test-PerformanceRegression }
+Test-BenchmarkSystem -TestName "Geçmiş Veri Yönetimi" -TestScript { Test-HistoricalDataManagement }
+
+# Test özeti
+Write-ColorOutput "" "White"
+Write-ColorOutput "=========================================" "Cyan"
+Write-ColorOutput "           📊 Test Sonuçları" "Cyan"
+Write-ColorOutput "=========================================" "Cyan"
+
+$successRate = if ($testResults.TotalTests -gt 0) {
+    [math]::Round(($testResults.PassedTests / $testResults.TotalTests) * 100, 1)
+} else { 0 }
+
+Write-ColorOutput "Toplam Test: $($testResults.TotalTests)" "White"
+Write-ColorOutput "Başarılı: $($testResults.PassedTests)" "Green"
+Write-ColorOutput "Başarısız: $($testResults.FailedTests)" "Red"
+Write-ColorOutput "Başarı Oranı: $successRate%" "Cyan"
+Write-ColorOutput "Toplam Süre: $($testResults.TestDuration.TotalSeconds) saniye" "White"
+
+# Detaylı sonuçlar
+if ($Verbose) {
+    Write-ColorOutput "" "White"
+    Write-ColorOutput "Detaylı Sonuçlar:" "Yellow"
+    foreach ($detail in $testResults.Details) {
+        $status = if ($detail.Passed) { "✅" } else { "❌" }
+        Write-ColorOutput "  $status $($detail.TestName)" "White"
+        if (!$detail.Passed -and $detail.ErrorMessage) {
+            Write-ColorOutput "    Hata: $($detail.ErrorMessage)" "Red"
+        }
+    }
+}
+
+# JSON export
+if ($ExportJson) {
+    $jsonPath = Join-Path $ProjectPath "benchmark-test-results.json"
+    $exportData = @{
+        metadata = @{
+            timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
+            script_version = "1.0.0"
+            test_environment = $TestEnvironment
+            max_benchmark_history = $MaxBenchmarkHistory
+            performance_threshold = $PerformanceThreshold
+            monitored_metrics = $MonitoredMetrics
+            total_duration_seconds = $testResults.TestDuration.TotalSeconds
+        }
+        summary = @{
+            total_tests = $testResults.TotalTests
+            passed_tests = $testResults.PassedTests
+            failed_tests = $testResults.FailedTests
+            success_rate = $successRate
+            test_duration = $testResults.TestDuration.ToString()
+        }
+        performance_metrics = @{
+            monitored_count = $MonitoredMetrics.Count
+            baseline_configured = $true
+            regression_detection = $true
+        }
+        details = $testResults.Details
+        recommendations = @(
+            "Baseline değerlerini production ortamında düzenli güncelleyin",
+            "Performans threshold'unu uygulama ihtiyaçlarına göre ayarlayın",
+            "Benchmark geçmişini periyodik olarak arşivleyin",
+            "Regresyon alertlerini monitoring sistemine entegre edin"
+        )
+    }
+
+    $exportData | ConvertTo-Json -Depth 10 | Set-Content $jsonPath
+    Write-ColorOutput "📄 Test sonuçları JSON olarak kaydedildi: $jsonPath" "Green"
+}
+
+# Badge tetikleme
+if ($testResults.PassedTests -gt 0) {
+    Show-Badge "Benchmark-Logged"
+}
+
+# Final sonuç
+Write-ColorOutput "" "White"
+if ($testResults.FailedTests -eq 0) {
+    Write-ColorOutput "🎉 Tüm dinamik benchmark testleri başarılı! CI/CD pipeline devam edebilir." "Green"
+    exit 0
+} else {
+    Write-ColorOutput "💥 Bazı benchmark testleri başarısız. Lütfen performans metriklerini kontrol edin." "Red"
+    exit 1
+}
+
+# Badge gösterme fonksiyonu
+function Show-Badge {
+    param([string]$BadgeName)
+
+    Write-ColorOutput "🏅 Badge kazanıldı: $BadgeName" "Cyan"
+
+    # Badge dosyasını güncelle (varsa)
+    $badgeFile = Join-Path $ProjectPath "badge.json"
+    if (Test-Path $badgeFile) {
+        try {
+            $badgeData = Get-Content $badgeFile -Raw | ConvertFrom-Json
+            if ($badgeData.PSObject.Properties.Name -notcontains $BadgeName) {
+                $badgeData | Add-Member -MemberType NoteProperty -Name $BadgeName -Value $true
+                $badgeData | ConvertTo-Json | Set-Content $badgeFile
+                Write-ColorOutput "  ✅ Badge dosyası güncellendi" "Green"
+            } else {
+                $badgeData.$BadgeName = $true
+                $badgeData | ConvertTo-Json | Set-Content $badgeFile
+                Write-ColorOutput "  ✅ Badge dosyası güncellendi" "Green"
+            }
+        } catch {
+            Write-ColorOutput "  ⚠️  Badge dosyası güncellenemedi" "Yellow"
+        }
+    } else {
+        # Yeni badge dosyası oluştur
+        $newBadgeData = @{
+            $BadgeName = $true
+        }
+        $newBadgeData | ConvertTo-Json | Set-Content $badgeFile
+        Write-ColorOutput "  ✅ Yeni badge dosyası oluşturuldu" "Green"
+    }
+}

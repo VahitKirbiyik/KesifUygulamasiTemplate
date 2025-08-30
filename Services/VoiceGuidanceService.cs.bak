@@ -1,0 +1,270 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Linq;
+using Microsoft.Maui.Media;
+using Microsoft.Maui.Controls;
+using KesifUygulamasiTemplate.Services;
+using KesifUygulamasiTemplate.Services.Interfaces;
+
+namespace KesifUygulamasiTemplate.Services
+{
+    /// <summary>
+    /// Turn-by-turn navigasyon adımlarını sesli olarak oynatan servis
+    /// Android TTS API ve platform bağımsız TextToSpeech kullanır
+    /// </summary>
+    public class VoiceGuidanceService
+    {
+        private readonly NavigationVoiceService _voiceService;
+        private readonly SettingsService _settingsService;
+        private bool _isVoiceEnabled = true;
+        private bool _isCurrentlySpeaking = false;
+        private Queue<string> _speechQueue = new Queue<string>();
+
+        public bool IsVoiceEnabled
+        {
+            get => _isVoiceEnabled;
+            set
+            {
+                _isVoiceEnabled = value;
+                OnVoiceSettingsChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        public event EventHandler? OnVoiceSettingsChanged;
+        public event EventHandler<string>? OnSpeechStarted;
+        public event EventHandler<string>? OnSpeechCompleted;
+
+        public VoiceGuidanceService(NavigationVoiceService voiceService, SettingsService settingsService)
+        {
+            _voiceService = voiceService ?? throw new ArgumentNullException(nameof(voiceService));
+            _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
+
+            // Ayarları yükle
+            LoadVoiceSettings();
+        }
+
+        /// <summary>
+        /// Ses ayarlarını yükler
+        /// </summary>
+        private void LoadVoiceSettings()
+        {
+            try
+            {
+                // SettingsService'den ses ayarlarını yükle
+                _isVoiceEnabled = _settingsService.GetSetting<bool>("VoiceGuidanceEnabled", true);
+            }
+            catch
+            {
+                // Varsayılan değerleri kullan
+                _isVoiceEnabled = true;
+            }
+        }
+
+        /// <summary>
+        /// Ses ayarlarını kaydeder
+        /// </summary>
+        public void SaveVoiceSettings()
+        {
+            try
+            {
+                _settingsService.SaveSetting<bool>("VoiceGuidanceEnabled", _isVoiceEnabled);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Ses ayarları kaydedilirken hata: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Turn-by-turn navigasyon adımını sesli olarak oynatır
+        /// </summary>
+        public async Task SpeakNavigationStepAsync(NavigationStep step)
+        {
+            if (!IsVoiceEnabled || step == null)
+                return;
+
+            string speechText = GenerateSpeechText(step);
+            await SpeakTextAsync(speechText);
+        }
+
+        /// <summary>
+        /// Birden fazla navigasyon adımını sırayla sesli olarak oynatır
+        /// </summary>
+        public async Task SpeakNavigationStepsAsync(IEnumerable<NavigationStep> steps)
+        {
+            if (!IsVoiceEnabled || steps == null)
+                return;
+
+            foreach (var step in steps)
+            {
+                await SpeakNavigationStepAsync(step);
+
+                // Adımlar arası kısa bekleme
+                await Task.Delay(500);
+            }
+        }
+
+        /// <summary>
+        /// Özel metni sesli olarak oynatır
+        /// </summary>
+        public async Task SpeakTextAsync(string text)
+        {
+            if (!IsVoiceEnabled || string.IsNullOrWhiteSpace(text))
+                return;
+
+            try
+            {
+                OnSpeechStarted?.Invoke(this, text);
+
+                await _voiceService.SpeakAsync(text);
+
+                OnSpeechCompleted?.Invoke(this, text);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Ses oynatma hatası: {ex.Message}");
+
+                // Fallback olarak basit mesaj göster
+                if (Application.Current?.MainPage != null)
+                {
+                    await Application.Current.MainPage.DisplayAlert("Ses Hatası",
+                        "Sesli yönlendirme oynatılamadı. Lütfen TTS ayarlarınızı kontrol edin.", "Tamam");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Navigasyon adımından konuşma metni üretir
+        /// </summary>
+        private string GenerateSpeechText(NavigationStep step)
+        {
+            if (step == null)
+                return string.Empty;
+
+            string direction = GetDirectionText(step.Maneuver);
+            string distance = FormatDistance(step.Distance);
+            string street = string.IsNullOrWhiteSpace(step.StreetName) ? "" : $" {step.StreetName}";
+
+            if (step.Distance < 50) // Çok yakınsa sadece yön bilgisi ver
+            {
+                return $"{direction}{street}";
+            }
+            else if (step.Distance < 500) // Orta mesafe
+            {
+                return $"{distance} sonra {direction}{street}";
+            }
+            else // Uzun mesafe
+            {
+                return $"{distance} sonra {direction}{street}";
+            }
+        }
+
+        /// <summary>
+        /// Maneuver tipinden Türkçe yön metni üretir
+        /// </summary>
+        private string GetDirectionText(string maneuver)
+        {
+            if (string.IsNullOrEmpty(maneuver))
+                return "devam edin";
+
+            return maneuver.ToLower() switch
+            {
+                "turn-left" => "sola dönün",
+                "turn-right" => "sağa dönün",
+                "turn-slight-left" => "hafif sola dönün",
+                "turn-slight-right" => "hafif sağa dönün",
+                "turn-sharp-left" => "keskin sola dönün",
+                "turn-sharp-right" => "keskin sağa dönün",
+                "u-turn" => "dönüş yapın",
+                "straight" => "düz devam edin",
+                "roundabout" => "çevirmeye girin",
+                "merge" => "birleşin",
+                "fork-left" => "soldaki yola girin",
+                "fork-right" => "sağdaki yola girin",
+                "ramp-left" => "soldaki rampa",
+                "ramp-right" => "sağdaki rampa",
+                "keep-left" => "solda kalın",
+                "keep-right" => "sağda kalın",
+                _ => "devam edin"
+            };
+        }
+
+        /// <summary>
+        /// Mesafeyi kullanıcı dostu formata çevirir
+        /// </summary>
+        private string FormatDistance(double distanceInMeters)
+        {
+            if (distanceInMeters < 100)
+            {
+                return $"{Math.Round(distanceInMeters)} metre";
+            }
+            else if (distanceInMeters < 1000)
+            {
+                return $"{Math.Round(distanceInMeters / 10) * 10} metre";
+            }
+            else
+            {
+                double km = distanceInMeters / 1000;
+                return $"{km:F1} kilometre";
+            }
+        }
+
+        /// <summary>
+        /// Sesli yönlendirmeyi durdurur
+        /// </summary>
+        public void StopSpeaking()
+        {
+            // TextToSpeech.Default'te stop metodu yok, ancak gelecek sürümlerde eklenebilir
+            _speechQueue.Clear();
+        }
+
+        /// <summary>
+        /// Mevcut konuşma durumunu döndürür
+        /// </summary>
+        public bool IsSpeaking => _isCurrentlySpeaking;
+
+        /// <summary>
+        /// Kullanılabilir ses dillerini döndürür
+        /// </summary>
+        public async Task<string[]> GetAvailableVoicesAsync()
+        {
+            try
+            {
+                return await _voiceService.GetAvailableLocalesAsync();
+            }
+            catch
+            {
+                return new[] { "tr", "en" }; // Fallback
+            }
+        }
+
+        /// <summary>
+        /// Tercih edilen ses dilini ayarlar
+        /// </summary>
+        public async Task SetPreferredVoiceAsync(string locale)
+        {
+            try
+            {
+                await _voiceService.SetPreferredLocaleAsync(locale);
+                _settingsService.SaveSetting<string>("PreferredVoiceLocale", locale);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Ses dili ayarlanırken hata: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Navigasyon adımı modeli
+    /// </summary>
+    public class NavigationStep
+    {
+        public string Maneuver { get; set; } = "";
+        public double Distance { get; set; } // Metre cinsinden
+        public string StreetName { get; set; } = "";
+        public TimeSpan Duration { get; set; }
+        public string Instruction { get; set; } = "";
+    }
+}

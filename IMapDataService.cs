@@ -1,9 +1,1 @@
-public interface IMapDataService
-{
-    Task<bool> SyncMapDataAsync(double latitude, double longitude, int radiusKm, int maxZoom = 15);
-    Task<IEnumerable<MapTile>> GetOfflineTilesAsync(double north, double south, double east, double west, int zoomLevel);
-    Task<bool> HasOfflineCoverageAsync(double latitude, double longitude, int zoomLevel);
-    Task<int> GetOfflineMapSizeMBAsync();
-    Task<bool> ClearExpiredTilesAsync();
-    Task<bool> ClearAllTilesAsync();
-}
+using System.Collections.Generic;\nusing System.Threading.Tasks;\nusing KesifUygulamasiTemplate.Models;\n\npublic interface IMapDataService\n{\n    Task<bool> SyncMapDataAsync(double latitude, double longitude, int radiusKm, int maxZoom = 15);\n    Task<IEnumerable<MapTile>> GetOfflineTilesAsync(double north, double south, double east, double west, int zoomLevel);\n    Task<bool> HasOfflineCoverageAsync(double latitude, double longitude, int zoomLevel);\n    Task<int> GetOfflineMapSizeMBAsync();\n    Task<bool> ClearExpiredTilesAsync();\n    Task<bool> ClearAllTilesAsync();\n}\n

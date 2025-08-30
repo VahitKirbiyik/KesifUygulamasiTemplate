@@ -1,26 +1,26 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.yourcompany.kesifuygamamasi">
+    <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.vahit.kesifuygulamasi">
 
     <!-- Konum izinleri -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-    
-    <!-- AR özellikleri için kamera izni -->
+
+    <!-- AR Ã¶zellikleri iÃ§in kamera izni -->
     <uses-permission android:name="android.permission.CAMERA" />
-    
-    <!-- Veri senkronizasyonu için internet izni -->
+
+    <!-- Veri senkronizasyonu iÃ§in internet izni -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    
-    <!-- Önbellek için depolama izinleri -->
+
+    <!-- Ã–nbellek iÃ§in depolama izinleri -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    
-    <!-- Bildirimler için titreþim izni -->
+
+    <!-- Bildirimler iÃ§in titreÅŸim izni -->
     <uses-permission android:name="android.permission.VIBRATE" />
-    
-    <!-- AR Core özellikleri -->
+
+    <!-- AR Core Ã¶zellikleri -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
     <uses-feature android:name="android.hardware.location" android:required="false" />
@@ -28,10 +28,15 @@
 
     <application
         android:allowBackup="true"
-        android:label="KesifUygamamasi"
+        android:label="KesifApp PWA Test"
         android:icon="@mipmap/appicon"
         android:theme="@style/Maui.SplashTheme"
         android:usesCleartextTraffic="true">
+
+        <!-- Google Maps API Key -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/google_maps_key" />
 
         <activity
             android:name=".MainActivity"
@@ -48,7 +53,7 @@
 
         </activity>
         
-        <!-- Widget Saðlayýcý -->
+        <!-- Widget Saï¿½layï¿½cï¿½ -->
         <receiver android:name=".Platforms.Android.Widgets.MoonWidgetProvider" 
                   android:exported="true">
             <intent-filter>
